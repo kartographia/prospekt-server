@@ -48,6 +48,8 @@ public class Main {
       //Process command line args
         if (args.containsKey("-test")){
 
+            Config.initDatabase();
+
             Connection conn = null;
             try{
                 conn = Config.getDatabase().getConnection();
