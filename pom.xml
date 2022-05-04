@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+    </properties>
+
+
+  <!-- =========================================================== -->
+  <!--     Module Description                                      -->
+  <!-- =========================================================== -->
+    <groupId>com.kartographia.prospekt</groupId>
+    <artifactId>prospekt-server</artifactId>
+    <version>dev</version>
+    <packaging>jar</packaging>
+
+
+  <!-- =========================================================== -->
+  <!--     Dependency Management                                   -->
+  <!-- =========================================================== -->
+    <repositories>
+       <repository>
+         <id>javaxt.com</id>
+         <url>http://www.javaxt.com/maven</url>
+       </repository>
+    </repositories>
+    <dependencies>
+
+        <!-- JavaXT -->
+        <dependency>
+          <groupId>javaxt</groupId>
+          <artifactId>javaxt-core</artifactId>
+          <version>1.11.0</version>
+        </dependency>
+        <dependency>
+          <groupId>javaxt</groupId>
+          <artifactId>javaxt-server</artifactId>
+          <version>4.1.1</version>
+        </dependency>
+        <dependency>
+          <groupId>javaxt</groupId>
+          <artifactId>javaxt-express</artifactId>
+          <version>1.1.4</version>
+        </dependency>
+
+        <!-- PostgreSQL -->
+        <dependency>
+          <groupId>org.postgresql</groupId>
+          <artifactId>postgresql</artifactId>
+          <version>42.3.5</version>
+        </dependency>
+
+     </dependencies>
+
+
+  <!-- =========================================================== -->
+  <!--     Build Info                                              -->
+  <!-- =========================================================== -->
+    <build>
+
+
+        <!-- Tell maven to include non-java files in the jar file -->
+        <resources>
+          <resource>
+            <directory>src/main/resources</directory>
+          </resource>
+          <resource>
+            <filtering>false</filtering>
+            <directory>src/main/java</directory>
+            <excludes>
+              <exclude>**/*.java</exclude>
+            </excludes>
+          </resource>
+        </resources>
+
+
+
+        <plugins>
+
+            <!-- Copy dependencies into the lib folder -->
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Create main app -->
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
+                            <mainClass>com.kartographia.prospekt.Main</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
+      </plugins>
+    </build>
+
+</project>

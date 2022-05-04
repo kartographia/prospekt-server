@@ -1,0 +1,12 @@
+target/
+__pycache__/
+
+
+[Cc]onfig.json
+nb-configuration.xml
+
+*.log
+*.DS_Store
+*.dll
+**/test.html*
+**/!README.TXT
