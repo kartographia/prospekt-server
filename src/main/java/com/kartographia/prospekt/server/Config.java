@@ -1,4 +1,4 @@
-package com.kartographia.prospekt;
+package com.kartographia.prospekt.server;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import javaxt.express.utils.DbUtils;

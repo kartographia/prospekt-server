@@ -1,4 +1,4 @@
-package com.kartographia.prospekt;
+package com.kartographia.prospekt.server;
 import java.util.*;
 import javaxt.io.Jar;
 import javaxt.sql.*;

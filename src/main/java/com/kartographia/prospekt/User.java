@@ -11,7 +11,8 @@ import javaxt.encryption.BCrypt;
  *
  ******************************************************************************/
 
-public class User extends javaxt.sql.Model {
+public class User extends javaxt.sql.Model
+    implements java.security.Principal, javaxt.express.User {
 
     private String username;
     private String password; //bcrypt hash
@@ -27,7 +28,7 @@ public class User extends javaxt.sql.Model {
   //**************************************************************************
     public User(){
         super("user", java.util.Map.ofEntries(
-            
+
             java.util.Map.entry("username", "username"),
             java.util.Map.entry("password", "password"),
             java.util.Map.entry("accessLevel", "access_level"),
@@ -37,7 +38,7 @@ public class User extends javaxt.sql.Model {
             java.util.Map.entry("info", "info")
 
         ));
-        
+
     }
 
 
@@ -120,7 +121,10 @@ public class User extends javaxt.sql.Model {
         this.info = json.get("info").toJSONObject();
     }
 
-
+    public String getName(){
+        return username;
+    }
+    
     public String getUsername(){
         return username;
     }
@@ -176,8 +180,8 @@ public class User extends javaxt.sql.Model {
     public void setInfo(JSONObject info){
         this.info = info;
     }
-    
-    
+
+
   //**************************************************************************
   //** toJson
   //**************************************************************************
@@ -185,7 +189,7 @@ public class User extends javaxt.sql.Model {
    */
     public JSONObject toJson(){
         JSONObject json = super.toJson();
-            
+
         json.set("password", null);
 
         return json;
