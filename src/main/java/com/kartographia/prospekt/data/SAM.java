@@ -67,22 +67,35 @@ public class SAM {
             opportunity.setName(json.get("title").toString());
 
             String description = json.get("description").toString();
-//            if (description!=null){
-//                if (description.toLowerCase().startsWith("http")){
-//                    javaxt.utils.URL url = new javaxt.utils.URL(description);
-//                    url.setParameter("api_key", apiKey);
-//                    javaxt.http.Response response =
-//                    new javaxt.http.Request(url.toString()).getResponse();
-//                    if (response.getStatus()==200){
-//                        description = response.getText();
-//                    }
-//                    else{
-//                        //System.out.println(response);
-//                    }
-//                }
-//            }
-//            opportunity.setDescription(description);
+            if (description!=null){
+                if (description.toLowerCase().startsWith("http")){
+                    javaxt.utils.URL url = new javaxt.utils.URL(description);
+                    url.setParameter("api_key", apiKey);
+                    javaxt.http.Response response =
+                    new javaxt.http.Request(url.toString()).getResponse();
+                    if (response.getStatus()==200){
+                        description = response.getText();
+                    }
+                    else{
+                        //System.out.println(response);
+                    }
+                }
+            }
+            opportunity.setDescription(description);
 
+
+
+            String type = json.get("type").toString();
+            String baseType = json.get("baseType").toString();
+            if (type==null) type = baseType;
+            else{
+                if (baseType!=null){
+                    if (!baseType.equals(type)){
+                        type += "/" + baseType;
+                    }
+                }
+            }
+            opportunity.setAnnouncement(type);
 
 
             opportunity.setOrganization(json.get("fullParentPathName").toString());
@@ -97,28 +110,6 @@ public class SAM {
             opportunity.setSourceKey(json.get("noticeId").toString());
             opportunity.setActive(json.get("active").toBoolean());
             opportunity.setInfo(json);
-
-
-            /*
-            {name: 'name',              type: 'string'},
-            {name: 'description',       type: 'string'},
-            {name: 'organization',      type: 'string'}, //fullParentPathName
-            {name: 'type',              type: 'string'}, //FFP, T&M, IDIQ, etc
-            {name: 'naics',             type: 'string'},
-            {name: 'setAside',          type: 'string'},
-            {name: 'classification',    type: 'string'},
-            {name: 'postedDate',        type: 'date'},
-            {name: 'reponseDate',       type: 'date'}, //reponseDeadLine
-            {name: 'startDate',         type: 'date'},
-            {name: 'value',             type: 'long'},
-            {name: 'source',            type: 'Source'}, //sam.gov
-            {name: 'sourceKey',         type: 'string'}, //solicitationNumber
-            {name: 'active',            type: 'boolean'},
-            {name: 'info',              type: 'json'}
-            */
-
-
-
 
             opportunities.add(opportunity);
         }
