@@ -104,7 +104,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>com.kartographia.prospekt.Main</mainClass>
+                            <mainClass>com.kartographia.prospekt.server.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
