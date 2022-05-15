@@ -68,7 +68,7 @@ var models = {
             {name: 'info',         type: 'json'}
         ],
         constraints: [
-            {name: 'name',       required: true}
+            {name: 'name',       required: true,  unique: true}
         ]
     },
 
@@ -81,14 +81,16 @@ var models = {
             {name: 'name',              type: 'string'},
             {name: 'description',       type: 'string'},
             {name: 'organization',      type: 'string'}, //fullParentPathName
-            {name: 'type',              type: 'string'}, //FFP, T&M, IDIQ, etc
+            {name: 'announcement',      type: 'string'}, //RFI, RFP, etc
             {name: 'naics',             type: 'string'},
             {name: 'setAside',          type: 'string'},
             {name: 'classification',    type: 'string'},
             {name: 'postedDate',        type: 'date'},
-            {name: 'reponseDate',       type: 'date'}, //reponseDeadLine
+            {name: 'responseDate',      type: 'date'}, //reponseDeadLine
             {name: 'startDate',         type: 'date'},
-            {name: 'value',             type: 'long'},
+            {name: 'contractType',      type: 'string'}, //FFP, T&M, IDIQ, etc
+            {name: 'contractValue',     type: 'long'},
+            {name: 'contractStart',     type: 'date'},
             {name: 'source',            type: 'Source'}, //sam.gov
             {name: 'sourceKey',         type: 'string'}, //solicitationNumber
             {name: 'active',            type: 'boolean'},
@@ -102,9 +104,9 @@ var models = {
 
 
   //**************************************************************************
-  //** Tag
+  //** UserInterest
   //**************************************************************************
-    Tag: {
+    UserInterest: {
         fields: [
             {name: 'user',          type: 'User'},
             {name: 'opportunity',   type: 'Opportunity'},

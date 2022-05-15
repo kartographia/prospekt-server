@@ -91,7 +91,7 @@ public class SAM {
 
             opportunity.setClassification(json.get("classificationCode").toString());
             opportunity.setPostedDate(json.get("postedDate").toDate());
-            opportunity.setReponseDate(json.get("responseDeadLine").toDate()); //Response not Reponse
+            opportunity.setResponseDate(json.get("responseDeadLine").toDate());
 
             opportunity.setSource(getSource());
             opportunity.setSourceKey(json.get("noticeId").toString());

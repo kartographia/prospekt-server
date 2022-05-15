@@ -4,14 +4,14 @@ import java.sql.SQLException;
 
 
 //******************************************************************************
-//**  Tag Class
+//**  UserInterest Class
 //******************************************************************************
 /**
- *   Used to represent a Tag
+ *   Used to represent a UserInterest
  *
  ******************************************************************************/
 
-public class Tag extends javaxt.sql.Model {
+public class UserInterest extends javaxt.sql.Model {
 
     private User user;
     private Opportunity opportunity;
@@ -22,8 +22,8 @@ public class Tag extends javaxt.sql.Model {
   //**************************************************************************
   //** Constructor
   //**************************************************************************
-    public Tag(){
-        super("tag", java.util.Map.ofEntries(
+    public UserInterest(){
+        super("user_interest", java.util.Map.ofEntries(
             
             java.util.Map.entry("user", "user_id"),
             java.util.Map.entry("opportunity", "opportunity_id"),
@@ -40,7 +40,7 @@ public class Tag extends javaxt.sql.Model {
   //**************************************************************************
   /** Creates a new instance of this class using a record ID in the database.
    */
-    public Tag(long id) throws SQLException {
+    public UserInterest(long id) throws SQLException {
         this();
         init(id);
     }
@@ -50,9 +50,9 @@ public class Tag extends javaxt.sql.Model {
   //** Constructor
   //**************************************************************************
   /** Creates a new instance of this class using a JSON representation of a
-   *  Tag.
+   *  UserInterest.
    */
-    public Tag(JSONObject json){
+    public UserInterest(JSONObject json){
         this();
         update(json);
     }
@@ -92,7 +92,7 @@ public class Tag extends javaxt.sql.Model {
   //**************************************************************************
   //** update
   //**************************************************************************
-  /** Used to update attributes with attributes from another Tag.
+  /** Used to update attributes with attributes from another UserInterest.
    */
     public void update(JSONObject json){
 
@@ -159,25 +159,25 @@ public class Tag extends javaxt.sql.Model {
   //**************************************************************************
   //** get
   //**************************************************************************
-  /** Used to find a Tag using a given set of constraints. Example:
-   *  Tag obj = Tag.get("user_id=", user_id);
+  /** Used to find a UserInterest using a given set of constraints. Example:
+   *  UserInterest obj = UserInterest.get("user_id=", user_id);
    */
-    public static Tag get(Object...args) throws SQLException {
-        Object obj = _get(Tag.class, args);
-        return obj==null ? null : (Tag) obj;
+    public static UserInterest get(Object...args) throws SQLException {
+        Object obj = _get(UserInterest.class, args);
+        return obj==null ? null : (UserInterest) obj;
     }
 
 
   //**************************************************************************
   //** find
   //**************************************************************************
-  /** Used to find Tags using a given set of constraints.
+  /** Used to find UserInterests using a given set of constraints.
    */
-    public static Tag[] find(Object...args) throws SQLException {
-        Object[] obj = _find(Tag.class, args);
-        Tag[] arr = new Tag[obj.length];
+    public static UserInterest[] find(Object...args) throws SQLException {
+        Object[] obj = _find(UserInterest.class, args);
+        UserInterest[] arr = new UserInterest[obj.length];
         for (int i=0; i<arr.length; i++){
-            arr[i] = (Tag) obj[i];
+            arr[i] = (UserInterest) obj[i];
         }
         return arr;
     }

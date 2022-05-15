@@ -16,14 +16,16 @@ public class Opportunity extends javaxt.sql.Model {
     private String name;
     private String description;
     private String organization;
-    private String type;
+    private String announcement;
     private String naics;
     private String setAside;
     private String classification;
     private Date postedDate;
-    private Date reponseDate;
+    private Date responseDate;
     private Date startDate;
-    private Long value;
+    private String contractType;
+    private Long contractValue;
+    private Date contractStart;
     private Source source;
     private String sourceKey;
     private Boolean active;
@@ -39,14 +41,16 @@ public class Opportunity extends javaxt.sql.Model {
             java.util.Map.entry("name", "name"),
             java.util.Map.entry("description", "description"),
             java.util.Map.entry("organization", "organization"),
-            java.util.Map.entry("type", "type"),
+            java.util.Map.entry("announcement", "announcement"),
             java.util.Map.entry("naics", "naics"),
             java.util.Map.entry("setAside", "set_aside"),
             java.util.Map.entry("classification", "classification"),
             java.util.Map.entry("postedDate", "posted_date"),
-            java.util.Map.entry("reponseDate", "reponse_date"),
+            java.util.Map.entry("responseDate", "response_date"),
             java.util.Map.entry("startDate", "start_date"),
-            java.util.Map.entry("value", "value"),
+            java.util.Map.entry("contractType", "contract_type"),
+            java.util.Map.entry("contractValue", "contract_value"),
+            java.util.Map.entry("contractStart", "contract_start"),
             java.util.Map.entry("source", "source_id"),
             java.util.Map.entry("sourceKey", "source_key"),
             java.util.Map.entry("active", "active"),
@@ -92,14 +96,16 @@ public class Opportunity extends javaxt.sql.Model {
             this.name = getValue(rs, "name").toString();
             this.description = getValue(rs, "description").toString();
             this.organization = getValue(rs, "organization").toString();
-            this.type = getValue(rs, "type").toString();
+            this.announcement = getValue(rs, "announcement").toString();
             this.naics = getValue(rs, "naics").toString();
             this.setAside = getValue(rs, "set_aside").toString();
             this.classification = getValue(rs, "classification").toString();
             this.postedDate = getValue(rs, "posted_date").toDate();
-            this.reponseDate = getValue(rs, "reponse_date").toDate();
+            this.responseDate = getValue(rs, "response_date").toDate();
             this.startDate = getValue(rs, "start_date").toDate();
-            this.value = getValue(rs, "value").toLong();
+            this.contractType = getValue(rs, "contract_type").toString();
+            this.contractValue = getValue(rs, "contract_value").toLong();
+            this.contractStart = getValue(rs, "contract_start").toDate();
             Long sourceID = getValue(rs, "source_id").toLong();
             this.sourceKey = getValue(rs, "source_key").toString();
             this.active = getValue(rs, "active").toBoolean();
@@ -130,14 +136,16 @@ public class Opportunity extends javaxt.sql.Model {
         this.name = json.get("name").toString();
         this.description = json.get("description").toString();
         this.organization = json.get("organization").toString();
-        this.type = json.get("type").toString();
+        this.announcement = json.get("announcement").toString();
         this.naics = json.get("naics").toString();
         this.setAside = json.get("setAside").toString();
         this.classification = json.get("classification").toString();
         this.postedDate = json.get("postedDate").toDate();
-        this.reponseDate = json.get("reponseDate").toDate();
+        this.responseDate = json.get("responseDate").toDate();
         this.startDate = json.get("startDate").toDate();
-        this.value = json.get("value").toLong();
+        this.contractType = json.get("contractType").toString();
+        this.contractValue = json.get("contractValue").toLong();
+        this.contractStart = json.get("contractStart").toDate();
         if (json.has("source")){
             source = new Source(json.get("source").toJSONObject());
         }
@@ -177,12 +185,12 @@ public class Opportunity extends javaxt.sql.Model {
         this.organization = organization;
     }
 
-    public String getType(){
-        return type;
+    public String getAnnouncement(){
+        return announcement;
     }
 
-    public void setType(String type){
-        this.type = type;
+    public void setAnnouncement(String announcement){
+        this.announcement = announcement;
     }
 
     public String getNaics(){
@@ -217,12 +225,12 @@ public class Opportunity extends javaxt.sql.Model {
         this.postedDate = postedDate;
     }
 
-    public Date getReponseDate(){
-        return reponseDate;
+    public Date getResponseDate(){
+        return responseDate;
     }
 
-    public void setReponseDate(Date reponseDate){
-        this.reponseDate = reponseDate;
+    public void setResponseDate(Date responseDate){
+        this.responseDate = responseDate;
     }
 
     public Date getStartDate(){
@@ -233,12 +241,28 @@ public class Opportunity extends javaxt.sql.Model {
         this.startDate = startDate;
     }
 
-    public Long getValue(){
-        return value;
+    public String getContractType(){
+        return contractType;
     }
 
-    public void setValue(Long value){
-        this.value = value;
+    public void setContractType(String contractType){
+        this.contractType = contractType;
+    }
+
+    public Long getContractValue(){
+        return contractValue;
+    }
+
+    public void setContractValue(Long contractValue){
+        this.contractValue = contractValue;
+    }
+
+    public Date getContractStart(){
+        return contractStart;
+    }
+
+    public void setContractStart(Date contractStart){
+        this.contractStart = contractStart;
     }
 
     public Source getSource(){
