@@ -1,7 +1,9 @@
 package com.kartographia.prospekt.server;
-import com.kartographia.prospekt.*;
+import com.kartographia.prospekt.User;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.security.KeyStore;
 import java.util.*;
 
 import javaxt.express.*;
@@ -11,23 +13,23 @@ import javaxt.json.*;
 import static javaxt.utils.Console.*;
 
 
-
 //******************************************************************************
-//**  WebApp
+//**  WebServer
 //******************************************************************************
 /**
- *   HttpServlet used to process http and websocket requests.
+ *   Used to start a server process that sends and receives socket connections
  *
  ******************************************************************************/
 
 public class WebServer extends HttpServlet {
 
     private javaxt.io.Directory web;
-    private FileManager fileManager;
+    private javaxt.io.Directory logDir;
+    private ArrayList<InetSocketAddress> addresses;
     private Logger logger;
-    private String appName;
-    private String appStyle;
-    private String auth;
+
+    private WebServices ws;
+    private FileManager fileManager;
 
 
   //**************************************************************************
@@ -48,24 +50,28 @@ public class WebServer extends HttpServlet {
 
       //Initialize this class
         JSONObject webConfig = Config.get("webserver").toJSONObject();
-        init(webConfig);
+        init(webConfig, jar);
     }
 
 
   //**************************************************************************
   //** Constructor
   //**************************************************************************
-    public WebServer(JSONObject config) throws Exception {
-        init(config);
+    public WebServer(JSONObject config, Jar jar) throws Exception {
+        init(config, jar);
     }
 
 
   //**************************************************************************
   //** init
   //**************************************************************************
-    private void init(JSONObject config) throws Exception {
+  /** Used to initialize this class
+   *  @param config webconfig from the config.json
+   *  @param jar Jar file with domain models
+   */
+    private void init(JSONObject config, Jar jar) throws Exception {
 
-      //Set path to the web directory
+      //Set path to the web directory (required)
         if (config.has("webDir")){
             String webDir = config.get("webDir").toString();
             web = new javaxt.io.Directory(webDir);
@@ -75,13 +81,49 @@ public class WebServer extends HttpServlet {
         }
 
 
-      //Get authentication scheme
-        this.auth = "BASIC";
-        String auth = config.get("auth").toString();
-        if (auth!=null){
-            auth = auth.trim().toUpperCase();
-            if (auth.equals("NTLM")) this.auth = auth;
-            if (auth.equals("DISABLED")) this.auth = null;
+      //Get keystore (optional)
+        KeyStore keystore = null;
+        char[] keypass = null;
+        if (config.has("keystore") && config.has("keypass")){
+            try{
+                keypass = config.get("keypass").toString().toCharArray();
+                keystore = KeyStore.getInstance("JKS");
+                keystore.load(new java.io.FileInputStream(config.get("keystore").toString()), keypass);
+            }
+            catch(Exception e){
+                keystore = null;
+                keypass = null;
+            }
+        }
+
+
+      //Get logging info (optional)
+        if (config.has("logDir")){
+            try{
+                logDir = new javaxt.io.Directory(config.get("logDir").toString());
+                if (!logDir.exists()) logDir.create();
+                if (!logDir.exists()) throw new Exception();
+            }
+            catch(Exception e){
+                logDir = null;
+                System.out.println("Invalid \"logDir\" defined in config file");
+            }
+        }
+
+
+      //Generate list of socket addresses to bind to
+        addresses = new ArrayList<>();
+        Integer port = config.get("port").toInteger();
+        addresses.add(new InetSocketAddress("0.0.0.0", port==null ? 80 : port));
+        if (keystore!=null){
+            try{
+                setKeyStore(keystore, new String(keypass));
+                setTrustStore(keystore);
+                addresses.add(new InetSocketAddress("0.0.0.0", port==null ? 443 : port));
+            }
+            catch(Exception e){
+                //e.printStackTrace();
+            }
         }
 
 
@@ -90,47 +132,41 @@ public class WebServer extends HttpServlet {
         fileManager = new FileManager(web);
 
 
+      //Instantiate web services
+        ws = new WebServices(jar);
+
 
       //Instantiate authenticator
         setAuthenticator(new Authenticator());
 
+    }
 
 
-      //Get branding (optional)
-        if (config.has("branding")){
-            JSONObject branding = config.get("branding").toJSONObject();
-            appName = branding.get("appName").toString();
-            appStyle = branding.get("appStyle").toString();
-            if (appStyle!=null){
-                appStyle = appStyle.trim();
-                if (appStyle.startsWith("/")) appStyle = appStyle.substring(1);
-                javaxt.io.File f = new javaxt.io.File(web + appStyle);
-                if (f.exists()) appStyle = f.getText();
-                else appStyle = null;
-            }
+  //**************************************************************************
+  //** start
+  //**************************************************************************
+  /** Used to start the HTTP server and logger
+   */
+    public void start(){
+
+      //Start web logger
+        if (logDir!=null){
+            logger = new Logger(logDir.toFile());
+            new Thread(logger).start();
         }
-        if (appName==null) appName = "BlueWave";
-        if (appStyle==null) appStyle = "";
 
 
-      //Get logging info (optional)
-        if (config.has("logDir")){
-            String logDir = config.get("logDir").toString();
-            javaxt.io.Directory dir = new javaxt.io.Directory(logDir);
-            if (!dir.exists()) dir.create();
-            if (dir.exists()){
-                logger = new Logger(dir.toFile());
-                new Thread(logger).start();
-            }
-            else console.log("Invalid \"logDir\" defined in config file");
-        }
+      //Start the server
+        int threads = 250;
+        javaxt.http.Server server = new javaxt.http.Server(addresses, threads, this);
+        server.start();
     }
 
 
   //**************************************************************************
   //** processRequest
   //**************************************************************************
-  /** Used to process http get and post requests.
+  /** Used to process an HTTP request and generate an HTTP response
    */
     public void processRequest(HttpServletRequest request, HttpServletResponse response)
         throws ServletException, IOException {
@@ -152,8 +188,6 @@ public class WebServer extends HttpServlet {
 
 
 
-
-
       //Generate response
         if (service.equals("login")){
             if (credentials==null){
@@ -167,7 +201,7 @@ public class WebServer extends HttpServlet {
                 try{
                     request.authenticate();
                     response.setContentType("application/json");
-                    response.write(((com.kartographia.prospekt.User) request.getUserPrincipal()).toJson().toString());
+                    response.write(getUser(request).toJson().toString());
                 }
                 catch(Exception e){
                     response.setStatus(403, "Not Authorized");
@@ -200,10 +234,9 @@ public class WebServer extends HttpServlet {
                 response.write(username);
             }
         }
-        else if (service.equals("user") && auth==null){
-            com.kartographia.prospekt.User user = (com.kartographia.prospekt.User) request.getUserPrincipal();
+        else if (service.equals("user")){
             response.setContentType("application/json");
-            response.write(user.toJson().toString());
+            response.write(getUser(request).toJson().toString());
         }
         else{
 
@@ -230,58 +263,27 @@ public class WebServer extends HttpServlet {
                         name = ((javaxt.io.Directory) obj).getName();
                     }
                     if (service.equalsIgnoreCase(name)){
-                        sendFile(path, request, response);
+                        fileManager.sendFile(request, response);
                         return;
                     }
                 }
 
-
-              //Special case: URL shortcuts to bluewave dashboards
-                if (!path.contains("/")){
-                    javaxt.io.File file = new javaxt.io.File(web + "app/dashboards/" + path +".js");
-                    if (!file.exists()) file = new javaxt.io.File(web + "app/analytics/" + path +".js");
-                    if (file.exists()){
-                        file = new javaxt.io.File(web, "index.html");
-                        fileManager.sendFile(file, request, response);
-                        return;
-                    }
-                }
             }
 
 
           //If we're still here, we either have a bad file request or a web
           //service request. In either case, send the request to the
           //webservices endpoint to process.
-            //ws.processRequest(service, request, response);
+            ws.processRequest(service, request, response);
 
         }
     }
 
 
   //**************************************************************************
-  //** sendFile
+  //** getUser
   //**************************************************************************
-    private void sendFile(String path, HttpServletRequest request, HttpServletResponse response)
-        throws ServletException, IOException {
-
-
-      //Authenticate users requesting sensitive files
-        if (path.endsWith("main.html")){
-            try{
-                request.authenticate();
-                com.kartographia.prospekt.User user = (com.kartographia.prospekt.User) request.getUserPrincipal();
-                if (user.getAccessLevel()<2) throw new Exception();
-            }
-            catch(Exception e){
-                response.setStatus(403, "Not Authorized");
-                response.setContentType("text/plain");
-                response.write("Unauthorized");
-                return;
-            }
-        }
-
-
-        fileManager.sendFile(request, response);
+    private User getUser(HttpServletRequest request){
+        return (User) request.getUserPrincipal();
     }
-
 }
