@@ -1,0 +1,305 @@
+@import url(https://fonts.googleapis.com/css?family=Open+Sans);
+@import url(https://fonts.googleapis.com/css?family=Lobster);
+
+html, body {
+    height:100%;
+    margin:0;
+}
+
+body {
+    background-color: #f5f5f5;
+    color: #000000;
+}
+
+body, textarea, input, select, td, th {
+    font-family: 'Open Sans',helvetica,arial,verdana,sans-serif;
+}
+
+
+/**************************************************************************/
+/** App Header
+/**************************************************************************/
+
+.app-header {
+    background-color: #007cba;
+    background-color: #4493c1;
+    height: 86px;
+    color: #fff;
+}
+
+
+.app-header-icon {
+    /*
+    background: url(../images/logo.png) no-repeat;
+    width: 43px;
+    height: 58px;
+    margin: 7px 0 0 14px;
+    */
+}
+
+.app-header-icon:after {
+    font-family: 'Lobster', cursive;
+    content:"Prospekts";
+    text-shadow: 2px 2px #377197;
+
+    margin-left: 18px;
+    display: inline-block;
+    float: left;
+    font-size: 50px;
+    white-space: nowrap;
+    color: #fff;
+    margin-top: -6px;
+}
+
+.app-header-profile,
+.app-header-menu {
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    margin: 3px;
+    border-radius: 50%;
+    color: #fff;
+    text-align: center;
+    cursor: pointer;
+}
+
+.app-header-profile {
+    background-color: #EE9549;
+    text-transform: uppercase;
+}
+
+ .app-header-profile:hover {
+    background-color: #ffb576;
+    transition: 0.4s;
+ }
+
+.app-header-menu {
+    background-color: #007cba;
+    background-color: #4493c1;
+    margin-left: 0;
+ }
+
+ .app-header-menu .fas {
+    margin-top: 7px;
+}
+
+ .app-header-menu:hover {
+     background-color: #3baaff;
+     transition: 0.4s;
+ }
+
+ .app-menu {
+    padding: 3px 2px;
+    min-width: 180px;
+}
+
+.app-menu-item:hover {
+    background-color: #bee3ff;
+}
+
+.app-menu-item {
+    line-height: 39px;
+    font-size: 14px;
+    padding: 0 7px 0 0;
+    white-space: nowrap;
+}
+
+.app-menu-item .fas {
+    color:#3876ad;
+    text-align:center;
+    width: 35px;
+    font-size: 20px;
+    vertical-align: middle;
+}
+
+
+
+/* override the default style for the javaxt callout
+   prevents overflow issues in the app header
+*/
+.callout-arrow {
+    padding: 10px;
+}
+
+
+
+/**************************************************************************/
+/** Error Popup
+/**************************************************************************/
+/** The following classes are used to define the style for pop-up callouts
+ *  generated using the javaxt.dhtml.Callout class.
+ */
+
+.error-callout-panel, .error-callout-arrow {
+    border: 1px solid #8c0000;
+    background: #921d1d;
+    color: #fff;
+    cursor: pointer;
+}
+
+.error-callout-panel {
+    border-radius: 3px;
+    padding: 5px !important;
+    box-shadow: 0 12px 14px 0 rgba(0, 0, 0, 0.2), 0 13px 20px 0 rgba(0, 0, 0, 0.2);
+}
+
+.error-callout-arrow {
+    width: 7px;
+    height: 7px;
+    padding: 12px;
+}
+
+.form-input-error {
+    background: #fff2f2;
+    border-color: #d66262;
+}
+
+
+
+/**************************************************************************/
+/** Search Bar
+/**************************************************************************/
+
+.search-bar {
+    height: 37px;
+    padding: 5px 0 0 0;
+}
+
+.search-bar-icon {
+    position: absolute;
+    top: 14px;
+    left: 6px;
+    color: #b9b9b9;
+    font-size: 16px;
+    transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+
+.search-bar-cancel {
+    top: 12px;
+    right: 6px;
+    position: absolute;
+    font-size: 16px;
+    color: #b11818; /*red - same color as fa-times in the toolbar*/
+    width: 18px;
+    height: 18px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.search-bar-input {
+    border-radius: 4px;
+    color: #363636;
+    display: inline-block;
+    font-size: 14px;
+    height: 32px;
+    line-height: 32px;
+    padding: 2px 4px 2px 26px;
+    vertical-align: middle;
+    transition: border 0.2s linear 0s, box-shadow 0.2s linear 0s;
+    -webkit-transition: all 0.20s ease-in-out;
+    -moz-transition: all 0.20s ease-in-out;
+    -ms-transition: all 0.20s ease-in-out;
+    -o-transition: all 0.20s ease-in-out;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
+    box-sizing: border-box;
+}
+
+.search-bar-input:focus {
+    border-color: rgba(82, 168, 236, 0.8);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 8px rgba(82, 168, 236, 0.6);
+    outline: 0 none;
+    transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+
+
+.search-bar-input::placeholder {
+    color: #b9b9b9;
+    font-size: 14px;
+}
+
+
+
+/**************************************************************************/
+/** Carousel Header
+/**************************************************************************/
+
+.carousel-header {
+    height: 60px;
+    background-color: #3f79ab;
+    background-color: #102b42;
+}
+
+.carousel-header-nav {
+  margin: 0px;
+  padding: 0px;
+  list-style: none;
+}
+
+.carousel-header-link {
+  position: relative;
+  display: inline-block;
+  padding: 0;
+  margin: 0 20px;
+  color: #fff;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.carousel-header-link:after{
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  display: block;
+  margin-top: 5px;
+  right: 0;
+  background: #2e588d;
+  transition: width .15s ease;
+  -webkit-transition: width .15s ease;
+}
+
+
+.carousel-header-link:hover, .carousel-header-link:active, .carousel-header-link:focus, .carousel-header-link-selected{
+    opacity: 1.0;
+    transition: all .4s ease;
+    -webkit-transition: all .4s ease;
+    outline: 0 none;
+}
+
+
+.carousel-header-link-selected:after{
+    width: 100%;
+}
+
+
+.carousel-header-link:hover:after {
+  width: 100%;
+  left: 0;
+  background: #fff;
+  opacity: 0.6;
+}
+
+
+.carousel-header-link-count {
+    position:absolute;
+    font-size:9px;
+    top: -3px;
+    right: -14px;
+    background-color: #df4444;
+    border-radius: 6px;
+    padding: 0px 4px;
+    color: #fff;
+}
+
+
+
+
+/**************************************************************************/
+/** iScroll overrides
+/**************************************************************************/
+
+.iScrollVerticalScrollbar{
+    right: 2px;
+}
