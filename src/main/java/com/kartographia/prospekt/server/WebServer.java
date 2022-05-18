@@ -172,6 +172,29 @@ public class WebServer extends HttpServlet {
         throws ServletException, IOException {
 
 
+      //Check if the server support HTTPS
+        if (this.supportsHttps()){
+
+          //Set "Content-Security-Policy"
+            response.setHeader("Content-Security-Policy", "upgrade-insecure-requests");
+
+
+          //Redirect http request to https as needed
+            javaxt.utils.URL url = new javaxt.utils.URL(request.getURL());
+            if (!url.getProtocol().equalsIgnoreCase("https")){
+                url.setProtocol("https");
+                response.sendRedirect(url.toString(), true);
+                return;
+            }
+        }
+
+
+        
+      //Log the request
+        if (logger!=null) logger.log(request);
+
+
+
       //Get path from url, excluding servlet path and leading "/" character
         String path = request.getPathInfo();
         if (path!=null) path = path.substring(1);
@@ -263,7 +286,7 @@ public class WebServer extends HttpServlet {
                         name = ((javaxt.io.Directory) obj).getName();
                     }
                     if (service.equalsIgnoreCase(name)){
-                        fileManager.sendFile(request, response);
+                        sendFile(path, request, response);
                         return;
                     }
                 }
@@ -277,6 +300,40 @@ public class WebServer extends HttpServlet {
             ws.processRequest(service, request, response);
 
         }
+    }
+
+
+  //**************************************************************************
+  //** sendFile
+  //**************************************************************************
+    private void sendFile(String path, HttpServletRequest request, HttpServletResponse response)
+        throws ServletException, IOException {
+
+
+      //Special case for Certbot. When generating certificates using the
+      //certonly command, Certbot creates a hidden directory in the web root.
+      //The web server must return the files in this hidden directory. However,
+      //the filemanager does not allow access to hidden directories so we need
+      //to handle these requests manually.
+        if (path.startsWith(".well-known")){
+            console.log(path);
+            java.io.File file = new java.io.File(web + path);
+            console.log(file + "\t" + file.exists());
+
+          //Send file
+            if (file.exists()){
+                response.write(file, javaxt.io.File.getContentType(file.getName()), true);
+            }
+            else{
+                response.setStatus(404);
+                response.setContentType("text/plain");
+            }
+            return;
+        }
+
+
+        fileManager.sendFile(path, request, response);
+
     }
 
 
