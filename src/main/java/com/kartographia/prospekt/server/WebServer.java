@@ -208,8 +208,11 @@ public class WebServer extends HttpServlet {
       //Get credentials
         String[] credentials = request.getCredentials();
 
-
-
+        
+        response.addHeader("Access-Control-Allow-Origin", "*");
+        response.addHeader("Access-Control-Allow-Headers","*");
+        response.addHeader("Access-Control-Allow-Methods", "*");
+        
 
       //Generate response
         if (service.equals("login")){
