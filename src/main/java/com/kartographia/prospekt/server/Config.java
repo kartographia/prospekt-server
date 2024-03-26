@@ -1,10 +1,12 @@
 package com.kartographia.prospekt.server;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import javaxt.express.utils.DbUtils;
-import static javaxt.utils.Console.console;
+import java.util.*;
+
 import javaxt.json.*;
 import javaxt.sql.*;
+
+import javaxt.express.utils.DbUtils;
+import static javaxt.express.ConfigFile.*;
+import static javaxt.utils.Console.console;
 
 
 //******************************************************************************
@@ -33,28 +35,6 @@ public class Config {
         JSONObject json = new JSONObject(configFile.getText());
 
 
-      //Get database config
-        JSONObject dbConfig = json.get("database").toJSONObject();
-
-
-      //Update path to the database (H2 only)
-        if (dbConfig.has("path")){
-            updateFile("path", dbConfig, configFile);
-            String path = dbConfig.get("path").toString().replace("\\", "/");
-            dbConfig.set("host", path);
-            dbConfig.remove("path");
-        }
-
-
-      //Get schema
-        javaxt.io.File schemaFile = null;
-        if (dbConfig.has("schema")){
-            updateFile("schema", dbConfig, configFile);
-            schemaFile = new javaxt.io.File(dbConfig.get("schema").toString());
-            dbConfig.remove("schema");
-        }
-
-
       //Update relative paths in the web config
         JSONObject webConfig = json.get("webserver").toJSONObject();
         updateDir("webDir", webConfig, configFile, false);
@@ -64,6 +44,30 @@ public class Config {
         updateFile("keystore", webConfig, configFile);
 
 
+      //Get database config
+        JSONObject dbConfig = json.get("database").toJSONObject();
+
+
+
+      //Process path variable in the database config
+        if (dbConfig.has("path")){
+            updateFile("path", dbConfig, configFile);
+            String path = dbConfig.get("path").toString().replace("\\", "/");
+            dbConfig.set("host", path);
+            dbConfig.remove("path");
+        }
+
+
+      //Get schema file from the database config
+        javaxt.io.File schemaFile = null;
+        if (dbConfig.has("schema")){
+            updateFile("schema", dbConfig, configFile);
+            schemaFile = new javaxt.io.File(dbConfig.get("schema").toString());
+            dbConfig.remove("schema");
+        }
+
+
+
       //Load config
         config.init(json);
 
@@ -71,13 +75,14 @@ public class Config {
       //Add additional properties to the config
         config.set("jar", jar);
         config.set("configFile", configFile);
-        Properties props = config.getDatabase().getProperties();
-        if (props==null){
-            props = new Properties();
-            config.getDatabase().setProperties(props);
-        }
+        config.set("schemaFile", schemaFile);
 
-        if (schemaFile!=null) props.put("schema", schemaFile);
+
+
+      //Run validations
+        Database database = config.getDatabase();
+        if (database==null) throw new Exception("Invalid database");
+
     }
 
 
@@ -87,14 +92,43 @@ public class Config {
   /** Used to initialize the database
    */
     public static void initDatabase() throws Exception {
+
+      //Get database status
+        Boolean initialized = get("databaseInitialized").toBoolean();
+        if (initialized!=null && initialized.booleanValue()==true) return;
+        set("databaseInitialized", true);
+        
+
         Database database = config.getDatabase();
+
+
+      //Update database properties as needed
+        if (database.getDriver().equals("H2")){
+
+          //Set H2 to PostgreSQL mode
+            Properties properties = database.getProperties();
+            if (properties==null){
+                properties = new java.util.Properties();
+                database.setProperties(properties);
+            }
+            properties.setProperty("MODE", "PostgreSQL");
+            properties.setProperty("DATABASE_TO_LOWER", "TRUE");
+            properties.setProperty("DEFAULT_NULL_ORDERING", "HIGH");
+
+
+          //Update list of reserved keywords to exclude "key" and "value"
+          //that are used in the USER_PREFERENCE table
+            Properties props = database.getProperties();
+            props.setProperty("NON_KEYWORDS", "KEY,VALUE");
+        }
+
 
 
       //Get database schema
         String schema = null;
-        Object obj = config.getDatabase().getProperties().get("schema");
-        if (obj!=null){
-            javaxt.io.File schemaFile = (javaxt.io.File) obj;
+        JSONValue v = config.get("schemaFile");
+        if (!v.isNull()){
+            javaxt.io.File schemaFile = (javaxt.io.File) v.toObject();
             if (schemaFile.exists()){
                 schema = schemaFile.getText();
             }
@@ -104,6 +138,10 @@ public class Config {
 
       //Initialize schema (create tables, indexes, etc)
         DbUtils.initSchema(database, schema, null);
+
+
+      //Enable database caching
+        database.enableMetadataCache(true);
 
 
       //Inititalize connection pool
@@ -169,7 +207,8 @@ public class Config {
 
 
       //Remove keys that should not be saved
-        json.remove("schema");
+        json.remove("schemaFile");
+        json.remove("configFile");
         json.remove("jar");
 
 
@@ -180,9 +219,9 @@ public class Config {
             if (host.startsWith(configPath)) host = host.substring(len);
             database.set("path", host);
             database.remove("host");
-            Object obj = config.getDatabase().getProperties().get("schema");
-            if (obj!=null){
-                javaxt.io.File schemaFile = (javaxt.io.File) obj;
+            JSONValue v = config.get("schemaFile");
+            if (v!=null){
+                javaxt.io.File schemaFile = (javaxt.io.File) v.toObject();
                 String schema = schemaFile.toString().replace("\\", "/");
                 if (schema.startsWith(configPath)) schema = schema.substring(len);
                 database.set("schema", schema);
@@ -212,144 +251,6 @@ public class Config {
   //**************************************************************************
     public static javaxt.sql.Database getDatabase(){
         return config.getDatabase();
-    }
-
-
-  //**************************************************************************
-  //** getDirectory
-  //**************************************************************************
-  /** Simple helper class used to get a directory specified in the config file
-   *  javaxt.io.Directory jobDir = Config.getDirectory("webserver", "jobDir");
-   */
-    public static javaxt.io.Directory getDirectory(String... keys){
-        try{
-            JSONValue config = null;
-            for (String key : keys){
-                if (config==null) config = Config.get(key);
-                else config = config.get(key);
-            }
-
-            String dir = config.toString().trim();
-            return new javaxt.io.Directory(dir);
-        }
-        catch(Exception e){
-            return null;
-        }
-    }
-
-
-  //**************************************************************************
-  //** getFile
-  //**************************************************************************
-  /** Returns a File for a given path
-   *  @param path Full canonical path to a file or a relative path (relative
-   *  to the jarFile)
-   */
-    public static javaxt.io.File getFile(String path, javaxt.io.File jarFile){
-        javaxt.io.File file = new javaxt.io.File(path);
-        if (!file.exists()){
-            file = new javaxt.io.File(jarFile.MapPath(path));
-        }
-        return file;
-    }
-
-
-  //**************************************************************************
-  //** updateDir
-  //**************************************************************************
-  /** Used to update a path to a directory defined in a config file. Resolves
-   *  both canonical and relative paths (relative to the configFile).
-   */
-    public static void updateDir(String key, JSONObject config, javaxt.io.File configFile, boolean create){
-        if (config!=null && config.has(key)){
-            String path = config.get(key).toString();
-            if (path==null){
-                config.remove(key);
-            }
-            else{
-                path = path.trim();
-                if (path.length()==0){
-                    config.remove(key);
-                }
-                else{
-
-                    javaxt.io.Directory dir = new javaxt.io.Directory(path);
-                    if (dir.exists()){
-                        try{
-                            java.io.File f = new java.io.File(path);
-                            javaxt.io.Directory d = new javaxt.io.Directory(f.getCanonicalFile());
-                            if (!dir.toString().equals(d.toString())){
-                                dir = d;
-                            }
-                        }
-                        catch(Exception e){
-                        }
-                    }
-                    else{
-                        dir = new javaxt.io.Directory(new java.io.File(configFile.MapPath(path)));
-                    }
-
-
-                    if (!dir.exists() && create) dir.create();
-
-
-                    if (dir.exists()){
-                        config.set(key, dir.toString());
-                    }
-                    else{
-                        config.remove(key);
-                    }
-                }
-            }
-        }
-    }
-
-
-  //**************************************************************************
-  //** updateFile
-  //**************************************************************************
-  /** Used to update a path to a file defined in a config file. Resolves
-   *  both canonical and relative paths (relative to the configFile).
-   */
-    public static void updateFile(String key, JSONObject config, javaxt.io.File configFile){
-        if (config.has(key)){
-            String path = config.get(key).toString();
-            if (path==null){
-                config.remove(key);
-            }
-            else{
-                path = path.trim();
-                if (path.length()==0){
-                    config.remove(key);
-                }
-                else{
-
-                    javaxt.io.File file = new javaxt.io.File(path);
-                    if (file.exists()){
-                        try{
-                            java.io.File f = new java.io.File(path);
-                            javaxt.io.File _file = new javaxt.io.File(f.getCanonicalFile());
-                            if (!file.toString().equals(_file.toString())){
-                                file = _file;
-                            }
-                        }
-                        catch(Exception e){
-                        }
-                    }
-                    else{
-                        file = new javaxt.io.File(configFile.MapPath(path));
-                    }
-
-                    config.set(key, file.toString());
-//                    if (file.exists()){
-//                        config.set(key, file.toString());
-//                    }
-//                    else{
-//                        config.remove(key);
-//                    }
-                }
-            }
-        }
     }
 
 }

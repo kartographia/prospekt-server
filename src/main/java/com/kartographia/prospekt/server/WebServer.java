@@ -1,15 +1,21 @@
 package com.kartographia.prospekt.server;
 import com.kartographia.prospekt.User;
+import com.kartographia.prospekt.UserAuthentication;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.security.KeyStore;
 import java.util.*;
+import java.io.IOException;
+import java.security.KeyStore;
+import java.net.InetSocketAddress;
 
 import javaxt.express.*;
+import javaxt.express.notification.*;
+import javaxt.express.Authenticator;
+
 import javaxt.http.servlet.*;
-import javaxt.io.Jar;
+
 import javaxt.json.*;
+import javaxt.io.Jar;
+import javaxt.encryption.BCrypt;
 import static javaxt.utils.Console.*;
 
 
@@ -137,7 +143,42 @@ public class WebServer extends HttpServlet {
 
 
       //Instantiate authenticator
-        setAuthenticator(new Authenticator());
+        setAuthenticator(new javaxt.express.Authenticator(){
+
+            public java.security.Principal getPrinciple(){
+
+                User user = (User) getUser();
+                if (user!=null) return user;
+
+                try{
+
+                    String[] credentials = getCredentials();
+                    String username = credentials[0];
+                    String password = credentials[1];
+
+                    if (username!=null && password!=null){
+
+                        UserAuthentication userAuth = UserAuthentication.get(
+                        "service=", "database", "key=", username);
+
+                        String passwordHash = userAuth.getValue();
+
+                        if (passwordHash!=null){
+                            if (BCrypt.checkpw(password, passwordHash)){
+                                user = userAuth.getUser();
+                                if (user.getStatus()!=1) user = null;
+                            }
+                        }
+                    }
+                }
+                catch(Exception e){
+                }
+
+                setUser(user);
+                return user;
+            }
+
+        });
 
     }
 
@@ -189,7 +230,14 @@ public class WebServer extends HttpServlet {
         }
 
 
-        
+
+      //Add CORS support
+        response.addHeader("Access-Control-Allow-Origin", "*");
+        response.addHeader("Access-Control-Allow-Headers","*");
+        response.addHeader("Access-Control-Allow-Methods", "*");
+
+
+
       //Log the request
         if (logger!=null) logger.log(request);
 
@@ -205,66 +253,10 @@ public class WebServer extends HttpServlet {
         if (service.contains("/")) service = service.substring(0, service.indexOf("/"));
 
 
-      //Get credentials
-        String[] credentials = request.getCredentials();
-
-        
-        response.addHeader("Access-Control-Allow-Origin", "*");
-        response.addHeader("Access-Control-Allow-Headers","*");
-        response.addHeader("Access-Control-Allow-Methods", "*");
-        
 
       //Generate response
-        if (service.equals("login")){
-            if (credentials==null){
-                response.setStatus(401, "Access Denied");
-                response.setHeader("WWW-Authenticate", "Basic realm=\"Access Denied\""); //<--Prompt the user for thier credentials
-                response.setHeader("Cache-Control", "no-cache, no-transform");
-                response.setContentType("text/plain");
-                response.write("Unauthorized");
-            }
-            else{
-                try{
-                    request.authenticate();
-                    response.setContentType("application/json");
-                    response.write(getUser(request).toJson().toString());
-                }
-                catch(Exception e){
-                    response.setStatus(403, "Not Authorized");
-                    response.setHeader("Cache-Control", "no-cache, no-transform");
-                    response.setContentType("text/plain");
-                    response.write("Unauthorized");
-                }
-            }
-        }
-        else if (service.equals("logoff") || service.equalsIgnoreCase("logout")){
-            String username = (credentials!=null) ? credentials[0] : null;
-            Authenticator.updateCache(username, null);
-
-            response.setStatus(401, "Access Denied");
-            Boolean prompt = new javaxt.utils.Value(request.getParameter("prompt")).toBoolean(); //<--Hack for Firefox
-            if (prompt!=null && prompt==true){
-                response.setHeader("WWW-Authenticate", "Basic realm=\"" +
-                "This site is restricted. Please enter your username and password.\"");
-            }
-            response.setHeader("Cache-Control", "no-cache, no-transform");
-            response.setContentType("text/plain");
-            response.write("Unauthorized");
-        }
-        else if (service.equals("whoami")){
-            String username = (credentials!=null) ? credentials[0] : null;
-            if (username==null || username.equals("logout")) throw new ServletException(400);
-            else{
-                response.setHeader("Cache-Control", "no-cache, no-transform");
-                response.setContentType("text/plain");
-                response.write(username);
-            }
-        }
-        else if (service.equals("user")){
-            response.setContentType("application/json");
-            response.write(getUser(request).toJson().toString());
-        }
-        else{
+        Authenticator authenticator = (Authenticator) getAuthenticator(request);
+        if (!authenticator.handleRequest(service, response)){
 
           //Send static file if we can
             if (service.length()==0){
@@ -275,11 +267,8 @@ public class WebServer extends HttpServlet {
             }
             else{
 
-              //Check if the service matches a file or folder in the web directory.
-              //If so, send the static file as requested. Note that the current
-              //implementation searches the web directory for each http request,
-              //which is terribly inefficient. We need some sort of caching with
-              //a file watcher...
+              //Check if the service matches a file or folder in the web
+              //directory. If so, send the static file as requested.
                 for (Object obj : web.getChildren()){
                     String name = null;
                     if (obj instanceof javaxt.io.File){
@@ -337,13 +326,5 @@ public class WebServer extends HttpServlet {
 
         fileManager.sendFile(path, request, response);
 
-    }
-
-
-  //**************************************************************************
-  //** getUser
-  //**************************************************************************
-    private User getUser(HttpServletRequest request){
-        return (User) request.getUserPrincipal();
     }
 }

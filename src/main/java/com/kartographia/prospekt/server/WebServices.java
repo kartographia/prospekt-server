@@ -58,6 +58,7 @@ public class WebServices extends WebService {
 
 
           //Set general response headers
+            response.setStatus(rsp.getStatus());
             response.setContentType(rsp.getContentType());
 
 
@@ -109,7 +110,7 @@ public class WebServices extends WebService {
             return new ServiceResponse(403, "Not Authorized");
         }
 
-        if (service.equals("reprts")){
+        if (service.equals("reports")){
             return new ServiceResponse(501, "Not Implemented");
         }
         else{
@@ -117,4 +118,39 @@ public class WebServices extends WebService {
         }
 
     }
+
+
+
+    public ServiceResponse getOpportunitiesV2(ServiceRequest request, Database database) throws ServletException {
+
+        request.setPath("/opportunities"); //hack so we can call super
+        byte[] b = (byte[]) super.getServiceResponse(request, database).getResponse();
+        JSONObject json = new JSONObject(new String(b));
+
+        JSONArray rows = json.get("rows").toJSONArray();
+        JSONArray cols = json.get("cols").toJSONArray();
+
+
+        JSONArray arr = new JSONArray();
+        for (int i=0; i<rows.length(); i++){
+            JSONArray row = rows.get(i).toJSONArray();
+
+            json = new JSONObject();
+            for (int j=0; j<row.length(); j++){
+                JSONValue val = row.get(j);
+                String field = cols.get(j).toString();
+                json.set(field, val);
+            }
+
+            arr.add(json);
+        }
+
+        return new ServiceResponse(arr);
+    }
+
+
+
+
+
+
 }
