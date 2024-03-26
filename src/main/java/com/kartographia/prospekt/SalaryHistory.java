@@ -1,34 +1,36 @@
 package com.kartographia.prospekt;
 import javaxt.json.*;
 import java.sql.SQLException;
-
+import java.math.BigDecimal;
+import javaxt.utils.Date;
 
 //******************************************************************************
-//**  User Class
+//**  SalaryHistory Class
 //******************************************************************************
 /**
- *   Used to represent a User
+ *   Used to represent a SalaryHistory
  *
  ******************************************************************************/
 
-public class User extends javaxt.sql.Model 
-    implements java.security.Principal, javaxt.express.User {
+public class SalaryHistory extends javaxt.sql.Model {
 
     private Person person;
-    private Integer status;
-    private Integer accessLevel;
+    private Company company;
+    private BigDecimal salary;
+    private Date date;
     private JSONObject info;
 
 
   //**************************************************************************
   //** Constructor
   //**************************************************************************
-    public User(){
-        super("user", java.util.Map.ofEntries(
+    public SalaryHistory(){
+        super("salary_history", java.util.Map.ofEntries(
             
             java.util.Map.entry("person", "person_id"),
-            java.util.Map.entry("status", "status"),
-            java.util.Map.entry("accessLevel", "access_level"),
+            java.util.Map.entry("company", "company_id"),
+            java.util.Map.entry("salary", "salary"),
+            java.util.Map.entry("date", "date"),
             java.util.Map.entry("info", "info")
 
         ));
@@ -41,7 +43,7 @@ public class User extends javaxt.sql.Model
   //**************************************************************************
   /** Creates a new instance of this class using a record ID in the database.
    */
-    public User(long id) throws SQLException {
+    public SalaryHistory(long id) throws SQLException {
         this();
         init(id);
     }
@@ -51,9 +53,9 @@ public class User extends javaxt.sql.Model
   //** Constructor
   //**************************************************************************
   /** Creates a new instance of this class using a JSON representation of a
-   *  User.
+   *  SalaryHistory.
    */
-    public User(JSONObject json){
+    public SalaryHistory(JSONObject json){
         this();
         update(json);
     }
@@ -69,14 +71,19 @@ public class User extends javaxt.sql.Model
         try{
             this.id = getValue(rs, "id").toLong();
             Long personID = getValue(rs, "person_id").toLong();
-            this.status = getValue(rs, "status").toInteger();
-            this.accessLevel = getValue(rs, "access_level").toInteger();
+            Long companyID = getValue(rs, "company_id").toLong();
+            this.salary = getValue(rs, "salary").toBigDecimal();
+            this.date = getValue(rs, "date").toDate();
             this.info = new JSONObject(getValue(rs, "info").toString());
 
 
 
           //Set person
             if (personID!=null) person = new Person(personID);
+
+
+          //Set company
+            if (companyID!=null) company = new Company(companyID);
 
         }
         catch(Exception e){
@@ -89,7 +96,7 @@ public class User extends javaxt.sql.Model
   //**************************************************************************
   //** update
   //**************************************************************************
-  /** Used to update attributes with attributes from another User.
+  /** Used to update attributes with attributes from another SalaryHistory.
    */
     public void update(JSONObject json){
 
@@ -104,15 +111,20 @@ public class User extends javaxt.sql.Model
             }
             catch(Exception e){}
         }
-        this.status = json.get("status").toInteger();
-        this.accessLevel = json.get("accessLevel").toInteger();
+        if (json.has("company")){
+            company = new Company(json.get("company").toJSONObject());
+        }
+        else if (json.has("companyID")){
+            try{
+                company = new Company(json.get("companyID").toLong());
+            }
+            catch(Exception e){}
+        }
+        this.salary = json.get("salary").toBigDecimal();
+        this.date = json.get("date").toDate();
         this.info = json.get("info").toJSONObject();
     }
 
-
-    public String getName(){
-        return null;
-    }
 
     public Person getPerson(){
         return person;
@@ -122,20 +134,28 @@ public class User extends javaxt.sql.Model
         this.person = person;
     }
 
-    public Integer getStatus(){
-        return status;
+    public Company getCompany(){
+        return company;
     }
 
-    public void setStatus(Integer status){
-        this.status = status;
+    public void setCompany(Company company){
+        this.company = company;
     }
 
-    public Integer getAccessLevel(){
-        return accessLevel;
+    public BigDecimal getSalary(){
+        return salary;
     }
 
-    public void setAccessLevel(Integer accessLevel){
-        this.accessLevel = accessLevel;
+    public void setSalary(BigDecimal salary){
+        this.salary = salary;
+    }
+
+    public Date getDate(){
+        return date;
+    }
+
+    public void setDate(Date date){
+        this.date = date;
     }
 
     public JSONObject getInfo(){
@@ -152,25 +172,25 @@ public class User extends javaxt.sql.Model
   //**************************************************************************
   //** get
   //**************************************************************************
-  /** Used to find a User using a given set of constraints. Example:
-   *  User obj = User.get("person_id=", person_id);
+  /** Used to find a SalaryHistory using a given set of constraints. Example:
+   *  SalaryHistory obj = SalaryHistory.get("person_id=", person_id);
    */
-    public static User get(Object...args) throws SQLException {
-        Object obj = _get(User.class, args);
-        return obj==null ? null : (User) obj;
+    public static SalaryHistory get(Object...args) throws SQLException {
+        Object obj = _get(SalaryHistory.class, args);
+        return obj==null ? null : (SalaryHistory) obj;
     }
 
 
   //**************************************************************************
   //** find
   //**************************************************************************
-  /** Used to find Users using a given set of constraints.
+  /** Used to find SalaryHistorys using a given set of constraints.
    */
-    public static User[] find(Object...args) throws SQLException {
-        Object[] obj = _find(User.class, args);
-        User[] arr = new User[obj.length];
+    public static SalaryHistory[] find(Object...args) throws SQLException {
+        Object[] obj = _find(SalaryHistory.class, args);
+        SalaryHistory[] arr = new SalaryHistory[obj.length];
         for (int i=0; i<arr.length; i++){
-            arr[i] = (User) obj[i];
+            arr[i] = (SalaryHistory) obj[i];
         }
         return arr;
     }

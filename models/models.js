@@ -2,58 +2,150 @@ var package = "com.kartographia.prospekt";
 var models = {
 
   //**************************************************************************
-  //** Contact
+  //** Address
   //**************************************************************************
-    Contact: {
+    Address: {
         fields: [
-            {name: 'firstName',    type: 'string'},
-            {name: 'lastName',     type: 'string'},
-            {name: 'fullName',     type: 'string'},
-            {name: 'gender',       type: 'string'},
-            {name: 'dob',          type: 'string'},
-            {name: 'info',         type: 'json'}
-        ]
-    },
-
-
-  //**************************************************************************
-  //** User
-  //**************************************************************************
-    User: {
-        fields: [
-            {name: 'username',    type: 'string'},
-            {name: 'password',    type: 'password'},
-            {name: 'accessLevel', type: 'int'},
-            {name: 'active',      type: 'boolean'},
-            {name: 'contact',     type: 'Contact'},
-            {name: 'auth',        type: 'json'},
-            {name: 'info',        type: 'json'}
+            {name: 'street',        type: 'string'},
+            {name: 'city',          type: 'string'},
+            {name: 'state',         type: 'string'},
+            {name: 'country',       type: 'string'},
+            {name: 'postalCode',    type: 'string'},
+            {name: 'latitude',      type: 'decimal'},
+            {name: 'longitude',     type: 'decimal'},
+            {name: 'coordinates',   type: 'geo'},
+            {name: 'info',          type: 'json'}
         ],
         constraints: [
-            {name: 'username',      required: true,  length: 255,  unique: true},
-            {name: 'password',      required: true},
-            {name: 'accessLevel',   required: true},
-            {name: 'active',        required: true}
+            {name: 'street',        required: true},
+            {name: 'city',          required: true},
+            {name: 'state',         required: true},
+            {name: 'country',       required: true}
         ],
         defaults: [
-            {name: 'active',    value: true}
+            {name: 'country',       value: 'US'}
         ]
     },
 
 
   //**************************************************************************
-  //** UserPreference
+  //** Company
   //**************************************************************************
-    UserPreference: {
+  /** Used to represent an individual company
+   */
+    Company: {
         fields: [
-            {name: 'key',         type: 'string'},
-            {name: 'value',       type: 'string'},
-            {name: 'user',        type: 'User'}
+            {name: 'name',              type: 'string'},
+            {name: 'description',       type: 'string'},
+            {name: 'eui',               type: 'string'},
+            {name: 'recent_awards',     type: 'int'},      //total awards in the last 12 months
+            {name: 'recent_award_val',  type: 'decimal'},  //total value of awards in the last 12 months
+            {name: 'recent_award_mix',  type: 'decimal'},  //percent competative awards in the last 12 months
+            {name: 'recent_customers',  type: 'string[]'}, //awarding agencies in the last 12 months
+            {name: 'recent_naics',      type: 'string[]'}, //naics codes associated with recent awards
+            {name: 'estimated_revenue', type: 'decimal'},
+            {name: 'estimated_backlog', type: 'decimal'},
+            {name: 'info',              type: 'json'}
         ],
         constraints: [
-            {name: 'key',       required: true,  length: 50},
-            {name: 'value',     required: true},
-            {name: 'user',      required: true}
+            {name: 'name',  required: true}
+        ]
+    },
+
+
+  //**************************************************************************
+  //** CompanyAddress
+  //**************************************************************************
+  /** Used to represent an address for an individual company
+   */
+    CompanyAddress: {
+        fields: [
+            {name: 'company',   type: 'Company'},
+            {name: 'address',   type: 'Address'},
+            {name: 'type',      type: 'string'},
+            {name: 'date',      type: 'date'},
+            {name: 'info',      type: 'json'}
+        ],
+        constraints: [
+            {name: 'company',   required: true},
+            {name: 'address',   required: true},
+            {name: 'salary',    required: true}
+        ]
+    },
+
+
+  //**************************************************************************
+  //** CompanyGroup
+  //**************************************************************************
+  /** Used to represent a group of companies
+   */
+    CompanyGroup: {
+        fields: [
+            {name: 'name',          type: 'string'},
+            {name: 'description',   type: 'string'},
+            {name: 'info',          type: 'json'}
+        ],
+        hasMany: [
+            {model: 'Company',      name: 'companies'}
+        ],
+        constraints: [
+            {name: 'companies',     required: true}
+        ]
+    },
+
+
+  //**************************************************************************
+  //** Person
+  //**************************************************************************
+  /** Used to represent an individual person
+   */
+    Person: {
+        fields: [
+            {name: 'firstName',     type: 'string'},
+            {name: 'lastName',      type: 'string'},
+            {name: 'fullName',      type: 'string'},
+            {name: 'contact',       type: 'json'},
+            {name: 'info',          type: 'json'}
+        ]
+    },
+
+
+  //**************************************************************************
+  //** PersonAddress
+  //**************************************************************************
+  /** Used to represent an address for an individual person
+   */
+    PersonAddress: {
+        fields: [
+            {name: 'person',    type: 'Person'},
+            {name: 'address',   type: 'Address'},
+            {name: 'type',      type: 'string'},
+            {name: 'info',      type: 'json'}
+        ],
+        constraints: [
+            {name: 'person',    required: true},
+            {name: 'address',   required: true}
+        ]
+    },
+
+
+  //**************************************************************************
+  //** SalaryHistory
+  //**************************************************************************
+  /** Used to represent salary history for individuals working at companies
+   */
+    SalaryHistory: {
+        fields: [
+            {name: 'person',        type: 'Person'},
+            {name: 'company',       type: 'Company'},
+            {name: 'salary',        type: 'decimal'},
+            {name: 'date',          type: 'date'},
+            {name: 'info',          type: 'json'}
+        ],
+        constraints: [
+            {name: 'person',        required: true},
+            {name: 'company',       required: true},
+            {name: 'salary',        required: true}
         ]
     },
 
@@ -76,6 +168,9 @@ var models = {
   //**************************************************************************
   //** Opportunity
   //**************************************************************************
+  /** Used to represent a solicitation. The source should be unique:
+   *  CREATE UNIQUE INDEX IDX_OPPORTUNITY on OPPORTUNITY(SOURCE_ID, SOURCE_KEY);
+   */
     Opportunity: {
         fields: [
             {name: 'name',              type: 'string'},
@@ -99,6 +194,107 @@ var models = {
         constraints: [
             {name: 'name',          required: true},
             {name: 'source',        required: true}
+        ]
+    },
+
+
+  //**************************************************************************
+  //** Award
+  //**************************************************************************
+  /** Used to represent an award. The source should be unique:
+   *  CREATE UNIQUE INDEX IDX_AWARD on AWARD(SOURCE_ID, SOURCE_KEY);
+   */
+    Award: {
+        fields: [
+            {name: 'name',              type: 'string'},
+            {name: 'description',       type: 'string'},
+            {name: 'date',              type: 'date'}, //Award date
+            {name: 'type',              type: 'string'}, //FFP, T&M, IDIQ, etc
+            {name: 'value',             type: 'long'},
+            {name: 'naics',             type: 'string'},
+            {name: 'customer',          type: 'string'},
+            {name: 'startDate',         type: 'date'},
+            {name: 'endDate',           type: 'date'},
+            {name: 'competed',          type: 'boolean'},
+            {name: 'opportunity',       type: 'Opportunity'}, //link to an opportunity
+            {name: 'recipient',         type: 'Company'}, //link to a company
+            {name: 'source',            type: 'Source'}, //usaspending.gov
+            {name: 'sourceKey',         type: 'string'}, //unique_award_key or piid
+            {name: 'info',              type: 'json'}
+        ],
+        constraints: [
+            {name: 'name',          required: true},
+            {name: 'competed',      required: true},
+            {name: 'source',        required: true},
+            {name: 'sourceKey',     required: true}
+        ],
+        defaults: [
+            {name: 'competed',      value: false}
+        ]
+    },
+
+
+  //**************************************************************************
+  //** User
+  //**************************************************************************
+  /** Used to represent an individual user.
+   */
+    User: {
+        implements: ['java.security.Principal', 'javaxt.express.User'],
+        fields: [
+            {name: 'person',        type: 'Person'},
+            {name: 'status',        type: 'int'},
+            {name: 'accessLevel',   type: 'int'},
+            {name: 'info',          type: 'json'}
+        ],
+        constraints: [
+            {name: 'person',        required: true,     unique: true},
+            {name: 'status',        required: true},
+            {name: 'accessLevel',   required: true}
+        ],
+        defaults: [
+            {name: 'status',    value: 1},
+            {name: 'level',     value: 3}
+        ]
+    },
+
+
+  //**************************************************************************
+  //** UserAuthentication
+  //**************************************************************************
+  /** Used to encapsulate authentication information associated with an
+   *  individual user. The authentication service and key should be unique:
+   *  ALTER TABLE USER_AUTHENTICATION ADD UNIQUE (SERVICE, KEY);
+   */
+    UserAuthentication: {
+        fields: [
+            {name: 'service',     type: 'string'},
+            {name: 'key',         type: 'string'},
+            {name: 'value',       type: 'string'},
+            {name: 'user',        type: 'User'},
+            {name: 'info',        type: 'json'}
+        ],
+        constraints: [
+            {name: 'service',   required: true},
+            {name: 'key',       required: true},
+            {name: 'user',      required: true}
+        ]
+    },
+
+
+  //**************************************************************************
+  //** UserPreference
+  //**************************************************************************
+    UserPreference: {
+        fields: [
+            {name: 'key',         type: 'string'},
+            {name: 'value',       type: 'string'},
+            {name: 'user',        type: 'User'}
+        ],
+        constraints: [
+            {name: 'key',       required: true,  length: 50},
+            {name: 'value',     required: true},
+            {name: 'user',      required: true}
         ]
     },
 

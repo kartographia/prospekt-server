@@ -4,31 +4,30 @@ import java.sql.SQLException;
 
 
 //******************************************************************************
-//**  User Class
+//**  PersonAddress Class
 //******************************************************************************
 /**
- *   Used to represent a User
+ *   Used to represent a PersonAddress
  *
  ******************************************************************************/
 
-public class User extends javaxt.sql.Model 
-    implements java.security.Principal, javaxt.express.User {
+public class PersonAddress extends javaxt.sql.Model {
 
     private Person person;
-    private Integer status;
-    private Integer accessLevel;
+    private Address address;
+    private String type;
     private JSONObject info;
 
 
   //**************************************************************************
   //** Constructor
   //**************************************************************************
-    public User(){
-        super("user", java.util.Map.ofEntries(
+    public PersonAddress(){
+        super("person_address", java.util.Map.ofEntries(
             
             java.util.Map.entry("person", "person_id"),
-            java.util.Map.entry("status", "status"),
-            java.util.Map.entry("accessLevel", "access_level"),
+            java.util.Map.entry("address", "address_id"),
+            java.util.Map.entry("type", "type"),
             java.util.Map.entry("info", "info")
 
         ));
@@ -41,7 +40,7 @@ public class User extends javaxt.sql.Model
   //**************************************************************************
   /** Creates a new instance of this class using a record ID in the database.
    */
-    public User(long id) throws SQLException {
+    public PersonAddress(long id) throws SQLException {
         this();
         init(id);
     }
@@ -51,9 +50,9 @@ public class User extends javaxt.sql.Model
   //** Constructor
   //**************************************************************************
   /** Creates a new instance of this class using a JSON representation of a
-   *  User.
+   *  PersonAddress.
    */
-    public User(JSONObject json){
+    public PersonAddress(JSONObject json){
         this();
         update(json);
     }
@@ -69,14 +68,18 @@ public class User extends javaxt.sql.Model
         try{
             this.id = getValue(rs, "id").toLong();
             Long personID = getValue(rs, "person_id").toLong();
-            this.status = getValue(rs, "status").toInteger();
-            this.accessLevel = getValue(rs, "access_level").toInteger();
+            Long addressID = getValue(rs, "address_id").toLong();
+            this.type = getValue(rs, "type").toString();
             this.info = new JSONObject(getValue(rs, "info").toString());
 
 
 
           //Set person
             if (personID!=null) person = new Person(personID);
+
+
+          //Set address
+            if (addressID!=null) address = new Address(addressID);
 
         }
         catch(Exception e){
@@ -89,7 +92,7 @@ public class User extends javaxt.sql.Model
   //**************************************************************************
   //** update
   //**************************************************************************
-  /** Used to update attributes with attributes from another User.
+  /** Used to update attributes with attributes from another PersonAddress.
    */
     public void update(JSONObject json){
 
@@ -104,15 +107,19 @@ public class User extends javaxt.sql.Model
             }
             catch(Exception e){}
         }
-        this.status = json.get("status").toInteger();
-        this.accessLevel = json.get("accessLevel").toInteger();
+        if (json.has("address")){
+            address = new Address(json.get("address").toJSONObject());
+        }
+        else if (json.has("addressID")){
+            try{
+                address = new Address(json.get("addressID").toLong());
+            }
+            catch(Exception e){}
+        }
+        this.type = json.get("type").toString();
         this.info = json.get("info").toJSONObject();
     }
 
-
-    public String getName(){
-        return null;
-    }
 
     public Person getPerson(){
         return person;
@@ -122,20 +129,20 @@ public class User extends javaxt.sql.Model
         this.person = person;
     }
 
-    public Integer getStatus(){
-        return status;
+    public Address getAddress(){
+        return address;
     }
 
-    public void setStatus(Integer status){
-        this.status = status;
+    public void setAddress(Address address){
+        this.address = address;
     }
 
-    public Integer getAccessLevel(){
-        return accessLevel;
+    public String getType(){
+        return type;
     }
 
-    public void setAccessLevel(Integer accessLevel){
-        this.accessLevel = accessLevel;
+    public void setType(String type){
+        this.type = type;
     }
 
     public JSONObject getInfo(){
@@ -152,25 +159,25 @@ public class User extends javaxt.sql.Model
   //**************************************************************************
   //** get
   //**************************************************************************
-  /** Used to find a User using a given set of constraints. Example:
-   *  User obj = User.get("person_id=", person_id);
+  /** Used to find a PersonAddress using a given set of constraints. Example:
+   *  PersonAddress obj = PersonAddress.get("person_id=", person_id);
    */
-    public static User get(Object...args) throws SQLException {
-        Object obj = _get(User.class, args);
-        return obj==null ? null : (User) obj;
+    public static PersonAddress get(Object...args) throws SQLException {
+        Object obj = _get(PersonAddress.class, args);
+        return obj==null ? null : (PersonAddress) obj;
     }
 
 
   //**************************************************************************
   //** find
   //**************************************************************************
-  /** Used to find Users using a given set of constraints.
+  /** Used to find PersonAddresss using a given set of constraints.
    */
-    public static User[] find(Object...args) throws SQLException {
-        Object[] obj = _find(User.class, args);
-        User[] arr = new User[obj.length];
+    public static PersonAddress[] find(Object...args) throws SQLException {
+        Object[] obj = _find(PersonAddress.class, args);
+        PersonAddress[] arr = new PersonAddress[obj.length];
         for (int i=0; i<arr.length; i++){
-            arr[i] = (User) obj[i];
+            arr[i] = (PersonAddress) obj[i];
         }
         return arr;
     }

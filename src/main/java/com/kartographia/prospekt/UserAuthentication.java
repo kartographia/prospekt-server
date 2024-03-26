@@ -4,31 +4,32 @@ import java.sql.SQLException;
 
 
 //******************************************************************************
-//**  User Class
+//**  UserAuthentication Class
 //******************************************************************************
 /**
- *   Used to represent a User
+ *   Used to represent a UserAuthentication
  *
  ******************************************************************************/
 
-public class User extends javaxt.sql.Model 
-    implements java.security.Principal, javaxt.express.User {
+public class UserAuthentication extends javaxt.sql.Model {
 
-    private Person person;
-    private Integer status;
-    private Integer accessLevel;
+    private String service;
+    private String key;
+    private String value;
+    private User user;
     private JSONObject info;
 
 
   //**************************************************************************
   //** Constructor
   //**************************************************************************
-    public User(){
-        super("user", java.util.Map.ofEntries(
+    public UserAuthentication(){
+        super("user_authentication", java.util.Map.ofEntries(
             
-            java.util.Map.entry("person", "person_id"),
-            java.util.Map.entry("status", "status"),
-            java.util.Map.entry("accessLevel", "access_level"),
+            java.util.Map.entry("service", "service"),
+            java.util.Map.entry("key", "key"),
+            java.util.Map.entry("value", "value"),
+            java.util.Map.entry("user", "user_id"),
             java.util.Map.entry("info", "info")
 
         ));
@@ -41,7 +42,7 @@ public class User extends javaxt.sql.Model
   //**************************************************************************
   /** Creates a new instance of this class using a record ID in the database.
    */
-    public User(long id) throws SQLException {
+    public UserAuthentication(long id) throws SQLException {
         this();
         init(id);
     }
@@ -51,9 +52,9 @@ public class User extends javaxt.sql.Model
   //** Constructor
   //**************************************************************************
   /** Creates a new instance of this class using a JSON representation of a
-   *  User.
+   *  UserAuthentication.
    */
-    public User(JSONObject json){
+    public UserAuthentication(JSONObject json){
         this();
         update(json);
     }
@@ -68,15 +69,16 @@ public class User extends javaxt.sql.Model
 
         try{
             this.id = getValue(rs, "id").toLong();
-            Long personID = getValue(rs, "person_id").toLong();
-            this.status = getValue(rs, "status").toInteger();
-            this.accessLevel = getValue(rs, "access_level").toInteger();
+            this.service = getValue(rs, "service").toString();
+            this.key = getValue(rs, "key").toString();
+            this.value = getValue(rs, "value").toString();
+            Long userID = getValue(rs, "user_id").toLong();
             this.info = new JSONObject(getValue(rs, "info").toString());
 
 
 
-          //Set person
-            if (personID!=null) person = new Person(personID);
+          //Set user
+            if (userID!=null) user = new User(userID);
 
         }
         catch(Exception e){
@@ -89,53 +91,58 @@ public class User extends javaxt.sql.Model
   //**************************************************************************
   //** update
   //**************************************************************************
-  /** Used to update attributes with attributes from another User.
+  /** Used to update attributes with attributes from another UserAuthentication.
    */
     public void update(JSONObject json){
 
         Long id = json.get("id").toLong();
         if (id!=null && id>0) this.id = id;
-        if (json.has("person")){
-            person = new Person(json.get("person").toJSONObject());
+        this.service = json.get("service").toString();
+        this.key = json.get("key").toString();
+        this.value = json.get("value").toString();
+        if (json.has("user")){
+            user = new User(json.get("user").toJSONObject());
         }
-        else if (json.has("personID")){
+        else if (json.has("userID")){
             try{
-                person = new Person(json.get("personID").toLong());
+                user = new User(json.get("userID").toLong());
             }
             catch(Exception e){}
         }
-        this.status = json.get("status").toInteger();
-        this.accessLevel = json.get("accessLevel").toInteger();
         this.info = json.get("info").toJSONObject();
     }
 
 
-    public String getName(){
-        return null;
+    public String getService(){
+        return service;
     }
 
-    public Person getPerson(){
-        return person;
+    public void setService(String service){
+        this.service = service;
     }
 
-    public void setPerson(Person person){
-        this.person = person;
+    public String getKey(){
+        return key;
     }
 
-    public Integer getStatus(){
-        return status;
+    public void setKey(String key){
+        this.key = key;
     }
 
-    public void setStatus(Integer status){
-        this.status = status;
+    public String getValue(){
+        return value;
     }
 
-    public Integer getAccessLevel(){
-        return accessLevel;
+    public void setValue(String value){
+        this.value = value;
     }
 
-    public void setAccessLevel(Integer accessLevel){
-        this.accessLevel = accessLevel;
+    public User getUser(){
+        return user;
+    }
+
+    public void setUser(User user){
+        this.user = user;
     }
 
     public JSONObject getInfo(){
@@ -152,25 +159,25 @@ public class User extends javaxt.sql.Model
   //**************************************************************************
   //** get
   //**************************************************************************
-  /** Used to find a User using a given set of constraints. Example:
-   *  User obj = User.get("person_id=", person_id);
+  /** Used to find a UserAuthentication using a given set of constraints. Example:
+   *  UserAuthentication obj = UserAuthentication.get("service=", service);
    */
-    public static User get(Object...args) throws SQLException {
-        Object obj = _get(User.class, args);
-        return obj==null ? null : (User) obj;
+    public static UserAuthentication get(Object...args) throws SQLException {
+        Object obj = _get(UserAuthentication.class, args);
+        return obj==null ? null : (UserAuthentication) obj;
     }
 
 
   //**************************************************************************
   //** find
   //**************************************************************************
-  /** Used to find Users using a given set of constraints.
+  /** Used to find UserAuthentications using a given set of constraints.
    */
-    public static User[] find(Object...args) throws SQLException {
-        Object[] obj = _find(User.class, args);
-        User[] arr = new User[obj.length];
+    public static UserAuthentication[] find(Object...args) throws SQLException {
+        Object[] obj = _find(UserAuthentication.class, args);
+        UserAuthentication[] arr = new UserAuthentication[obj.length];
         for (int i=0; i<arr.length; i++){
-            arr[i] = (User) obj[i];
+            arr[i] = (UserAuthentication) obj[i];
         }
         return arr;
     }
