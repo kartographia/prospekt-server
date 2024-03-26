@@ -12,7 +12,7 @@
   <!-- =========================================================== -->
   <!--     Module Description                                      -->
   <!-- =========================================================== -->
-    <groupId>com.kartographia.prospekt</groupId>
+    <groupId>kartographia</groupId>
     <artifactId>prospekt-server</artifactId>
     <version>dev</version>
     <packaging>jar</packaging>
@@ -24,33 +24,45 @@
     <repositories>
        <repository>
          <id>javaxt.com</id>
-         <url>http://www.javaxt.com/maven</url>
+         <url>https://www.javaxt.com/maven</url>
        </repository>
     </repositories>
     <dependencies>
 
         <!-- JavaXT -->
-        <dependency>
-          <groupId>javaxt</groupId>
-          <artifactId>javaxt-core</artifactId>
-          <version>1.11.1</version>
-        </dependency>
-        <dependency>
-          <groupId>javaxt</groupId>
-          <artifactId>javaxt-server</artifactId>
-          <version>4.1.1</version>
-        </dependency>
+       <dependency>
+         <groupId>javaxt</groupId>
+         <artifactId>javaxt-core</artifactId>
+         <version>2.1.7</version>
+       </dependency>
         <dependency>
           <groupId>javaxt</groupId>
           <artifactId>javaxt-express</artifactId>
-          <version>1.1.5</version>
+          <version>1.4.0</version>
         </dependency>
 
-        <!-- PostgreSQL -->
+
+        <!-- JTS (geospatial utils) -->
+        <dependency>
+          <groupId>org.locationtech.jts</groupId>
+          <artifactId>jts-core</artifactId>
+          <version>1.17.1</version>
+        </dependency>
+
+
+        <!-- PostgreSQL (app database) -->
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.3.5</version>
+          <version>42.7.1</version>
+        </dependency>
+
+
+        <!-- H2 (app database) -->
+        <dependency>
+          <groupId>com.h2database</groupId>
+          <artifactId>h2</artifactId>
+          <version>2.2.224</version>
         </dependency>
 
      </dependencies>
