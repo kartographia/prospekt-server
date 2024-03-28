@@ -15,7 +15,7 @@ public class Company extends javaxt.sql.Model {
 
     private String name;
     private String description;
-    private String eui;
+    private String uei;
     private Integer recentAwards;
     private BigDecimal recentAwardVal;
     private BigDecimal recentAwardMix;
@@ -34,7 +34,7 @@ public class Company extends javaxt.sql.Model {
             
             java.util.Map.entry("name", "name"),
             java.util.Map.entry("description", "description"),
-            java.util.Map.entry("eui", "eui"),
+            java.util.Map.entry("uei", "uei"),
             java.util.Map.entry("recentAwards", "recent_awards"),
             java.util.Map.entry("recentAwardVal", "recent_award_val"),
             java.util.Map.entry("recentAwardMix", "recent_award_mix"),
@@ -83,7 +83,7 @@ public class Company extends javaxt.sql.Model {
             this.id = getValue(rs, "id").toLong();
             this.name = getValue(rs, "name").toString();
             this.description = getValue(rs, "description").toString();
-            this.eui = getValue(rs, "eui").toString();
+            this.uei = getValue(rs, "uei").toString();
             this.recentAwards = getValue(rs, "recent_awards").toInteger();
             this.recentAwardVal = getValue(rs, "recent_award_val").toBigDecimal();
             this.recentAwardMix = getValue(rs, "recent_award_mix").toBigDecimal();
@@ -115,7 +115,7 @@ public class Company extends javaxt.sql.Model {
         if (id!=null && id>0) this.id = id;
         this.name = json.get("name").toString();
         this.description = json.get("description").toString();
-        this.eui = json.get("eui").toString();
+        this.uei = json.get("uei").toString();
         this.recentAwards = json.get("recentAwards").toInteger();
         this.recentAwardVal = json.get("recentAwardVal").toBigDecimal();
         this.recentAwardMix = json.get("recentAwardMix").toBigDecimal();
@@ -145,12 +145,12 @@ public class Company extends javaxt.sql.Model {
         this.description = description;
     }
 
-    public String getEui(){
-        return eui;
+    public String getUei(){
+        return uei;
     }
 
-    public void setEui(String eui){
-        this.eui = eui;
+    public void setUei(String uei){
+        this.uei = uei;
     }
 
     public Integer getRecentAwards(){

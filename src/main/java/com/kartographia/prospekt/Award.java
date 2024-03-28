@@ -1,6 +1,7 @@
 package com.kartographia.prospekt;
 import javaxt.json.*;
 import java.sql.SQLException;
+import java.math.BigDecimal;
 import javaxt.utils.Date;
 
 //******************************************************************************
@@ -17,11 +18,15 @@ public class Award extends javaxt.sql.Model {
     private String description;
     private Date date;
     private String type;
-    private Long value;
+    private BigDecimal value;
+    private BigDecimal funded;
+    private BigDecimal extendedValue;
     private String naics;
     private String customer;
+    private String office;
     private Date startDate;
     private Date endDate;
+    private Date extendedDate;
     private Boolean competed;
     private Opportunity opportunity;
     private Company recipient;
@@ -41,10 +46,14 @@ public class Award extends javaxt.sql.Model {
             java.util.Map.entry("date", "date"),
             java.util.Map.entry("type", "type"),
             java.util.Map.entry("value", "value"),
+            java.util.Map.entry("funded", "funded"),
+            java.util.Map.entry("extendedValue", "extended_value"),
             java.util.Map.entry("naics", "naics"),
             java.util.Map.entry("customer", "customer"),
+            java.util.Map.entry("office", "office"),
             java.util.Map.entry("startDate", "start_date"),
             java.util.Map.entry("endDate", "end_date"),
+            java.util.Map.entry("extendedDate", "extended_date"),
             java.util.Map.entry("competed", "competed"),
             java.util.Map.entry("opportunity", "opportunity_id"),
             java.util.Map.entry("recipient", "recipient_id"),
@@ -93,11 +102,15 @@ public class Award extends javaxt.sql.Model {
             this.description = getValue(rs, "description").toString();
             this.date = getValue(rs, "date").toDate();
             this.type = getValue(rs, "type").toString();
-            this.value = getValue(rs, "value").toLong();
+            this.value = getValue(rs, "value").toBigDecimal();
+            this.funded = getValue(rs, "funded").toBigDecimal();
+            this.extendedValue = getValue(rs, "extended_value").toBigDecimal();
             this.naics = getValue(rs, "naics").toString();
             this.customer = getValue(rs, "customer").toString();
+            this.office = getValue(rs, "office").toString();
             this.startDate = getValue(rs, "start_date").toDate();
             this.endDate = getValue(rs, "end_date").toDate();
+            this.extendedDate = getValue(rs, "extended_date").toDate();
             this.competed = getValue(rs, "competed").toBoolean();
             Long opportunityID = getValue(rs, "opportunity_id").toLong();
             Long recipientID = getValue(rs, "recipient_id").toLong();
@@ -139,11 +152,15 @@ public class Award extends javaxt.sql.Model {
         this.description = json.get("description").toString();
         this.date = json.get("date").toDate();
         this.type = json.get("type").toString();
-        this.value = json.get("value").toLong();
+        this.value = json.get("value").toBigDecimal();
+        this.funded = json.get("funded").toBigDecimal();
+        this.extendedValue = json.get("extendedValue").toBigDecimal();
         this.naics = json.get("naics").toString();
         this.customer = json.get("customer").toString();
+        this.office = json.get("office").toString();
         this.startDate = json.get("startDate").toDate();
         this.endDate = json.get("endDate").toDate();
+        this.extendedDate = json.get("extendedDate").toDate();
         this.competed = json.get("competed").toBoolean();
         if (json.has("opportunity")){
             opportunity = new Opportunity(json.get("opportunity").toJSONObject());
@@ -209,12 +226,28 @@ public class Award extends javaxt.sql.Model {
         this.type = type;
     }
 
-    public Long getValue(){
+    public BigDecimal getValue(){
         return value;
     }
 
-    public void setValue(Long value){
+    public void setValue(BigDecimal value){
         this.value = value;
+    }
+
+    public BigDecimal getFunded(){
+        return funded;
+    }
+
+    public void setFunded(BigDecimal funded){
+        this.funded = funded;
+    }
+
+    public BigDecimal getExtendedValue(){
+        return extendedValue;
+    }
+
+    public void setExtendedValue(BigDecimal extendedValue){
+        this.extendedValue = extendedValue;
     }
 
     public String getNaics(){
@@ -233,6 +266,14 @@ public class Award extends javaxt.sql.Model {
         this.customer = customer;
     }
 
+    public String getOffice(){
+        return office;
+    }
+
+    public void setOffice(String office){
+        this.office = office;
+    }
+
     public Date getStartDate(){
         return startDate;
     }
@@ -247,6 +288,14 @@ public class Award extends javaxt.sql.Model {
 
     public void setEndDate(Date endDate){
         this.endDate = endDate;
+    }
+
+    public Date getExtendedDate(){
+        return extendedDate;
+    }
+
+    public void setExtendedDate(Date extendedDate){
+        this.extendedDate = extendedDate;
     }
 
     public Boolean getCompeted(){

@@ -37,7 +37,7 @@ var models = {
         fields: [
             {name: 'name',              type: 'string'},
             {name: 'description',       type: 'string'},
-            {name: 'eui',               type: 'string'},
+            {name: 'uei',               type: 'string'},
             {name: 'recent_awards',     type: 'int'},      //total awards in the last 12 months
             {name: 'recent_award_val',  type: 'decimal'},  //total value of awards in the last 12 months
             {name: 'recent_award_mix',  type: 'decimal'},  //percent competative awards in the last 12 months
@@ -210,11 +210,15 @@ var models = {
             {name: 'description',       type: 'string'},
             {name: 'date',              type: 'date'}, //Award date
             {name: 'type',              type: 'string'}, //FFP, T&M, IDIQ, etc
-            {name: 'value',             type: 'long'},
+            {name: 'value',             type: 'decimal'}, //total awarded
+            {name: 'funded',            type: 'decimal'}, //total funded
+            {name: 'extendedValue',     type: 'decimal'}, //potential value
             {name: 'naics',             type: 'string'},
-            {name: 'customer',          type: 'string'},
+            {name: 'customer',          type: 'string'}, //DOD
+            {name: 'office',            type: 'string'}, //DEFENSE SECURITY COOPERATION AGENCY
             {name: 'startDate',         type: 'date'},
-            {name: 'endDate',           type: 'date'},
+            {name: 'endDate',           type: 'date'}, //current end date
+            {name: 'extendedDate',      type: 'date'}, //potential end date
             {name: 'competed',          type: 'boolean'},
             {name: 'opportunity',       type: 'Opportunity'}, //link to an opportunity
             {name: 'recipient',         type: 'Company'}, //link to a company
@@ -230,6 +234,29 @@ var models = {
         ],
         defaults: [
             {name: 'competed',      value: false}
+        ]
+    },
+
+
+  //**************************************************************************
+  //** Code
+  //**************************************************************************
+  /** Used to represent a look up value
+   *  CREATE UNIQUE INDEX IDX_CODE on CODE(KEY, CATEGORY, SOURCE_ID);
+   */
+    Code: {
+        fields: [
+            {name: 'key',           type: 'string'},
+            {name: 'value',         type: 'string'},
+            {name: 'category',      type: 'string'},
+            {name: 'comments',      type: 'string'},
+            {name: 'source',        type: 'Source'} //usaspending.gov
+        ],
+        constraints: [
+            {name: 'key',       required: true},
+            {name: 'value',     required: true},
+            {name: 'category',  required: true},
+            {name: 'source',    required: true}
         ]
     },
 
