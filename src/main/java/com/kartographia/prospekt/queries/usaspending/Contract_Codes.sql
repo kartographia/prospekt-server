@@ -1,0 +1,1 @@
+SELECT distinct(type_of_contract_pricing||': '||type_of_contract_pric_desc) from raw.source_procurement_transaction;
