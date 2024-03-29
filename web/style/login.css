@@ -1,5 +1,4 @@
 @import url(https://fonts.googleapis.com/css?family=Open+Sans);
-@import url(https://fonts.googleapis.com/css?family=Lobster);
 
 html, body {
     height:100%;
@@ -7,7 +6,7 @@ html, body {
 }
 
 body {
-    background-color: #093958; /*Gray*/
+    background-color: #46565f;
 }
 
 
@@ -68,7 +67,7 @@ select:focus, textarea:focus, input:focus{
         height: 525px;
         padding: 20px 72px 0 72px;
         border-radius: 5px;
-        background-color: #bdd2e4;
+        background-color: #e3ecf3;
     }
 
 }
@@ -82,35 +81,22 @@ select:focus, textarea:focus, input:focus{
 
     }
 
-    @media (min-height: 481px)  {
+@media (min-height: 481px)  {
 
-
-        .login-logo {
-            font-family: 'Lobster', cursive;
-            margin: -20px 0 56px 0;
-            /*background: url(../images/logo.png) no-repeat;*/
-            width: 600px;
-            height: 144px;
-            margin-left: -72px;
-            border-radius: 5px 5px 0 0;
-            background-position-x: 130px;
-            background-color: #4493c1;
-            color: #fff;
-            background-position-y: 40px;
-        }
-        .login-logo:after {
-            content:"Prospekts";
-            margin-left: 164px;
-            display: inline-block;
-            float: left;
-            font-size: 70px;
-            white-space: nowrap;
-            color: #fff;
-            margin-top: 37px;
-            text-shadow: 2px 2px #377197;
-        }
-
+    .login-logo {
+        margin: -20px 0 56px 0;
+        background: url(../images/prospekt.svg) no-repeat;
+        width: 600px;
+        height: 144px;
+        margin-left: -72px;
+        border-radius: 5px 5px 0 0;
+        background-position-x: 130px;
+        background-color: #637a87;
+        color: #fff;
+        background-position-y: 30px;
+        background-position-x: 80px;
     }
+}
 
 
 /**************************************************************************/
@@ -294,14 +280,14 @@ select:focus, textarea:focus, input:focus{
 
     .login-form input[type="submit"] {
         height: 70px;
-        background-color: #1974a9;
+        background-color: #3a7597;
     }
 }
 
 
     .login-form input[type="submit"]:hover,
     .login-form input[type="submit"]:focus {
-        background-color: rgba(245,134,11,1);
+        background-color: #e7963c;
         color: #fefefe;
         -webkit-transition: background-color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1), color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
         transition: background-color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1), color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);

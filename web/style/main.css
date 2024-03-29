@@ -1,5 +1,4 @@
-@import url(https://fonts.googleapis.com/css?family=Open+Sans);
-@import url(https://fonts.googleapis.com/css?family=Lobster);
+@import url(//fonts.googleapis.com/css?family=Open+Sans);
 
 html, body {
     height:100%;
@@ -21,34 +20,26 @@ body, textarea, input, select, td, th {
 /**************************************************************************/
 
 .app-header {
-    background-color: #007cba;
-    background-color: #4493c1;
     height: 86px;
     color: #fff;
 }
 
-
-.app-header-icon {
-    /*
-    background: url(../images/logo.png) no-repeat;
-    width: 43px;
-    height: 58px;
-    margin: 7px 0 0 14px;
-    */
+.app-header,
+.app-header-menu {
+    background-color: #007cba;
+    background-color: #4493c1;
+    background-color: #64b5e3;
+    background-color: #95adbb;
+    background-color: #637a87;
 }
 
-.app-header-icon:after {
-    font-family: 'Lobster', cursive;
-    content:"Prospekts";
-    text-shadow: 2px 2px #377197;
-
-    margin-left: 18px;
-    display: inline-block;
-    float: left;
-    font-size: 50px;
-    white-space: nowrap;
-    color: #fff;
-    margin-top: -6px;
+.app-header-icon {
+    background: url(../images/prospekt.svg) no-repeat;
+    background-size: 300px 58px;
+    background-position-y: 13px;
+    width: 400px;
+    height: 80px;
+    margin: 0 0 0 14px;
 }
 
 .app-header-profile,
@@ -74,8 +65,6 @@ body, textarea, input, select, td, th {
  }
 
 .app-header-menu {
-    background-color: #007cba;
-    background-color: #4493c1;
     margin-left: 0;
  }
 
@@ -111,6 +100,56 @@ body, textarea, input, select, td, th {
     font-size: 20px;
     vertical-align: middle;
 }
+
+
+
+
+.app-nav-bar {
+    background-color: #465761;
+    height: 36px;
+    line-height: 36px;
+}
+
+.app-tab-container {
+    float: right;
+    height: 100%;
+    padding: 0 20px;
+}
+
+.app-tab-container > div {
+    float: left;
+    min-width: 125px;
+    color: white;
+    text-align: center;
+    height: 100%;
+    cursor: pointer;
+}
+
+.app-tab-container > div:hover {
+    background-color: #2f414a;
+}
+
+.app-tab-container > div.active,
+.app-tab-container > div.active:hover {
+    background-color: #29343a;
+}
+
+
+.app-nav-bar .count {
+    position:absolute;
+    top: 2px;
+    right: 14px;
+    border-radius: 50%;
+    background-color: #bb0000;
+    line-height: 15px;
+    min-width: 11px;
+    text-align: center;
+    border: 1px solid #8f7474;
+    font-size: 10px;
+    padding: 0 3px;
+}
+
+
 
 
 
