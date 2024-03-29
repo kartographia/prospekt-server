@@ -1,5 +1,6 @@
 /data/
-target/
+/dist/
+/target/
 __pycache__/
 
 
