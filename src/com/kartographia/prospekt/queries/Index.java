@@ -1,6 +1,10 @@
 package com.kartographia.prospekt.queries;
-import java.util.concurrent.ConcurrentHashMap;
+
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static javaxt.utils.Console.console;
+
 
 public class Index {
     private static ConcurrentHashMap<String, Query> queries = new ConcurrentHashMap<>();
@@ -16,7 +20,7 @@ public class Index {
         return getQuery(null, fileName);
     }
 
-    
+
   //**************************************************************************
   //** getQuery
   //**************************************************************************
@@ -44,7 +48,9 @@ public class Index {
                         if (!folder.isEmpty()) folder += "/";
 
                         String key = (folder + name).toLowerCase();
+                        console.log(key);
                         queries.put(key, new Query(entry.getText()));
+                        queries.notify();
                     }
                 }
             }
@@ -71,6 +77,7 @@ public class Index {
                 }
 
                 String key = (folderName + "/" + fileName).toLowerCase();
+                console.log("-", key, queries.get(key));
                 return queries.get(key);
             }
         }

@@ -11,6 +11,18 @@ import javaxt.encryption.BCrypt;
 import javaxt.express.ConfigFile;
 import static javaxt.utils.Console.*;
 
+//******************************************************************************
+//**  Main
+//******************************************************************************
+/**
+ *  Command line interface used to start the web server or to run specialized
+ *  functions (e.g. create users, load data, etc).
+ *
+ *  The web server will start by default if a given set of command line
+ *  arguments is not mapped to specialty function.
+ *
+ ******************************************************************************/
+
 public class Main {
 
   //**************************************************************************
@@ -138,6 +150,18 @@ public class Main {
 
         if (str.equals("password")){
             updatePassword(args);
+        }
+        else if (str.equals("database")){
+            updateDatabase(args);
+        }
+        else if (str.equals("company")){
+            updateCompany(args);
+        }
+        else if (str.equals("companies")){
+            updateCompanies(args);
+        }
+        else if (str.equals("awards")){
+            updateAwards(args);
         }
     }
 
@@ -298,6 +322,127 @@ public class Main {
 
 
   //**************************************************************************
+  //** updateDatabase
+  //**************************************************************************
+    private static void updateDatabase(HashMap<String, String> args) throws Exception {
+        String name = args.get("-name");
+        if (name==null || name.isEmpty()) {
+            System.out.println("-name is required");
+            return;
+        }
+        name = name.toLowerCase();
+
+        if (name.startsWith("usaspending")){
+            updateUSASpending(args);
+        }
+        else if (name.startsWith("sam")){
+
+        }
+    }
+
+
+  //**************************************************************************
+  //** updateUSASpending
+  //**************************************************************************
+    private static void updateUSASpending(HashMap<String, String> args) throws Exception {
+
+        JSONObject config = Config.get("sources").get("usaspending.gov").toJSONObject();
+        String url = config.get("url").toString();
+        String dir = config.get("dir").toString();
+        Database database = javaxt.express.Config.getDatabase(config.get("database"));
+
+        USASpending.updateDatabase(url, dir, database);
+    }
+
+
+  //**************************************************************************
+  //** updateCompany
+  //**************************************************************************
+    private static void updateCompany(HashMap<String, String> args) throws Exception {
+
+      //Get UEI
+        String uei = args.get("-uei"); //P8T9JZVLSXA3
+        if (uei==null || uei.isEmpty()) {
+            System.out.println("-uei is required");
+            return;
+        }
+
+      //Get input database (i.e. usaspending.gov)
+        javaxt.sql.Database in = javaxt.express.Config.getDatabase(
+        Config.get("sources").get("usaspending.gov").get("database"));
+
+
+      //Get output database
+        Config.initDatabase();
+        javaxt.sql.Database out = Config.getDatabase();
+
+
+      //Update company
+        try(Connection c1 = in.getConnection()){
+            try(Connection c2 = out.getConnection()){
+                USASpending.updateCompany(uei, c1, c2);
+            }
+        }
+    }
+
+
+  //**************************************************************************
+  //** updateCompanies
+  //**************************************************************************
+    private static void updateCompanies(HashMap<String, String> args) throws Exception {
+
+      //Get UEI
+        Integer numThreads = console.getValue(args, "-t", "-threads").toInteger();
+        if (numThreads==null) numThreads = 4;
+
+      //Get input database (i.e. usaspending.gov)
+        javaxt.sql.Database in = javaxt.express.Config.getDatabase(
+        Config.get("sources").get("usaspending.gov").get("database"));
+
+
+      //Get output database
+        Config.initDatabase();
+        javaxt.sql.Database out = Config.getDatabase();
+
+
+      //Update company
+        USASpending.updateCompanies(in, out, numThreads);
+    }
+
+
+
+  //**************************************************************************
+  //** updateAwards
+  //**************************************************************************
+    private static void updateAwards(HashMap<String, String> args) throws Exception {
+
+      //Get UEI
+        String uei = args.get("-uei"); //P8T9JZVLSXA3
+        if (uei==null || uei.isEmpty()) {
+            System.out.println("-uei is required");
+            return;
+        }
+
+      //Get input database (i.e. usaspending.gov)
+        javaxt.sql.Database in = javaxt.express.Config.getDatabase(
+        Config.get("sources").get("usaspending.gov").get("database"));
+
+
+      //Get output database
+        Config.initDatabase();
+        javaxt.sql.Database out = Config.getDatabase();
+
+
+      //Update company
+        try(Connection c1 = in.getConnection()){
+            try(Connection c2 = out.getConnection()){
+                USASpending.updateAwards(uei, c1, c2);
+            }
+        }
+    }
+
+
+  //**************************************************************************
   //** test
   //**************************************************************************
     private static void test(HashMap<String, String> args) throws Exception {
@@ -306,22 +451,39 @@ public class Main {
         if (test.equals("database")){
 
             Config.initDatabase();
-            Connection conn = null;
-            try{
-                conn = Config.getDatabase().getConnection();
+
+            try (Connection conn = Config.getDatabase().getConnection()){
                 for (Table table : Database.getTables(conn)){
                     System.out.println(table);
                 }
-                conn.close();
             }
-            catch(Exception e){
-                if (conn!=null) conn.close();
-                throw e;
-            }
+
+        }
+        else if (test.equals("query")){
+
+            String folder = args.get("-folder");
+            String file = args.get("-file");
+
+            String q = com.kartographia.prospekt.queries.Index.getQuery(folder, file).getSQL();
+            console.log(q);
+        }
+        else if (test.equals("usaspending")){
+            testUSASpending(args);
         }
         else{
             System.out.println("\"" + test + "\" test not found");
         }
     }
+
+
+  //**************************************************************************
+  //** testUSASpending
+  //**************************************************************************
+    private static void testUSASpending(HashMap<String, String> args) throws Exception {
+
+        JSONObject config = Config.get("sources").get("usaspending.gov").toJSONObject();
+
+    }
+
 
 }
