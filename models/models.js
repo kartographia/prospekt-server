@@ -11,6 +11,7 @@ var models = {
             {name: 'state',         type: 'string'},
             {name: 'country',       type: 'string'},
             {name: 'postalCode',    type: 'string'},
+            {name: 'searchTerm',    type: 'string'},
             {name: 'latitude',      type: 'decimal'},
             {name: 'longitude',     type: 'decimal'},
             {name: 'coordinates',   type: 'geo'},
@@ -45,6 +46,7 @@ var models = {
             {name: 'recent_naics',      type: 'string[]'}, //naics codes associated with recent awards
             {name: 'estimated_revenue', type: 'decimal'},
             {name: 'estimated_backlog', type: 'decimal'},
+            {name: 'lastUpdate',        type: 'date'},
             {name: 'info',              type: 'json'}
         ],
         constraints: [
@@ -70,6 +72,28 @@ var models = {
             {name: 'company',   required: true},
             {name: 'address',   required: true},
             {name: 'salary',    required: true}
+        ]
+    },
+
+
+  //**************************************************************************
+  //** CompanyOfficer
+  //**************************************************************************
+  /** Used to represent an individual company officer
+   */
+    CompanyOfficer: {
+        fields: [
+            {name: 'person',        type: 'Person'},
+            {name: 'company',       type: 'Company'},
+            {name: 'title',         type: 'string'},
+            {name: 'salary',        type: 'decimal'},
+            {name: 'lastUpdate',    type: 'date'},
+            {name: 'info',          type: 'json'}
+        ],
+        constraints: [
+            {name: 'person',        required: true},
+            {name: 'company',       required: true},
+            {name: 'salary',        required: true}
         ]
     },
 
@@ -104,6 +128,7 @@ var models = {
             {name: 'firstName',     type: 'string'},
             {name: 'lastName',      type: 'string'},
             {name: 'fullName',      type: 'string'},
+            {name: 'searchTerm',    type: 'string'},
             {name: 'contact',       type: 'json'},
             {name: 'info',          type: 'json'}
         ]
@@ -119,33 +144,12 @@ var models = {
         fields: [
             {name: 'person',    type: 'Person'},
             {name: 'address',   type: 'Address'},
-            {name: 'type',      type: 'string'},
+            {name: 'type',      type: 'string'}, //work, home, etc
             {name: 'info',      type: 'json'}
         ],
         constraints: [
             {name: 'person',    required: true},
             {name: 'address',   required: true}
-        ]
-    },
-
-
-  //**************************************************************************
-  //** SalaryHistory
-  //**************************************************************************
-  /** Used to represent salary history for individuals working at companies
-   */
-    SalaryHistory: {
-        fields: [
-            {name: 'person',        type: 'Person'},
-            {name: 'company',       type: 'Company'},
-            {name: 'salary',        type: 'decimal'},
-            {name: 'date',          type: 'date'},
-            {name: 'info',          type: 'json'}
-        ],
-        constraints: [
-            {name: 'person',        required: true},
-            {name: 'company',       required: true},
-            {name: 'salary',        required: true}
         ]
     },
 

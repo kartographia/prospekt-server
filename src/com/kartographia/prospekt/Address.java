@@ -20,6 +20,7 @@ public class Address extends javaxt.sql.Model {
     private String state;
     private String country;
     private String postalCode;
+    private String searchTerm;
     private BigDecimal latitude;
     private BigDecimal longitude;
     private Geometry coordinates;
@@ -37,6 +38,7 @@ public class Address extends javaxt.sql.Model {
             java.util.Map.entry("state", "state"),
             java.util.Map.entry("country", "country"),
             java.util.Map.entry("postalCode", "postal_code"),
+            java.util.Map.entry("searchTerm", "search_term"),
             java.util.Map.entry("latitude", "latitude"),
             java.util.Map.entry("longitude", "longitude"),
             java.util.Map.entry("coordinates", "coordinates"),
@@ -84,6 +86,7 @@ public class Address extends javaxt.sql.Model {
             this.state = getValue(rs, "state").toString();
             this.country = getValue(rs, "country").toString();
             this.postalCode = getValue(rs, "postal_code").toString();
+            this.searchTerm = getValue(rs, "search_term").toString();
             this.latitude = getValue(rs, "latitude").toBigDecimal();
             this.longitude = getValue(rs, "longitude").toBigDecimal();
             try{this.coordinates = new WKTReader().read(getValue(rs, "coordinates").toString());}catch(Exception e){}
@@ -112,6 +115,7 @@ public class Address extends javaxt.sql.Model {
         this.state = json.get("state").toString();
         this.country = json.get("country").toString();
         this.postalCode = json.get("postalCode").toString();
+        this.searchTerm = json.get("searchTerm").toString();
         this.latitude = json.get("latitude").toBigDecimal();
         this.longitude = json.get("longitude").toBigDecimal();
         try {
@@ -160,6 +164,14 @@ public class Address extends javaxt.sql.Model {
 
     public void setPostalCode(String postalCode){
         this.postalCode = postalCode;
+    }
+
+    public String getSearchTerm(){
+        return searchTerm;
+    }
+
+    public void setSearchTerm(String searchTerm){
+        this.searchTerm = searchTerm;
     }
 
     public BigDecimal getLatitude(){

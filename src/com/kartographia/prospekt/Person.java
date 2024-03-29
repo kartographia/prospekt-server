@@ -16,6 +16,7 @@ public class Person extends javaxt.sql.Model {
     private String firstName;
     private String lastName;
     private String fullName;
+    private String searchTerm;
     private JSONObject contact;
     private JSONObject info;
 
@@ -29,6 +30,7 @@ public class Person extends javaxt.sql.Model {
             java.util.Map.entry("firstName", "first_name"),
             java.util.Map.entry("lastName", "last_name"),
             java.util.Map.entry("fullName", "full_name"),
+            java.util.Map.entry("searchTerm", "search_term"),
             java.util.Map.entry("contact", "contact"),
             java.util.Map.entry("info", "info")
 
@@ -72,6 +74,7 @@ public class Person extends javaxt.sql.Model {
             this.firstName = getValue(rs, "first_name").toString();
             this.lastName = getValue(rs, "last_name").toString();
             this.fullName = getValue(rs, "full_name").toString();
+            this.searchTerm = getValue(rs, "search_term").toString();
             this.contact = new JSONObject(getValue(rs, "contact").toString());
             this.info = new JSONObject(getValue(rs, "info").toString());
 
@@ -96,6 +99,7 @@ public class Person extends javaxt.sql.Model {
         this.firstName = json.get("firstName").toString();
         this.lastName = json.get("lastName").toString();
         this.fullName = json.get("fullName").toString();
+        this.searchTerm = json.get("searchTerm").toString();
         this.contact = json.get("contact").toJSONObject();
         this.info = json.get("info").toJSONObject();
     }
@@ -123,6 +127,14 @@ public class Person extends javaxt.sql.Model {
 
     public void setFullName(String fullName){
         this.fullName = fullName;
+    }
+
+    public String getSearchTerm(){
+        return searchTerm;
+    }
+
+    public void setSearchTerm(String searchTerm){
+        this.searchTerm = searchTerm;
     }
 
     public JSONObject getContact(){

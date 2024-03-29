@@ -2,6 +2,7 @@ package com.kartographia.prospekt;
 import javaxt.json.*;
 import java.sql.SQLException;
 import java.math.BigDecimal;
+import javaxt.utils.Date;
 
 //******************************************************************************
 //**  Company Class
@@ -23,6 +24,7 @@ public class Company extends javaxt.sql.Model {
     private String[] recentNaics;
     private BigDecimal estimatedRevenue;
     private BigDecimal estimatedBacklog;
+    private Date lastUpdate;
     private JSONObject info;
 
 
@@ -42,6 +44,7 @@ public class Company extends javaxt.sql.Model {
             java.util.Map.entry("recentNaics", "recent_naics"),
             java.util.Map.entry("estimatedRevenue", "estimated_revenue"),
             java.util.Map.entry("estimatedBacklog", "estimated_backlog"),
+            java.util.Map.entry("lastUpdate", "last_update"),
             java.util.Map.entry("info", "info")
 
         ));
@@ -93,6 +96,7 @@ public class Company extends javaxt.sql.Model {
             this.recentNaics = v==null ? null : java.util.Arrays.copyOf(v, v.length, String[].class);}
             this.estimatedRevenue = getValue(rs, "estimated_revenue").toBigDecimal();
             this.estimatedBacklog = getValue(rs, "estimated_backlog").toBigDecimal();
+            this.lastUpdate = getValue(rs, "last_update").toDate();
             this.info = new JSONObject(getValue(rs, "info").toString());
 
 
@@ -125,6 +129,7 @@ public class Company extends javaxt.sql.Model {
         this.recentNaics = v==null ? null : java.util.Arrays.copyOf(v, v.length, String[].class);}
         this.estimatedRevenue = json.get("estimatedRevenue").toBigDecimal();
         this.estimatedBacklog = json.get("estimatedBacklog").toBigDecimal();
+        this.lastUpdate = json.get("lastUpdate").toDate();
         this.info = json.get("info").toJSONObject();
     }
 
@@ -207,6 +212,14 @@ public class Company extends javaxt.sql.Model {
 
     public void setEstimatedBacklog(BigDecimal estimatedBacklog){
         this.estimatedBacklog = estimatedBacklog;
+    }
+
+    public Date getLastUpdate(){
+        return lastUpdate;
+    }
+
+    public void setLastUpdate(Date lastUpdate){
+        this.lastUpdate = lastUpdate;
     }
 
     public JSONObject getInfo(){

@@ -5,32 +5,34 @@ import java.math.BigDecimal;
 import javaxt.utils.Date;
 
 //******************************************************************************
-//**  SalaryHistory Class
+//**  CompanyOfficer Class
 //******************************************************************************
 /**
- *   Used to represent a SalaryHistory
+ *   Used to represent a CompanyOfficer
  *
  ******************************************************************************/
 
-public class SalaryHistory extends javaxt.sql.Model {
+public class CompanyOfficer extends javaxt.sql.Model {
 
     private Person person;
     private Company company;
+    private String title;
     private BigDecimal salary;
-    private Date date;
+    private Date lastUpdate;
     private JSONObject info;
 
 
   //**************************************************************************
   //** Constructor
   //**************************************************************************
-    public SalaryHistory(){
-        super("salary_history", java.util.Map.ofEntries(
+    public CompanyOfficer(){
+        super("company_officer", java.util.Map.ofEntries(
             
             java.util.Map.entry("person", "person_id"),
             java.util.Map.entry("company", "company_id"),
+            java.util.Map.entry("title", "title"),
             java.util.Map.entry("salary", "salary"),
-            java.util.Map.entry("date", "date"),
+            java.util.Map.entry("lastUpdate", "last_update"),
             java.util.Map.entry("info", "info")
 
         ));
@@ -43,7 +45,7 @@ public class SalaryHistory extends javaxt.sql.Model {
   //**************************************************************************
   /** Creates a new instance of this class using a record ID in the database.
    */
-    public SalaryHistory(long id) throws SQLException {
+    public CompanyOfficer(long id) throws SQLException {
         this();
         init(id);
     }
@@ -53,9 +55,9 @@ public class SalaryHistory extends javaxt.sql.Model {
   //** Constructor
   //**************************************************************************
   /** Creates a new instance of this class using a JSON representation of a
-   *  SalaryHistory.
+   *  CompanyOfficer.
    */
-    public SalaryHistory(JSONObject json){
+    public CompanyOfficer(JSONObject json){
         this();
         update(json);
     }
@@ -72,8 +74,9 @@ public class SalaryHistory extends javaxt.sql.Model {
             this.id = getValue(rs, "id").toLong();
             Long personID = getValue(rs, "person_id").toLong();
             Long companyID = getValue(rs, "company_id").toLong();
+            this.title = getValue(rs, "title").toString();
             this.salary = getValue(rs, "salary").toBigDecimal();
-            this.date = getValue(rs, "date").toDate();
+            this.lastUpdate = getValue(rs, "last_update").toDate();
             this.info = new JSONObject(getValue(rs, "info").toString());
 
 
@@ -96,7 +99,7 @@ public class SalaryHistory extends javaxt.sql.Model {
   //**************************************************************************
   //** update
   //**************************************************************************
-  /** Used to update attributes with attributes from another SalaryHistory.
+  /** Used to update attributes with attributes from another CompanyOfficer.
    */
     public void update(JSONObject json){
 
@@ -120,8 +123,9 @@ public class SalaryHistory extends javaxt.sql.Model {
             }
             catch(Exception e){}
         }
+        this.title = json.get("title").toString();
         this.salary = json.get("salary").toBigDecimal();
-        this.date = json.get("date").toDate();
+        this.lastUpdate = json.get("lastUpdate").toDate();
         this.info = json.get("info").toJSONObject();
     }
 
@@ -142,6 +146,14 @@ public class SalaryHistory extends javaxt.sql.Model {
         this.company = company;
     }
 
+    public String getTitle(){
+        return title;
+    }
+
+    public void setTitle(String title){
+        this.title = title;
+    }
+
     public BigDecimal getSalary(){
         return salary;
     }
@@ -150,12 +162,12 @@ public class SalaryHistory extends javaxt.sql.Model {
         this.salary = salary;
     }
 
-    public Date getDate(){
-        return date;
+    public Date getLastUpdate(){
+        return lastUpdate;
     }
 
-    public void setDate(Date date){
-        this.date = date;
+    public void setLastUpdate(Date lastUpdate){
+        this.lastUpdate = lastUpdate;
     }
 
     public JSONObject getInfo(){
@@ -172,25 +184,25 @@ public class SalaryHistory extends javaxt.sql.Model {
   //**************************************************************************
   //** get
   //**************************************************************************
-  /** Used to find a SalaryHistory using a given set of constraints. Example:
-   *  SalaryHistory obj = SalaryHistory.get("person_id=", person_id);
+  /** Used to find a CompanyOfficer using a given set of constraints. Example:
+   *  CompanyOfficer obj = CompanyOfficer.get("person_id=", person_id);
    */
-    public static SalaryHistory get(Object...args) throws SQLException {
-        Object obj = _get(SalaryHistory.class, args);
-        return obj==null ? null : (SalaryHistory) obj;
+    public static CompanyOfficer get(Object...args) throws SQLException {
+        Object obj = _get(CompanyOfficer.class, args);
+        return obj==null ? null : (CompanyOfficer) obj;
     }
 
 
   //**************************************************************************
   //** find
   //**************************************************************************
-  /** Used to find SalaryHistorys using a given set of constraints.
+  /** Used to find CompanyOfficers using a given set of constraints.
    */
-    public static SalaryHistory[] find(Object...args) throws SQLException {
-        Object[] obj = _find(SalaryHistory.class, args);
-        SalaryHistory[] arr = new SalaryHistory[obj.length];
+    public static CompanyOfficer[] find(Object...args) throws SQLException {
+        Object[] obj = _find(CompanyOfficer.class, args);
+        CompanyOfficer[] arr = new CompanyOfficer[obj.length];
         for (int i=0; i<arr.length; i++){
-            arr[i] = (SalaryHistory) obj[i];
+            arr[i] = (CompanyOfficer) obj[i];
         }
         return arr;
     }
