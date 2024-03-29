@@ -6,6 +6,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
+
+        <!-- Ant-style directory layout -->
+        <src.dir>src</src.dir>
+
     </properties>
 
 
@@ -120,6 +124,31 @@
                         </manifest>
                     </archive>
                 </configuration>
+            </plugin>
+
+
+
+            <!-- copy jars to the dist directory -->
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-antrun-plugin</artifactId>
+              <version>1.8</version>
+              <executions>
+                <execution>
+                  <phase>install</phase>
+                  <configuration>
+                    <target>
+                      <move file="${project.build.directory}/${project.artifactId}-${project.version}.jar" todir="${project.basedir}/dist" />
+                      <move todir="${project.basedir}/dist/lib" >
+                          <fileset dir="${project.build.directory}/lib" />
+                      </move>
+                    </target>
+                  </configuration>
+                  <goals>
+                    <goal>run</goal>
+                  </goals>
+                </execution>
+              </executions>
             </plugin>
 
       </plugins>
