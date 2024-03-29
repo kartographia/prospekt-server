@@ -1,6 +1,10 @@
 /data/
 /dist/
+/build/
 /target/
+/nbproject/
+
+
 __pycache__/
 
 
