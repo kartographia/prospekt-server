@@ -32,10 +32,12 @@ public class WebServer extends HttpServlet {
     private javaxt.io.Directory web;
     private javaxt.io.Directory logDir;
     private ArrayList<InetSocketAddress> addresses;
+    private Integer maxThreads;
     private Logger logger;
 
     private WebServices ws;
     private FileManager fileManager;
+    private Jar jar;
 
 
   //**************************************************************************
@@ -76,6 +78,9 @@ public class WebServer extends HttpServlet {
    *  @param jar Jar file with domain models
    */
     private void init(JSONObject config, Jar jar) throws Exception {
+        if (config==null) config = new JSONObject();
+        this.jar = jar;
+
 
       //Set path to the web directory (required)
         if (config.has("webDir")){
@@ -85,6 +90,13 @@ public class WebServer extends HttpServlet {
                 throw new IllegalArgumentException("Invalid \"webDir\" defined in config file");
             }
         }
+        else{
+            javaxt.io.Directory jarDir = new javaxt.io.Directory(jar.getFile().getParent());
+            web = new javaxt.io.Directory(jarDir + "web");
+            if (!web.exists()) web = new javaxt.io.Directory(jarDir.getParentDirectory() + "web");
+            if (!web.exists()) throw new IllegalArgumentException("Failed to find web directory");
+        }
+        config.set("webDir", web.toString());
 
 
       //Get keystore (optional)
@@ -115,6 +127,7 @@ public class WebServer extends HttpServlet {
                 System.out.println("Invalid \"logDir\" defined in config file");
             }
         }
+        if (logDir!=null) config.set("logDir", logDir.toString());
 
 
       //Generate list of socket addresses to bind to
@@ -133,13 +146,54 @@ public class WebServer extends HttpServlet {
         }
 
 
+      //Get max threads (optional)
+        maxThreads = config.get("maxThreads").toInteger();
+        if (maxThreads==null || maxThreads<0) maxThreads = 250;
+    }
+
+
+  //**************************************************************************
+  //** start
+  //**************************************************************************
+  /** Used to start the web server and related services
+   */
+    public void start(){
+        start(false);
+    }
+
+
+  //**************************************************************************
+  //** start
+  //**************************************************************************
+  /** Used to start the web server and related services
+   *  @param embedded If true, will not start an HTTP server. This method is
+   *  used to embed the application in another web server.
+   */
+    public void start(boolean embedded){
+
+
+      //Start the notification service
+        NotificationService.start();
+
 
       //Instantiate file manager
         fileManager = new FileManager(web);
 
 
       //Instantiate web services
-        ws = new WebServices(jar);
+        try{
+            ws = new WebServices(jar, web);
+        }
+        catch(Exception e){
+            throw new RuntimeException(e);
+        }
+
+
+      //Start web logger
+        if (logDir!=null){
+            logger = new Logger(logDir.toFile());
+            new Thread(logger).start();
+        }
 
 
       //Instantiate authenticator
@@ -180,28 +234,12 @@ public class WebServer extends HttpServlet {
 
         });
 
+
+      //Start web server
+        if (embedded || addresses==null || addresses.isEmpty()) return;
+        new javaxt.http.Server(addresses, maxThreads, this).start();
     }
 
-
-  //**************************************************************************
-  //** start
-  //**************************************************************************
-  /** Used to start the HTTP server and logger
-   */
-    public void start(){
-
-      //Start web logger
-        if (logDir!=null){
-            logger = new Logger(logDir.toFile());
-            new Thread(logger).start();
-        }
-
-
-      //Start the server
-        int threads = 250;
-        javaxt.http.Server server = new javaxt.http.Server(addresses, threads, this);
-        server.start();
-    }
 
 
   //**************************************************************************
@@ -289,7 +327,7 @@ public class WebServer extends HttpServlet {
           //If we're still here, we either have a bad file request or a web
           //service request. In either case, send the request to the
           //webservices endpoint to process.
-            ws.processRequest(service, request, response);
+            ws.processRequest(service, path, request, response);
 
         }
     }
