@@ -64,11 +64,11 @@ window.onload = function() {
   //Login or redirect user
     waitmask.show();
     javaxt.dhtml.utils.get("whoami", {
-        success: function(text, xml, url, request){
+        success: function(id, xml, url, request){
             request.abort();
             request = null;
 
-            javaxt.dhtml.utils.get("user?username="+text, {
+            javaxt.dhtml.utils.get("user?id="+id, {
                 success: function(text, xml, url, request){
                     var user = JSON.parse(text);
                     request.abort();
