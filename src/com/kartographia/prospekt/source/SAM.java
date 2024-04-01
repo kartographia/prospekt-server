@@ -1,4 +1,4 @@
-package com.kartographia.prospekt.data;
+package com.kartographia.prospekt.source;
 import com.kartographia.prospekt.server.Config;
 import com.kartographia.prospekt.*;
 

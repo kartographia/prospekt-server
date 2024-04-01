@@ -1,6 +1,6 @@
-package com.kartographia.prospekt.data;
+package com.kartographia.prospekt.source;
 import com.kartographia.prospekt.*;
-import static com.kartographia.prospekt.data.Utils.*;
+import static com.kartographia.prospekt.source.Utils.*;
 import static com.kartographia.prospekt.queries.Index.getQuery;
 
 import java.util.*;
