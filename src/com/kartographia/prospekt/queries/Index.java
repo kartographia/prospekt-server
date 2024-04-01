@@ -7,7 +7,7 @@ import static javaxt.utils.Console.console;
 
 
 public class Index {
-    private static ConcurrentHashMap<String, Query> queries = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<String, String> queries = new ConcurrentHashMap<>();
 
 
   //**************************************************************************
@@ -16,7 +16,7 @@ public class Index {
   /** Returns a query found in this jar file
    *  @param fileName Name of the sql script, excluding the file extension
    */
-    public static Query getQuery(String fileName){
+    public static String getQuery(String fileName){
         return getQuery(null, fileName);
     }
 
@@ -28,7 +28,7 @@ public class Index {
    *  @param  folderName Name of the package containing the sql script
    *  @param fileName Name of the sql script, excluding the file extension
    */
-    public static Query getQuery(String folderName, String fileName){
+    public static String getQuery(String folderName, String fileName){
 
 
         synchronized(queries){
@@ -49,7 +49,7 @@ public class Index {
 
                         String key = (folder + name).toLowerCase();
                         console.log(key);
-                        queries.put(key, new Query(entry.getText()));
+                        queries.put(key, entry.getText());
                         queries.notify();
                     }
                 }
@@ -84,6 +84,21 @@ public class Index {
 
 
         return null;
+    }
+
+
+  //**************************************************************************
+  //** removeComments
+  //**************************************************************************
+    private static String removeComments(String sql){
+        StringBuilder str = new StringBuilder();
+        for (String s : sql.split("\n")){
+            String t = s.trim();
+            if (t.length()==0 || t.startsWith("--")) continue;
+            str.append(s);
+            str.append("\n");
+        }
+        return str.toString().trim();
     }
 
 }
