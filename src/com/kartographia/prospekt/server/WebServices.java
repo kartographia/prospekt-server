@@ -1,6 +1,6 @@
 package com.kartographia.prospekt.server;
 import com.kartographia.prospekt.model.User;
-import com.kartographia.prospekt.services.SQLService;
+import com.kartographia.prospekt.service.*;
 
 import java.util.*;
 import java.io.IOException;

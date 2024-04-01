@@ -1,4 +1,4 @@
-package com.kartographia.prospekt.services;
+package com.kartographia.prospekt.service;
 import com.kartographia.prospekt.server.Config;
 
 import java.util.*;
