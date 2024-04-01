@@ -34,7 +34,7 @@
                     <span class="login-user-icon"></span>
                   </div>
                   <div style="overflow:hidden;">
-                    <input type="text" name="username" placeholder="Username" autocomplete="off" />
+                    <input type="text" name="username" placeholder="Username" autocomplete="off" spellcheck="false" />
                   </div>
                 </div>
 
@@ -184,19 +184,32 @@ window.onload = function() {
 
 
               //Get user
-                var text = response.responseText;
-                var user = JSON.parse(text);
-                document.user = user;
+                var userID = response.responseText;
+                javaxt.dhtml.utils.get("user?id="+userID, {
+                    success: function(text, xml, url, request){
+                        var user = JSON.parse(text);
+                        request.abort();
+                        request = null;
+
+                        document.user = user;
 
 
-              //Hide form and load the gypsy app
-                fx.fadeOut(el, "easeIn", 500, function(){
-                    var pageLoader = new javaxt.dhtml.PageLoader();
-                    var url = "main.html";
-                    pageLoader.loadPage(url, function(){
-                        //waitmask.hide();
-                    });
+                      //Hide form and load the app
+                        fx.fadeOut(el, "easeIn", 500, function(){
+                            var pageLoader = new javaxt.dhtml.PageLoader();
+                            var url = "main.html";
+                            pageLoader.loadPage(url, function(){
+                                //waitmask.hide();
+                            });
+                        });
+                        
+                    },
+                    failure: function(response){
+                        var text = response.responseText;
+                        showMessage("Login failure: " + text);
+                    }
                 });
+
 
             }
             else{
