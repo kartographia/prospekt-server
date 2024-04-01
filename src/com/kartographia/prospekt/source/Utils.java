@@ -90,6 +90,15 @@ public class Utils {
                     break;
                 }
 
+
+                if (arr[i].startsWith("ROOM") ||
+                    arr[i].startsWith("UNIT") ||
+                    arr[i].startsWith("SUITE") ||
+                    arr[i].startsWith("APARTMENT")){
+                    break;
+                }
+
+
             }
             else if (i==arr.length-2){
                 if (arr[i].startsWith("ROOM") ||
