@@ -464,7 +464,7 @@ public class Main {
             String folder = args.get("-folder");
             String file = args.get("-file");
 
-            String q = com.kartographia.prospekt.queries.Index.getQuery(folder, file).getSQL();
+            String q = com.kartographia.prospekt.query.Index.getQuery(folder, file);
             console.log(q);
         }
         else if (test.equals("usaspending")){

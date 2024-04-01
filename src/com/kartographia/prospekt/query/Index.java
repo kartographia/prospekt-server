@@ -1,4 +1,4 @@
-package com.kartographia.prospekt.queries;
+package com.kartographia.prospekt.query;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
