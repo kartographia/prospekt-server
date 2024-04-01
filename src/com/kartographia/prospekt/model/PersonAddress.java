@@ -1,4 +1,4 @@
-package com.kartographia.prospekt;
+package com.kartographia.prospekt.model;
 import javaxt.json.*;
 import java.sql.SQLException;
 
@@ -24,14 +24,14 @@ public class PersonAddress extends javaxt.sql.Model {
   //**************************************************************************
     public PersonAddress(){
         super("person_address", java.util.Map.ofEntries(
-            
+
             java.util.Map.entry("person", "person_id"),
             java.util.Map.entry("address", "address_id"),
             java.util.Map.entry("type", "type"),
             java.util.Map.entry("info", "info")
 
         ));
-        
+
     }
 
 
@@ -152,8 +152,8 @@ public class PersonAddress extends javaxt.sql.Model {
     public void setInfo(JSONObject info){
         this.info = info;
     }
-    
-    
+
+
 
 
   //**************************************************************************

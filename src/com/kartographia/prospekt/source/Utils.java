@@ -1,5 +1,5 @@
 package com.kartographia.prospekt.source;
-import com.kartographia.prospekt.Address;
+import com.kartographia.prospekt.model.Address;
 
 import java.util.*;
 import java.math.BigDecimal;

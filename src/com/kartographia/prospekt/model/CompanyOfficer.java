@@ -1,4 +1,4 @@
-package com.kartographia.prospekt;
+package com.kartographia.prospekt.model;
 import javaxt.json.*;
 import java.sql.SQLException;
 import java.math.BigDecimal;
@@ -27,7 +27,7 @@ public class CompanyOfficer extends javaxt.sql.Model {
   //**************************************************************************
     public CompanyOfficer(){
         super("company_officer", java.util.Map.ofEntries(
-            
+
             java.util.Map.entry("person", "person_id"),
             java.util.Map.entry("company", "company_id"),
             java.util.Map.entry("title", "title"),
@@ -36,7 +36,7 @@ public class CompanyOfficer extends javaxt.sql.Model {
             java.util.Map.entry("info", "info")
 
         ));
-        
+
     }
 
 
@@ -177,8 +177,8 @@ public class CompanyOfficer extends javaxt.sql.Model {
     public void setInfo(JSONObject info){
         this.info = info;
     }
-    
-    
+
+
 
 
   //**************************************************************************

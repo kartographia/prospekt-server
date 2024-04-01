@@ -1,4 +1,4 @@
-package com.kartographia.prospekt;
+package com.kartographia.prospekt.model;
 import javaxt.json.*;
 import java.sql.SQLException;
 
@@ -26,7 +26,7 @@ public class Person extends javaxt.sql.Model {
   //**************************************************************************
     public Person(){
         super("person", java.util.Map.ofEntries(
-            
+
             java.util.Map.entry("firstName", "first_name"),
             java.util.Map.entry("lastName", "last_name"),
             java.util.Map.entry("fullName", "full_name"),
@@ -35,7 +35,7 @@ public class Person extends javaxt.sql.Model {
             java.util.Map.entry("info", "info")
 
         ));
-        
+
     }
 
 
@@ -152,8 +152,8 @@ public class Person extends javaxt.sql.Model {
     public void setInfo(JSONObject info){
         this.info = info;
     }
-    
-    
+
+
 
 
   //**************************************************************************

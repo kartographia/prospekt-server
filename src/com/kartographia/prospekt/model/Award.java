@@ -1,4 +1,4 @@
-package com.kartographia.prospekt;
+package com.kartographia.prospekt.model;
 import javaxt.json.*;
 import java.sql.SQLException;
 import java.math.BigDecimal;
@@ -40,7 +40,7 @@ public class Award extends javaxt.sql.Model {
   //**************************************************************************
     public Award(){
         super("award", java.util.Map.ofEntries(
-            
+
             java.util.Map.entry("name", "name"),
             java.util.Map.entry("description", "description"),
             java.util.Map.entry("date", "date"),
@@ -62,7 +62,7 @@ public class Award extends javaxt.sql.Model {
             java.util.Map.entry("info", "info")
 
         ));
-        
+
     }
 
 
@@ -345,8 +345,8 @@ public class Award extends javaxt.sql.Model {
     public void setInfo(JSONObject info){
         this.info = info;
     }
-    
-    
+
+
 
 
   //**************************************************************************

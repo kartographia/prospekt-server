@@ -1,4 +1,4 @@
-package com.kartographia.prospekt;
+package com.kartographia.prospekt.model;
 import javaxt.json.*;
 import java.sql.SQLException;
 
@@ -25,7 +25,7 @@ public class UserAuthentication extends javaxt.sql.Model {
   //**************************************************************************
     public UserAuthentication(){
         super("user_authentication", java.util.Map.ofEntries(
-            
+
             java.util.Map.entry("service", "service"),
             java.util.Map.entry("key", "key"),
             java.util.Map.entry("value", "value"),
@@ -33,7 +33,7 @@ public class UserAuthentication extends javaxt.sql.Model {
             java.util.Map.entry("info", "info")
 
         ));
-        
+
     }
 
 
@@ -152,8 +152,8 @@ public class UserAuthentication extends javaxt.sql.Model {
     public void setInfo(JSONObject info){
         this.info = info;
     }
-    
-    
+
+
 
 
   //**************************************************************************

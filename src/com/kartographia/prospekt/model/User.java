@@ -1,4 +1,4 @@
-package com.kartographia.prospekt;
+package com.kartographia.prospekt.model;
 import javaxt.json.*;
 import java.sql.SQLException;
 
@@ -11,7 +11,7 @@ import java.sql.SQLException;
  *
  ******************************************************************************/
 
-public class User extends javaxt.sql.Model 
+public class User extends javaxt.sql.Model
     implements java.security.Principal, javaxt.express.User {
 
     private Person person;
@@ -25,14 +25,14 @@ public class User extends javaxt.sql.Model
   //**************************************************************************
     public User(){
         super("user", java.util.Map.ofEntries(
-            
+
             java.util.Map.entry("person", "person_id"),
             java.util.Map.entry("status", "status"),
             java.util.Map.entry("accessLevel", "access_level"),
             java.util.Map.entry("info", "info")
 
         ));
-        
+
     }
 
 
@@ -145,8 +145,8 @@ public class User extends javaxt.sql.Model
     public void setInfo(JSONObject info){
         this.info = info;
     }
-    
-    
+
+
 
 
   //**************************************************************************

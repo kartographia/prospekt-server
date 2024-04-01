@@ -1,5 +1,5 @@
 package com.kartographia.prospekt.source;
-import com.kartographia.prospekt.*;
+import com.kartographia.prospekt.model.*;
 import static com.kartographia.prospekt.source.Utils.*;
 import static com.kartographia.prospekt.queries.Index.getQuery;
 

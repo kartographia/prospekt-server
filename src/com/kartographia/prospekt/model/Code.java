@@ -1,4 +1,4 @@
-package com.kartographia.prospekt;
+package com.kartographia.prospekt.model;
 import javaxt.json.*;
 import java.sql.SQLException;
 
@@ -25,7 +25,7 @@ public class Code extends javaxt.sql.Model {
   //**************************************************************************
     public Code(){
         super("code", java.util.Map.ofEntries(
-            
+
             java.util.Map.entry("key", "key"),
             java.util.Map.entry("value", "value"),
             java.util.Map.entry("category", "category"),
@@ -33,7 +33,7 @@ public class Code extends javaxt.sql.Model {
             java.util.Map.entry("source", "source_id")
 
         ));
-        
+
     }
 
 
@@ -152,8 +152,8 @@ public class Code extends javaxt.sql.Model {
     public void setSource(Source source){
         this.source = source;
     }
-    
-    
+
+
 
 
   //**************************************************************************

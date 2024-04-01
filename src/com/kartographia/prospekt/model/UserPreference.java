@@ -1,4 +1,4 @@
-package com.kartographia.prospekt;
+package com.kartographia.prospekt.model;
 import javaxt.json.*;
 import java.sql.SQLException;
 
@@ -23,13 +23,13 @@ public class UserPreference extends javaxt.sql.Model {
   //**************************************************************************
     public UserPreference(){
         super("user_preference", java.util.Map.ofEntries(
-            
+
             java.util.Map.entry("key", "key"),
             java.util.Map.entry("value", "value"),
             java.util.Map.entry("user", "user_id")
 
         ));
-        
+
     }
 
 
@@ -128,8 +128,8 @@ public class UserPreference extends javaxt.sql.Model {
     public void setUser(User user){
         this.user = user;
     }
-    
-    
+
+
 
 
   //**************************************************************************

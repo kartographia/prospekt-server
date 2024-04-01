@@ -1,4 +1,4 @@
-package com.kartographia.prospekt;
+package com.kartographia.prospekt.model;
 import javaxt.json.*;
 import java.sql.SQLException;
 
@@ -24,14 +24,14 @@ public class UserInterest extends javaxt.sql.Model {
   //**************************************************************************
     public UserInterest(){
         super("user_interest", java.util.Map.ofEntries(
-            
+
             java.util.Map.entry("user", "user_id"),
             java.util.Map.entry("opportunity", "opportunity_id"),
             java.util.Map.entry("interest", "interest"),
             java.util.Map.entry("info", "info")
 
         ));
-        
+
     }
 
 
@@ -152,8 +152,8 @@ public class UserInterest extends javaxt.sql.Model {
     public void setInfo(JSONObject info){
         this.info = info;
     }
-    
-    
+
+
 
 
   //**************************************************************************

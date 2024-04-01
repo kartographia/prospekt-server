@@ -1,4 +1,4 @@
-package com.kartographia.prospekt;
+package com.kartographia.prospekt.model;
 import javaxt.json.*;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -24,7 +24,7 @@ public class CompanyGroup extends javaxt.sql.Model {
   //**************************************************************************
     public CompanyGroup(){
         super("company_group", java.util.Map.ofEntries(
-            
+
             java.util.Map.entry("name", "name"),
             java.util.Map.entry("description", "description"),
             java.util.Map.entry("info", "info"),
@@ -151,7 +151,7 @@ public class CompanyGroup extends javaxt.sql.Model {
     public void addCompany(Company company){
         this.companies.add(company);
     }
-    
+
   //**************************************************************************
   //** save
   //**************************************************************************
@@ -166,7 +166,7 @@ public class CompanyGroup extends javaxt.sql.Model {
       //Save models
         try (javaxt.sql.Connection conn = getConnection(this.getClass())) {
             String target;
-            
+
           //Save companies
             ArrayList<Long> companyIDs = new ArrayList<>();
             for (Company obj : this.companies){
@@ -189,7 +189,7 @@ public class CompanyGroup extends javaxt.sql.Model {
         }
     }
 
-    
+
 
 
   //**************************************************************************

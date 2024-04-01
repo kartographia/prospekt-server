@@ -1,4 +1,5 @@
 package com.kartographia.prospekt.server;
+import com.kartographia.prospekt.model.User;
 import com.kartographia.prospekt.services.SQLService;
 
 import java.util.*;
@@ -238,7 +239,7 @@ public class WebServices extends WebService {
   //** onCreate
   //**************************************************************************
     public void onCreate(Object obj, ServiceRequest request){
-        notify("create", (Model) obj, (com.kartographia.prospekt.User) request.getUser());
+        notify("create", (Model) obj, (User) request.getUser());
     };
 
 
@@ -246,7 +247,7 @@ public class WebServices extends WebService {
   //** onUpdate
   //**************************************************************************
     public void onUpdate(Object obj, ServiceRequest request){
-        notify("update", (Model) obj, (com.kartographia.prospekt.User) request.getUser());
+        notify("update", (Model) obj, (User) request.getUser());
     };
 
 
@@ -254,14 +255,14 @@ public class WebServices extends WebService {
   //** onDelete
   //**************************************************************************
     public void onDelete(Object obj, ServiceRequest request){
-        notify("delete", (Model) obj, (com.kartographia.prospekt.User) request.getUser());
+        notify("delete", (Model) obj, (User) request.getUser());
     };
 
 
   //**************************************************************************
   //** notify
   //**************************************************************************
-    private void notify(String action, Model model, com.kartographia.prospekt.User user){
+    private void notify(String action, Model model, User user){
         Long userID = user==null ? null : user.getID();
         notify(action+","+model.getClass().getSimpleName()+","+model.getID()+","+userID);
     }
@@ -293,7 +294,7 @@ public class WebServices extends WebService {
 
 
       //Get user and access level
-        com.kartographia.prospekt.User user = (com.kartographia.prospekt.User) request.getUser();
+        User user = (User) request.getUser();
         Integer accessLevel = user.getAccessLevel();
 
 

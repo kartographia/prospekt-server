@@ -1,6 +1,6 @@
 package com.kartographia.prospekt.server;
-import com.kartographia.prospekt.User;
-import com.kartographia.prospekt.UserAuthentication;
+import com.kartographia.prospekt.model.User;
+import com.kartographia.prospekt.model.UserAuthentication;
 
 import java.util.*;
 import java.io.IOException;
