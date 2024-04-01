@@ -1,5 +1,5 @@
 package com.kartographia.prospekt.data;
-import com.kartographia.prospekt.Address;
+import com.kartographia.prospekt.*;
 import static com.kartographia.prospekt.data.Utils.*;
 import static com.kartographia.prospekt.queries.Index.getQuery;
 
@@ -22,6 +22,12 @@ public class USASpending {
   //**************************************************************************
   //** updateDatabase
   //**************************************************************************
+  /** Used to download a database backup from usaspending.gov and restore it
+   *  in a local database
+   *  @param url Download page on usaspending.gov
+   *  @param dir Directory where to download the database backup
+   *  @param db Database where to restore the backup
+   */
     public static void updateDatabase(String url, String dir, Database db) throws Exception {
 
         String html = new javaxt.http.Request(url).getResponse().getText();
@@ -205,15 +211,16 @@ public class USASpending {
   //** updateCompany
   //**************************************************************************
   /** Used to update company name, addresses, and officers
+   *  @param in Input database (usaspending.gov)
+   *  @param out Output database (prospekt database)
    */
     public static void updateCompany(String uei, Connection in, Connection out) throws Exception {
         String sql = getQuery("usaspending", "company_info").getSQL().replace("{uei}", uei);
 
 
-        LinkedHashMap<String, LinkedHashMap<String, javaxt.utils.Date>> companies = new LinkedHashMap<>();
-        LinkedHashMap<String, LinkedHashMap<String, javaxt.utils.Date>> companyAddresses = new LinkedHashMap<>();
-        LinkedHashMap<String, LinkedHashMap<String, javaxt.utils.Date>> companyOfficers = new LinkedHashMap<>();
-        LinkedHashMap<String, LinkedHashMap<Integer, javaxt.utils.Date>> salaries = new LinkedHashMap<>();
+        LinkedHashMap<String, LinkedHashMap<String, javaxt.utils.Date>> companyNames = new LinkedHashMap<>();
+        LinkedHashMap<String, LinkedHashMap<String, CompanyAddress>> companyAddresses = new LinkedHashMap<>();
+        LinkedHashMap<String, LinkedHashMap<String, CompanyOfficer>> companyOfficers = new LinkedHashMap<>();
 
         for (javaxt.sql.Record record : in.getRecords(sql)){
             String id = record.get("uei").toString();
@@ -226,10 +233,10 @@ public class USASpending {
             String name = companyName[0];
             String suffix = companyName[1];
 
-            LinkedHashMap<String, javaxt.utils.Date> names = companies.get(id);
+            LinkedHashMap<String, javaxt.utils.Date> names = companyNames.get(id);
             if (names==null){
                 names = new LinkedHashMap<>();
-                companies.put(id, names);
+                companyNames.put(id, names);
             }
 
             if (name!=null){
@@ -245,18 +252,25 @@ public class USASpending {
             address.setStreet(record.get("address").toString());
             address.setCity(record.get("city").toString());
             address.setState(record.get("state").toString());
-            String companyAddress = getAddress(address);
+            String addressKey = getAddress(address); //exclude zip!
+            address.setPostalCode(record.get("zip").toString());
 
-            LinkedHashMap<String, javaxt.utils.Date> addresses = companyAddresses.get(id);
+
+
+            LinkedHashMap<String, CompanyAddress> addresses = companyAddresses.get(id);
             if (addresses==null){
                 addresses = new LinkedHashMap<>();
                 companyAddresses.put(id, addresses);
             }
 
-            if (companyAddress!=null && !companyAddress.isBlank()){
-                companyAddress = companyAddress.toUpperCase();
-                if (!addresses.containsKey(companyAddress)){
-                    addresses.put(companyAddress, lastUpdate);
+            if (addressKey!=null && !addressKey.isBlank()){
+                addressKey = addressKey.toUpperCase();
+                if (!addresses.containsKey(addressKey)){
+                    CompanyAddress companyAddress = new CompanyAddress();
+                    companyAddress.setAddress(address);
+                    companyAddress.setDate(lastUpdate);
+                    address.setSearchTerm(addressKey);
+                    addresses.put(addressKey, companyAddress);
                 }
             }
 
@@ -271,32 +285,73 @@ public class USASpending {
                     while (fullName.contains("  ")) fullName = fullName.replace("  ", " ").trim();
                     String[] arr = fullName.trim().split(" ");
                     if (arr.length>0){
-                        fullName = arr[0];
-                        if (arr.length>1) fullName += " " + arr[arr.length-1];
+                        String firstName = arr[0];
+                        String lastName = arr.length>1 ? arr[arr.length-1] : null;
+                        fullName = firstName;
+                        if (lastName!=null) fullName += " " + lastName;
+                        String personKey = fullName.toUpperCase();
 
 
-                      //Update salaries
-                        LinkedHashMap<Integer, javaxt.utils.Date> sal = salaries.get(fullName);
-                        if (sal==null){
-                            sal = new LinkedHashMap<>();
-                            salaries.put(fullName, sal);
-                        }
+                        Person person = new Person();
+                        person.setFirstName(firstName);
+                        person.setLastName(lastName);
+                        person.setFullName(fullName);
+                        person.setSearchTerm(personKey);
 
-                        if (salary!=null){
-                            if (!sal.containsKey(salary)){
-                                sal.put(salary, lastUpdate);
-                            }
-                        }
 
-                        LinkedHashMap<String, javaxt.utils.Date> officers = companyOfficers.get(id);
+
+                        LinkedHashMap<String, CompanyOfficer> officers = companyOfficers.get(id);
                         if (officers==null){
                             officers = new LinkedHashMap<>();
                             companyOfficers.put(id, officers);
                         }
 
-                        if (!officers.containsKey(fullName)){
-                            officers.put(fullName, lastUpdate);
+
+                        CompanyOfficer officer = officers.get(personKey);
+                        if (officer==null){
+                            officer = new CompanyOfficer();
+                            officer.setPerson(person);
+                            officers.put(personKey, officer);
                         }
+
+
+                        JSONObject info = officer.getInfo();
+                        if (info==null){
+                            info = new JSONObject();
+                            officer.setInfo(info);
+                        }
+
+                        JSONArray salaryHistory = info.get("salaryHistory").toJSONArray();
+                        if (salaryHistory==null) salaryHistory = new JSONArray();
+
+
+
+                        TreeMap<String, Integer> salaries = new TreeMap<>();
+                        for (JSONValue v : salaryHistory){
+                            salaries.put(v.get("date").toString(), v.get("salary").toInteger());
+                        }
+                        String date = lastUpdate.toString("yyyy-MM-dd");
+                        if (salaries.containsKey(date)){
+                            Integer prevSal = salaries.get(date);
+                            if (prevSal<salary) salaries.put(date, salary);
+                        }
+                        else{
+                            salaries.put(date, salary);
+                        }
+
+
+                        salaryHistory = new JSONArray();
+                        Iterator<String> it = salaries.keySet().iterator();
+                        while (it.hasNext()){
+                            date = it.next();
+                            salary = salaries.get(date);
+                            JSONObject json = new JSONObject();
+                            json.set("date", date);
+                            json.set("salary", salary);
+                            salaryHistory.add(json);
+                        }
+                        info.set("salaryHistory", salaryHistory);
+
                     }
                 }
             }
@@ -305,59 +360,134 @@ public class USASpending {
 
 
       //Process company info
-        Iterator<String> it = companies.keySet().iterator();
+        Iterator<String> it = companyNames.keySet().iterator();
         while (it.hasNext()){
-            String id = it.next();
+            uei = it.next();
 
 
-          //Company names
-            LinkedHashMap<String, javaxt.utils.Date> names = companies.get(id);
-            Iterator<String> i2 = names.keySet().iterator();
-            while (i2.hasNext()){
-                String name = i2.next();
-                javaxt.utils.Date lastUpdate = names.get(name);
-                console.log(id, name, lastUpdate.toString("M/d/yyyy"));
+          //Get or create company
+            Long companyID = null;
+            try (Recordset rs = out.getRecordset(
+                "select * from company where uei='" + uei + "'", false)){
+
+                JSONObject info;
+                if (rs.EOF){
+                    rs.addNew();
+                    rs.setValue("uei", uei);
+                    info = new JSONObject();
+                }
+                else{
+                    companyID = rs.getValue("id").toLong();
+                    info = new JSONObject(rs.getValue("info").toString());
+                }
+
+              //Set name
+                LinkedHashMap<String, javaxt.utils.Date> names = companyNames.get(uei);
+                String name = names.keySet().iterator().next();
+                rs.setValue("name", name);
+
+
+              //Update metadata
+                JSONArray arr = new JSONArray();
+                info.set("names", arr);
+                Iterator<String> i2 = names.keySet().iterator();
+                while (i2.hasNext()){
+                    String companyName = i2.next();
+                    javaxt.utils.Date lastUpdate = names.get(companyName);
+
+                    JSONObject json = new JSONObject();
+                    json.set("name", companyName);
+                    json.set("date", lastUpdate.toString("M/d/yyyy"));
+                    arr.add(json);
+                }
+
+              //Update record
+                rs.update();
+
+
+              //Set companyID as needed
+                if (companyID==null) companyID = rs.getGeneratedKey().toLong();
             }
 
 
-          //Company addresses
+
+
+          //Get or create addresses
             console.log("Addresses:");
-            LinkedHashMap<String, javaxt.utils.Date> addresses = companyAddresses.get(id);
-            i2 = addresses.keySet().iterator();
+            LinkedHashMap<String, CompanyAddress> addresses = companyAddresses.get(uei);
+            Iterator<String> i2 = addresses.keySet().iterator();
             while (i2.hasNext()){
-                String address = i2.next();
-                javaxt.utils.Date lastUpdate = addresses.get(address);
-                console.log("-", address, lastUpdate.toString("M/d/yyyy"));
+                String addressKey = i2.next();
+                CompanyAddress companyAddress = addresses.get(addressKey);
+                javaxt.utils.Date lastUpdate = companyAddress.getDate();
+
+                console.log("-", addressKey, lastUpdate.toString("M/d/yyyy"));
+
+
+              //Get or create address
+                Long addressID = null;
+                try (Recordset rs = out.getRecordset(
+                    "select * from address where search_term='" + addressKey + "'", false)){ //lazy key search
+
+                    if (rs.EOF){
+                        rs.addNew();
+                        rs.setValue("search_term", addressKey);
+                        JSONObject address = companyAddress.getAddress().toJson();
+                        for (String key : address.keySet()){
+                            if (key.equals("info")){
+
+                            }
+                            else{
+                                rs.setValue(key, address.get(key));
+                            }
+                        }
+                        rs.update();
+                        addressID = rs.getGeneratedKey().toLong();
+                    }
+                    else{
+                        addressID = rs.getValue("id").toLong();
+                    }
+                }
+
+
+              //Get or create company address
+                String date = lastUpdate.toString("yyyy-MM-dd");
+                try (Recordset rs = out.getRecordset(
+                    "select * from company_address where company_id=" +
+                    companyID + " and address_id=" + addressID +
+                    " and date='" + date + "'", false)){
+
+                    if (rs.EOF){
+                        rs.addNew();
+                        rs.setValue("company_id", companyID);
+                        rs.setValue("address_id", addressID);
+                        rs.setValue("date", lastUpdate);
+                        rs.update();
+                    }
+                }
             }
 
 
-          //Company officers
+
+          //Get or create officers
             console.log("Officers:");
-            LinkedHashMap<String, javaxt.utils.Date> officers = companyOfficers.get(id);
+            LinkedHashMap<String, CompanyOfficer> officers = companyOfficers.get(uei);
             i2 = officers.keySet().iterator();
             while (i2.hasNext()){
                 String fullName = i2.next();
-                javaxt.utils.Date lastUpdate = officers.get(fullName);
-                console.log("-", fullName, lastUpdate.toString("M/d/yyyy"));
+                CompanyOfficer officer = officers.get(fullName);
+                Person person = officer.getPerson();
+
+                //Add person as needed
+
+                //Get or create office with latest salary
+
+                //console.log("-", fullName, lastUpdate.toString("M/d/yyyy"));
             }
 
-        }
 
-
-      //Process salary info
-        console.log("\r\nSalaries:");
-        it = salaries.keySet().iterator();
-        while (it.hasNext()){
-            String fullName = it.next();
-            console.log(fullName);
-
-            LinkedHashMap<Integer, javaxt.utils.Date> sal = salaries.get(fullName);
-            Iterator<Integer> i2 = sal.keySet().iterator();
-            while (i2.hasNext()){
-                Integer salary = i2.next();
-                javaxt.utils.Date lastUpdate = sal.get(salary);
-                console.log("-", salary, lastUpdate.toString("M/d/yyyy"));
-            }
+          //Update awards associated with the company
+            //updateAwards(uei, in, out);
         }
     }
 
@@ -611,6 +741,24 @@ public class USASpending {
                 rs.update();
             }
         }
+
+        //Update company
+
+/*
+            {name: 'name',              type: 'string'},
+            {name: 'description',       type: 'string'},
+            {name: 'uei',               type: 'string'},
+            {name: 'recent_awards',     type: 'int'},      //total awards in the last 12 months
+            {name: 'recent_award_val',  type: 'decimal'},  //total value of awards in the last 12 months
+            {name: 'recent_award_mix',  type: 'decimal'},  //percent competative awards in the last 12 months
+            {name: 'recent_customers',  type: 'string[]'}, //awarding agencies in the last 12 months
+            {name: 'recent_naics',      type: 'string[]'}, //naics codes associated with recent awards
+            {name: 'estimated_revenue', type: 'decimal'},
+            {name: 'estimated_backlog', type: 'decimal'},
+            {name: 'info',              type: 'json'}
+        */
+
+
 
     }
 

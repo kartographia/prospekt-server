@@ -1,5 +1,5 @@
 package com.kartographia.prospekt.server;
-import com.kartographia.prospekt.data.*;
+import com.kartographia.prospekt.source.*;
 import com.kartographia.prospekt.*;
 
 import java.util.*;
