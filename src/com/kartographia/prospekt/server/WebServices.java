@@ -1,6 +1,5 @@
 package com.kartographia.prospekt.server;
-import com.kartographia.prospekt.data.*;
-import com.kartographia.prospekt.*;
+import com.kartographia.prospekt.services.SQLService;
 
 import java.util.*;
 import java.io.IOException;
@@ -8,18 +7,21 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import javaxt.encryption.BCrypt;
+
 
 import javaxt.sql.*;
 import javaxt.json.*;
 import javaxt.io.Jar;
+import javaxt.encryption.BCrypt;
+import static javaxt.express.WebService.console;
 
 import javaxt.express.WebService;
 import javaxt.express.ServiceRequest;
 import javaxt.express.ServiceResponse;
-import static javaxt.express.WebService.console;
 import javaxt.express.notification.Listener;
 import javaxt.express.notification.NotificationService;
+import javaxt.express.services.QueryService.QueryJob;
+
 import javaxt.http.servlet.HttpServletRequest;
 import javaxt.http.servlet.HttpServletResponse;
 import javaxt.http.servlet.ServletException;
@@ -53,21 +55,26 @@ public class WebServices extends WebService {
 
       //Instantiate web services
         webservices = new ConcurrentHashMap<>();
+        webservices.put("sql", new SQLService());
 
 
       //Websocket stuff
         webSocketID = new AtomicLong(0);
         listeners = new ConcurrentHashMap<>();
+
+
+      //Route notifications to websocket listeners
+        WebServices me = this;
         NotificationService.addListener(new Listener(){
             public void processEvent(String event, String model, javaxt.utils.Value data, long timestamp){
+
+                if (model.equals("SQL")){
+                    QueryJob queryJob = (QueryJob) data.toObject();
+                    me.notify(event+","+model+","+queryJob.getID()+","+queryJob.getUserID());
+                }
+
                 if (event.equals("WebRequest")){
-                    synchronized(listeners){
-                        Iterator<Long> it = listeners.keySet().iterator();
-                        while(it.hasNext()){
-                            WebSocketListener ws = listeners.get(it.next());
-                            ws.send(event+","+model+",0,"+data); //WebRequest,Service,UserID
-                        }
-                    }
+                    me.notify(event+","+model+",0,"+data); //WebRequest,Service,ModelID,UserID
                 }
             }
         });
@@ -126,11 +133,6 @@ public class WebServices extends WebService {
         if (webservices.containsKey(service)){
             request.setPath(path);
             return webservices.get(service).getServiceResponse(request);
-        }
-
-
-        if (service.equals("reports")){
-            return new ServiceResponse(501, "Not Implemented");
         }
         else{
             return getServiceResponse(request, Config.getDatabase());
@@ -259,14 +261,16 @@ public class WebServices extends WebService {
   //**************************************************************************
   //** notify
   //**************************************************************************
-    public void notify(String action, Model model, com.kartographia.prospekt.User user){
+    private void notify(String action, Model model, com.kartographia.prospekt.User user){
         Long userID = user==null ? null : user.getID();
         notify(action+","+model.getClass().getSimpleName()+","+model.getID()+","+userID);
     }
 
 
-
-    protected void notify(String msg){
+  //**************************************************************************
+  //** notify
+  //**************************************************************************
+    private void notify(String msg){
         synchronized(listeners){
             Iterator<Long> it = listeners.keySet().iterator();
             while(it.hasNext()){
@@ -328,12 +332,12 @@ public class WebServices extends WebService {
 
                 String select = "";
                 for (ServiceRequest.Field field : request.getFields()){
-                    String fieldName = field.getColumn();
-                    if (fieldName.equalsIgnoreCase("person")){
-                        continue;
+                    String column = field.getColumn();
+                    if (column.equalsIgnoreCase("id")){
+                        column = tableName + ".id";
                     }
                     if (select.length()>0) select += ", ";
-                    select += tableName + "." + field.getColumn();
+                    select += column;
                 }
                 if (select.isBlank()) select = "*";
 
