@@ -1,7 +1,7 @@
 package com.kartographia.prospekt.source;
 import com.kartographia.prospekt.model.*;
 import static com.kartographia.prospekt.source.Utils.*;
-import static com.kartographia.prospekt.queries.Index.getQuery;
+import static com.kartographia.prospekt.query.Index.getQuery;
 
 import java.util.*;
 import java.math.BigDecimal;
@@ -98,7 +98,7 @@ public class USASpending {
 
 
           //Get codes from the source database
-            String sql = getQuery("usaspending", type + "_code").getSQL();
+            String sql = getQuery("usaspending", type + "_code");
             for (javaxt.sql.Record record : in.getRecords(sql)){
                 String str = record.get(0).toString();
                 int idx = str.indexOf(":");
@@ -190,7 +190,7 @@ public class USASpending {
 
 
         long t = 0;
-        String sql = getQuery("usaspending", "distinct_uei").getSQL();
+        String sql = getQuery("usaspending", "distinct_uei");
         try (Connection conn = in.getConnection()){
             for (javaxt.sql.Record record : conn.getRecords(sql)){
                 pool.add(record.get(0).toString());
@@ -215,7 +215,7 @@ public class USASpending {
    *  @param out Output database (prospekt database)
    */
     public static void updateCompany(String uei, Connection in, Connection out) throws Exception {
-        String sql = getQuery("usaspending", "company_info").getSQL().replace("{uei}", uei);
+        String sql = getQuery("usaspending", "company_info").replace("{uei}", uei);
 
 
         LinkedHashMap<String, LinkedHashMap<String, javaxt.utils.Date>> companyNames = new LinkedHashMap<>();
@@ -287,16 +287,16 @@ public class USASpending {
                     if (arr.length>0){
                         String firstName = arr[0];
                         String lastName = arr.length>1 ? arr[arr.length-1] : null;
-                        fullName = firstName;
-                        if (lastName!=null) fullName += " " + lastName;
-                        String personKey = fullName.toUpperCase();
-
 
                         Person person = new Person();
                         person.setFirstName(firstName);
                         person.setLastName(lastName);
                         person.setFullName(fullName);
-                        person.setSearchTerm(personKey);
+
+
+                        String searchTerm = getFirstName(firstName).toUpperCase();
+                        if (lastName!=null) searchTerm += " " + lastName.toUpperCase();
+                        person.setSearchTerm(searchTerm);
 
 
 
@@ -307,51 +307,53 @@ public class USASpending {
                         }
 
 
-                        CompanyOfficer officer = officers.get(personKey);
+                        CompanyOfficer officer = officers.get(searchTerm);
                         if (officer==null){
                             officer = new CompanyOfficer();
                             officer.setPerson(person);
-                            officers.put(personKey, officer);
+                            officers.put(searchTerm, officer);
                         }
 
 
-                        JSONObject info = officer.getInfo();
-                        if (info==null){
-                            info = new JSONObject();
-                            officer.setInfo(info);
+                      //Update salary history
+                        if (salary!=null){
+
+                            JSONObject info = officer.getInfo();
+                            if (info==null){
+                                info = new JSONObject();
+                                officer.setInfo(info);
+                            }
+
+                            JSONArray salaryHistory = info.get("salaryHistory").toJSONArray();
+                            if (salaryHistory==null) salaryHistory = new JSONArray();
+
+
+
+                            String date = lastUpdate.toString("yyyy-MM-dd");
+                            boolean addSalary = true;
+                            for (JSONValue v : salaryHistory){
+
+                                String d = v.get("date").toString();
+                                Integer s = v.get("salary").toInteger();
+
+                                if (date.equals(d)){
+                                    addSalary = false;
+                                    if (salary>s){
+                                        //v.toJSONObject().set("salary", salary);
+                                    }
+                                    break;
+                                }
+                            }
+
+                            if (addSalary){
+                                JSONObject json = new JSONObject();
+                                json.set("date", date);
+                                json.set("salary", salary);
+                                salaryHistory.add(json);
+                            }
+
+                            info.set("salaryHistory", salaryHistory);
                         }
-
-                        JSONArray salaryHistory = info.get("salaryHistory").toJSONArray();
-                        if (salaryHistory==null) salaryHistory = new JSONArray();
-
-
-
-                        TreeMap<String, Integer> salaries = new TreeMap<>();
-                        for (JSONValue v : salaryHistory){
-                            salaries.put(v.get("date").toString(), v.get("salary").toInteger());
-                        }
-                        String date = lastUpdate.toString("yyyy-MM-dd");
-                        if (salaries.containsKey(date)){
-                            Integer prevSal = salaries.get(date);
-                            if (prevSal<salary) salaries.put(date, salary);
-                        }
-                        else{
-                            salaries.put(date, salary);
-                        }
-
-
-                        salaryHistory = new JSONArray();
-                        Iterator<String> it = salaries.keySet().iterator();
-                        while (it.hasNext()){
-                            date = it.next();
-                            salary = salaries.get(date);
-                            JSONObject json = new JSONObject();
-                            json.set("date", date);
-                            json.set("salary", salary);
-                            salaryHistory.add(json);
-                        }
-                        info.set("salaryHistory", salaryHistory);
-
                     }
                 }
             }
@@ -425,7 +427,7 @@ public class USASpending {
 
 
               //Get or create address
-                Long addressID = null;
+                Long addressID;
                 try (Recordset rs = out.getRecordset(
                     "select * from address where search_term='" + addressKey + "'", false)){ //lazy key search
 
@@ -435,7 +437,13 @@ public class USASpending {
                         JSONObject address = companyAddress.getAddress().toJson();
                         for (String key : address.keySet()){
                             if (key.equals("info")){
-
+                                if (!address.isNull(key)){
+                                    rs.setValue(key, new javaxt.sql.Function(
+                                        "?::jsonb", new Object[]{
+                                            address.get(key).toString()
+                                        }
+                                    ));
+                                }
                             }
                             else{
                                 rs.setValue(key, address.get(key));
@@ -474,15 +482,141 @@ public class USASpending {
             LinkedHashMap<String, CompanyOfficer> officers = companyOfficers.get(uei);
             i2 = officers.keySet().iterator();
             while (i2.hasNext()){
-                String fullName = i2.next();
-                CompanyOfficer officer = officers.get(fullName);
+                String searchTerm = i2.next();
+                CompanyOfficer officer = officers.get(searchTerm);
                 Person person = officer.getPerson();
 
-                //Add person as needed
 
-                //Get or create office with latest salary
+              //Parse metadata
+                Integer salary = null;
+                javaxt.utils.Date lastUpdate = null;
+                JSONObject info = officer.getInfo();
+                if (info!=null){
+                    JSONArray salaryHistory = info.get("salaryHistory").toJSONArray();
+                    if (salaryHistory!=null){
 
-                //console.log("-", fullName, lastUpdate.toString("M/d/yyyy"));
+
+                      //Create an ordered list of salaries
+                        TreeMap<String, TreeSet<Integer>> salaries = new TreeMap<>();
+                        for (JSONValue a : salaryHistory){
+                            String date = a.get("date").toString();
+                            Integer sal = a.get("salary").toInteger();
+                            TreeSet<Integer> s = salaries.get(date);
+                            if (s==null){
+                                s = new TreeSet<>();
+                                salaries.put(date, s);
+                            }
+                            s.add(sal);
+                        }
+
+
+                      //Update salaryHistory
+                        salaryHistory = new JSONArray();
+                        info.set("salaryHistory", salaryHistory);
+                        Integer prevSal = null;
+                        Iterator<String> i3 = salaries.keySet().iterator();
+                        while (i3.hasNext()){
+                            String date = i3.next();
+                            TreeSet<Integer> s = salaries.get(date);
+                            Integer sal = s.last(); //biggest value
+
+                            if (!sal.equals(prevSal) || date.equals(salaries.lastKey())){
+                                //console.log(date, sal);
+                                JSONObject json = new JSONObject();
+                                json.set("date", date);
+                                json.set("salary", sal);
+                                salaryHistory.add(json);
+                            }
+
+                            prevSal = sal;
+                        }
+
+
+                      //Set salary
+                        salary = prevSal;
+
+
+                      //Set lastUpdate
+                        javaxt.utils.Date lastDate = new javaxt.utils.Date(salaries.lastKey());
+                        if (lastUpdate==null || lastDate.isAfter(lastUpdate)) lastUpdate = lastDate;
+
+                    }
+                }
+
+
+                console.log("-", person.getFullName(), lastUpdate.toString("M/d/yyyy"), salary);
+
+
+
+              //Get or create person
+                Long personID;
+                try (Recordset rs = out.getRecordset(
+                    "select * from person where search_term='" + searchTerm + "'", false)){ //lazy key search
+
+                    if (rs.EOF){
+                        rs.addNew();
+                        rs.setValue("search_term", searchTerm);
+
+                        JSONObject json = person.toJson();
+                        for (String key : json.keySet()){
+                            if (key.equals("info")){
+                                if (!json.isNull(key)){
+                                    rs.setValue(key, new javaxt.sql.Function(
+                                        "?::jsonb", new Object[]{
+                                            json.get(key).toString()
+                                        }
+                                    ));
+                                }
+                            }
+                            else{
+                                rs.setValue(camelCaseToUnderScore(key), json.get(key));
+                            }
+                        }
+
+                        rs.update();
+                        personID = rs.getGeneratedKey().toLong();
+                    }
+                    else{
+                        personID = rs.getValue("id").toLong();
+                    }
+                }
+
+
+
+
+              //Get or create company officer
+                try (Recordset rs = out.getRecordset(
+                    "select * from company_officer where company_id=" +
+                    companyID + " and person_id=" + personID, false)){
+
+                    if (rs.EOF){
+                        rs.addNew();
+                        rs.setValue("company_id", companyID);
+                        rs.setValue("person_id", personID);
+                    }
+
+
+                    if (salary!=null){
+                        Integer prevSalary = rs.getValue("salary").toInteger();
+                        if (!salary.equals(prevSalary)) rs.setValue("salary", salary);
+                    }
+
+
+                    if (lastUpdate!=null){
+                        rs.setValue("last_update", lastUpdate);
+                    }
+
+
+                    if (info!=null){
+                        rs.setValue("info", new javaxt.sql.Function(
+                            "?::jsonb", new Object[]{
+                                info.toString()
+                            }
+                        ));
+                    }
+
+                    rs.update();
+                }
             }
 
 
@@ -501,7 +635,7 @@ public class USASpending {
 
         JSONObject prevAward = new JSONObject();
         ArrayList<JSONObject> awards = new ArrayList<>();
-        String sql = getQuery("usaspending", "awards_by_company").getSQL().replace("{uei}", uei);
+        String sql = getQuery("usaspending", "awards_by_company").replace("{uei}", uei);
         for (javaxt.sql.Record record : in.getRecords(sql)){
 
 
