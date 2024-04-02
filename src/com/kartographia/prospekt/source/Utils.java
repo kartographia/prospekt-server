@@ -70,6 +70,97 @@ public class Utils {
 
 
   //**************************************************************************
+  //** getFirstName
+  //**************************************************************************
+  /** Converts diminutive first name to a proper english first name (e.g. Bill
+   *  is converted to William). Note that the list of supported names is
+   *  incomplete and not authoritative.
+   */
+    public static String getFirstName(String name){
+
+      //Male names
+        if (eq(name, "Al")) return "Albert";
+        if (eq(name, "Brad")) return "Bradley";
+        if (eq(name, "Alex", "Xander", "Alec", "Alek")) return "Alexander";
+        if (eq(name, "Fred", "Freddy", "Alf", "Alfie")) return "Alfred";
+        if (eq(name, "Andy", "Drew")) return "Andrew";
+        if (eq(name, "Ben", "Benny", "Benji", "Benedict")) return "Benjamin";
+        if (eq(name, "Bernie")) return "Bernard";
+        if (eq(name, "Brad", "Brodie", "Bodie", "Brayden", "Rayden", "Brady")) return "Bradley";
+        if (eq(name, "Cal")) return "Calvin";
+        if (eq(name, "Charlie", "Charley", "Chuck")) return "Charles";
+        if (eq(name, "Danny", "Dan")) return "Daniel";
+        if (eq(name, "Dave", "Davey")) return "David";
+        if (eq(name, "Don", "Donnie", "Donny")) return "Donald";
+        if (eq(name, "Dunc")) return "Duncan";
+        if (eq(name, "Ned", "Ed", "Eddy", "Eddie")) return "Edward";
+        if (eq(name, "Harry", " Hal")) return "Henry";
+        if (eq(name, "Jake")) return "Jacob";
+        if (eq(name, "Jamie", "Jim", "Jimmy", "Jimbo")) return "James";
+        if (eq(name, "Johnny", "Jack", "Jake")) return "John";
+        if (eq(name, "Jon")) return "Jonathan"; //John
+        if (eq(name, "Joe", " Joey")) return "Joseph";
+        if (eq(name, "Josh")) return "Joshua";
+        if (eq(name, "Larry", "Laurie")) return "Lawrence";
+        if (eq(name, "Mike", "Mick", "Micky")) return "Michael";
+        if (eq(name, "Nick", "Nicolas")) return "Nicholas";
+        if (eq(name, "Pauly", "Pauley")) return "Paul";
+        if (eq(name, "Pete", "Pita")) return "Peter";
+        if (eq(name, "Phil")) return "Philip";
+        if (eq(name, "Richie", "Rick", "Dick")) return "Richard";
+        if (eq(name, "Rob", "Bob", "Bobby", "Robbie")) return "Robert";
+        if (eq(name, "Ron")) return "Ronald";
+        if (eq(name, "Sal")) return "Salvatore";
+        if (eq(name, "Sam", "Sammy")) return "Samuel";
+        if (eq(name, "Si")) return "Simon";
+        if (eq(name, "Steve", "Steven", "Ste")) return "Stephen"; //Stephen/Steven
+        if (eq(name, "Stu")) return "Stewart";
+        if (eq(name, "Terry")) return "Terence";
+        if (eq(name, "Tom", "Tommy")) return "Thomas";
+        if (eq(name, "Tim", "Timmy")) return "Timothy";
+        if (eq(name, "Bill", "Billy", "Will", "Willy ")) return "William";
+
+
+      //Female names
+        if (eq(name, "Abby", "Abbie", "Abie")) return "Abigail";
+        if (eq(name, "Mandy", "Mindy")) return "Amanda";
+        if (eq(name, "Ali", "Ally", "Allie")) return "Alison";
+        if (eq(name, "Barb", "Barbie")) return "Barbara";
+        if (eq(name, "Bev", "Beverly")) return "Beverley";
+        if (eq(name, "Lotte", "Lottie", "Char", "Charlie")) return "Charlotte";
+        if (eq(name, "Danni", "Dani", "Daniella")) return "Danielle";
+        if (eq(name, "Deb", "Debbie")) return "Deborah";
+        if (eq(name, "Dot", "Dotty")) return "Dorothy";
+        if (eq(name, "Liz", "Lizzie", "Liza", "Libb", "Lisbeth", "Beth", "Bessie", "Bess")) return "Elizabeth";
+        if (eq(name, "Em", "Emy")) return "Emily";
+        if (eq(name, "Hil")) return "Hilary";
+        if (eq(name, "Jenny", "Jen")) return "Jennifer";
+        if (eq(name, "Cat", "Kat", "Cath", "Cate", "Kate", "Cathy", "Kathy", "Katie", "Kathryn", "Katherine")) return "Catherine";
+        if (eq(name, "Maggie", "Meg", "Maisie")) return "Margaret";
+        if (eq(name, "Tash", "Tasha")) return "Natasha";
+        if (eq(name, "Nicky", "Nikki", "Nicola")) return "Nicole";
+        if (eq(name, "Pam", "Pammy")) return "Pamela";
+        if (eq(name, "Pat", "Patty", "Patsy", "Trish", "Trisha")) return "Patricia";
+        if (eq(name, "Pippa")) return "Philippa"; //need to confirm
+        if (eq(name, "Rae")) return "Rachel";
+        if (eq(name, "Sal")) return "Sally";
+        if (eq(name, "Sandy")) return "Sandra";
+        if (eq(name, "Suzie", "Sue", "Suze")) return "Susan";
+        if (eq(name, "Vicky", "Vic")) return "Victoria";
+        if (eq(name, "Ginny")) return "Virginia";
+
+        return name;
+    }
+
+    private static boolean eq(String name, String... names){
+        for (String str : names){
+            if (name.equalsIgnoreCase(str)) return true;
+        }
+        return false;
+    }
+
+
+  //**************************************************************************
   //** getStreet
   //**************************************************************************
   /** Returns an array with a street address and a suite number.
