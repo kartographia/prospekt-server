@@ -48,7 +48,7 @@ public class Index {
                         if (!folder.isEmpty()) folder += "/";
 
                         String key = (folder + name).toLowerCase();
-                        console.log(key);
+                        //console.log(key);
                         queries.put(key, entry.getText());
                         queries.notify();
                     }
@@ -77,7 +77,7 @@ public class Index {
                 }
 
                 String key = (folderName + "/" + fileName).toLowerCase();
-                console.log("-", key, queries.get(key));
+                //console.log("-", key, queries.get(key));
                 return queries.get(key);
             }
         }
