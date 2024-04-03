@@ -50,7 +50,7 @@ CREATE TABLE COMPANY_OFFICER (
     PERSON_ID bigint NOT NULL,
     COMPANY_ID bigint NOT NULL,
     TITLE varchar,
-    SALARY numeric NOT NULL,
+    SALARY numeric,
     LAST_UPDATE TIMESTAMP with time zone,
     INFO jsonb,
     CONSTRAINT PK_COMPANY_OFFICER PRIMARY KEY (ID)

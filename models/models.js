@@ -1,4 +1,4 @@
-var package = "com.kartographia.prospekt";
+var package = "com.kartographia.prospekt.model";
 var models = {
 
   //**************************************************************************
@@ -92,8 +92,7 @@ var models = {
         ],
         constraints: [
             {name: 'person',        required: true},
-            {name: 'company',       required: true},
-            {name: 'salary',        required: true}
+            {name: 'company',       required: true}
         ]
     },
 
