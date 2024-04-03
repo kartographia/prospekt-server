@@ -1,8 +1,12 @@
 /data/
+/logs/
+
 /dist/
 /build/
 /target/
 /nbproject/
+build.xml
+manifest.mf
 
 
 __pycache__/
