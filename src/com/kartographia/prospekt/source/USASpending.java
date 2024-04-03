@@ -70,9 +70,25 @@ public class USASpending {
 
                 //Restore the backup
 
+
+                //Create table with unique UEI numbers
+                //create table distinct_uei as select distinct(awardee_or_recipient_uei) as uei from raw.source_procurement_transaction;
+
+
+                //TODO: store database date somewhere in the database
             }
         }
 
+    }
+
+
+  //**************************************************************************
+  //** getDate
+  //**************************************************************************
+  /** Returns the last update associated with the database
+   */
+    public static String getDate(){
+        return "2024-02-08";
     }
 
 
@@ -621,7 +637,7 @@ public class USASpending {
 
 
           //Update awards associated with the company
-            //updateAwards(uei, in, out);
+            updateAwards(uei, in, out);
         }
     }
 
@@ -633,6 +649,19 @@ public class USASpending {
    */
     public static void updateAwards(String uei, Connection in, Connection out) throws Exception {
 
+
+      //Get company ID
+        Long companyID = null;
+        javaxt.sql.Record r = out.getRecord("select id from company where uei='" + uei + "'");
+        if (r!=null) companyID = r.get(0).toLong();
+        if (companyID==null) throw new Exception();
+
+
+      //Get sourceID
+        long sourceID = getOrCreateSource(out);
+
+
+      //Generate a unique list of awards (json)
         JSONObject prevAward = new JSONObject();
         ArrayList<JSONObject> awards = new ArrayList<>();
         String sql = getQuery("usaspending", "awards_by_company").replace("{uei}", uei);
@@ -698,6 +727,16 @@ public class USASpending {
 
           //Get customer and office
             String customer = getString(record.get("customer"));
+            if (customer!=null){
+                if (customer.contains("(") && customer.endsWith(")")){
+                    String abbr = customer.substring(customer.lastIndexOf("(")+1, customer.length()-1).trim();
+                    if (!abbr.isEmpty()){
+                        if (!(abbr.equalsIgnoreCase("null") || abbr.equalsIgnoreCase("nan"))){
+                            customer = abbr.toUpperCase();
+                        }
+                    }
+                }
+            }
             String office = getString(record.get("office"));
 
 
@@ -725,8 +764,8 @@ public class USASpending {
 
 
                 if (awardedValue!=null){
-                    Double v = award.get("awarded_value").toDouble();
-                    if (v!=null) award.set("awarded_value", Math.max(v, awardedValue));
+                    Double v = award.get("value").toDouble();
+                    if (v!=null) award.set("value", Math.max(v, awardedValue));
                 }
 
                 if (extendedValue!=null){
@@ -763,8 +802,8 @@ public class USASpending {
                 award.set("description", description);
                 //award.set("date", date);
                 award.set("type", type);
-                award.set("awarded_value", awardedValue);
-                //award.set("funded_value", fundedValue);
+                award.set("value", awardedValue);
+                //award.set("funded", fundedValue);
                 award.set("extended_value", extendedValue);
                 award.set("naics", naics);
                 award.set("customer", customer);
@@ -809,38 +848,60 @@ public class USASpending {
                 actions.add(action);
             }
 
+
             prevAward = award;
         }
+
+
+
         console.log("Found " + format(awards.size()) + " awards");
 
 
 
       //Save awards
-        long sourceID = getOrCreateSource(out);
-        Long companyID;
-        javaxt.sql.Record r = out.getRecord("select id from company where uei='" + uei + "'");
-        if (r!=null) companyID = r.get(0).toLong();
-
         for (JSONObject award : awards){
             award.set("source_id", sourceID);
 
 
-            //Update title
+          //Update award name, date, type, and funded value
             JSONObject info = award.get("info").toJSONObject();
             JSONArray actions = info.get("actions").toJSONArray();
             TreeMap<String, String> titles = new TreeMap<>();
+            boolean foundIDIQ = false;
             for (JSONValue a : actions){
                 String date = a.get("date").toString();
                 String desc = a.get("desc").toString();
-                titles.put(date, desc);
+                if (desc!=null && desc.contains("IDIQ")) foundIDIQ = true;
+
+                if (titles.containsKey(date)){
+
+                }
+                else{
+                    titles.put(date, desc);
+                }
             }
-            String firstDate = titles.firstKey();
+
+            String firstDate = titles.firstKey(); //date in yyyy-mm-dd format
+            javaxt.utils.Date awardDate = new javaxt.utils.Date(firstDate);
+            javaxt.utils.Date startDate = award.get("start_date").toDate();
+            if (startDate!=null && startDate.isBefore(awardDate)) awardDate = startDate;
+            award.set("date", awardDate);
             award.set("name", titles.get(firstDate));
-            award.set("date", new javaxt.utils.Date(firstDate));
+
+            if (foundIDIQ){
+                award.set("type", "IDIQ");
+            }
+
             BigDecimal totalFunding = new BigDecimal(0);
             Iterator<String> it = titles.keySet().iterator();
             while (it.hasNext()){
                 String date = it.next();
+                String desc = titles.get(date);
+
+                if (desc!=null && award.isNull("name")){
+                    award.set("name", desc);
+                }
+
                 for (JSONValue a : actions){
                     if (a.get("date").toString().equals(date)){
                         BigDecimal d = a.get("funding").toBigDecimal();
@@ -850,23 +911,33 @@ public class USASpending {
                     }
                 }
             }
-            award.set("funded_value", totalFunding);
-
-            System.out.println(award.toString(4));
-
-            if (true) continue;
+            award.set("funded", totalFunding);
 
 
+            //System.out.println(award.toString(4));
+
+
+          //Save award in the database
             String sourceKey = award.get("source_key").toString();
             try (Recordset rs = out.getRecordset(
-                "select * from award where RECIPIENT_ID=" + companyID +
+                "select * from award where recipient_id=" + companyID +
                 " and source_id=" + sourceID +
                 " and source_key='" + sourceKey + "'", false)){
 
-                if (rs.EOF) rs.addNew();
+                if (rs.EOF){
+                    rs.addNew();
+                    rs.setValue("recipient_id", companyID);
+                    rs.setValue("source_id", sourceID);
+                    rs.setValue("source_key", sourceKey);
+                }
+
                 for (String key : award.keySet()){
                     if (key.equals("info")){
-
+                        rs.setValue("info", new javaxt.sql.Function(
+                            "?::jsonb", new Object[]{
+                                info.toString()
+                            }
+                        ));
                     }
                     else{
                         rs.setValue(key, award.get(key));
@@ -876,24 +947,101 @@ public class USASpending {
             }
         }
 
-        //Update company
-
-/*
-            {name: 'name',              type: 'string'},
-            {name: 'description',       type: 'string'},
-            {name: 'uei',               type: 'string'},
-            {name: 'recent_awards',     type: 'int'},      //total awards in the last 12 months
-            {name: 'recent_award_val',  type: 'decimal'},  //total value of awards in the last 12 months
-            {name: 'recent_award_mix',  type: 'decimal'},  //percent competative awards in the last 12 months
-            {name: 'recent_customers',  type: 'string[]'}, //awarding agencies in the last 12 months
-            {name: 'recent_naics',      type: 'string[]'}, //naics codes associated with recent awards
-            {name: 'estimated_revenue', type: 'decimal'},
-            {name: 'estimated_backlog', type: 'decimal'},
-            {name: 'info',              type: 'json'}
-        */
 
 
+      //Update company profile with recent awards
+        javaxt.utils.Date currDate = new javaxt.utils.Date(getDate());
+        javaxt.utils.Date d = currDate.clone().add(-1, "year");
+        HashSet<String> recentCustomers = new HashSet<>();
+        HashSet<String> recentNaics = new HashSet<>();
+        int recentAwards = 0;
+        int competedAwards = 0;
+        double totalValue = 0.0;
+        double estimatedRevenue = 0.0;
+        double estimatedBacklog = 0.0;
+        for (JSONObject award : awards){
+            javaxt.utils.Date startDate = award.get("start_date").toDate();
+            javaxt.utils.Date endDate = award.get("end_date").toDate();
+            if (startDate==null) continue;
+            if (endDate==null) endDate = startDate.clone().add(1, "year");
 
+            long totalMonths = endDate.compareTo(startDate, "months");
+            long completedMonths = d.compareTo(startDate, "months");
+            long remainingMonths = endDate.compareTo(d, "months");
+
+            if (endDate.isAfter(d)){
+
+                recentAwards++;
+                if (award.get("competed").toBoolean()) competedAwards++;
+
+
+                String customer = award.get("customer").toString();
+                if (customer!=null) recentCustomers.add(customer);
+
+                String naics = award.get("naics").toString();
+                if (naics!=null) recentNaics.add(naics);
+
+
+                Double value = award.get("value").toDouble();
+                if (value!=null){
+                    totalValue+=value;
+
+                    boolean isIDIQ = false;
+                    String type = award.get("type").toString();
+                    if (type!=null) isIDIQ = type.equals("IDIQ");
+
+                    if (isIDIQ){
+
+                        //TODO: Only look at what's been funded
+
+                    }
+                    else{
+                        double monthlyRevenue = value/totalMonths;
+
+                      //Computed estimated revenue
+                        double revenue = monthlyRevenue*completedMonths;
+                        estimatedRevenue+=revenue;
+
+                      //Computed estimated backlog
+                        double backlog = monthlyRevenue*remainingMonths;
+                        estimatedBacklog+=backlog;
+                    }
+                }
+
+            }
+        }
+
+
+
+        try (Recordset rs = out.getRecordset(
+            "select * from company where id=" + companyID, false)){
+
+            if (recentAwards>0){
+                rs.setValue("recent_awards", recentAwards);
+                rs.setValue("recent_award_val", Math.round(totalValue));
+                rs.setValue("recent_award_mix", Math.round((((double)competedAwards/(double)recentAwards))*100.0));
+
+                if (recentCustomers.isEmpty()) rs.setValue("recent_customers", null);
+                else rs.setValue("recent_customers",recentCustomers.toArray(new String[recentCustomers.size()]));
+
+                if (recentNaics.isEmpty()) rs.setValue("recent_naics", null);
+                else rs.setValue("recent_naics",recentNaics.toArray(new String[recentNaics.size()]));
+
+                rs.setValue("estimated_revenue", Math.round(estimatedRevenue));
+                rs.setValue("estimated_backlog", Math.round(estimatedBacklog));
+            }
+            else{
+                rs.setValue("recent_awards", 0);
+                rs.setValue("recent_award_val", 0);
+                rs.setValue("recent_award_mix", 0);
+                rs.setValue("recent_customers", null);
+                rs.setValue("recent_naics", null);
+                rs.setValue("estimated_revenue", 0);
+                rs.setValue("estimated_backlog", 0);
+            }
+
+            rs.update();
+        }
     }
 
 
@@ -912,7 +1060,7 @@ public class USASpending {
     }
 
 
-    private static String getString(javaxt.sql.Value val){
+    private static String getString(javaxt.utils.Value val){
         String str = val.toString();
         if (str!=null){
             str = str.trim();
@@ -926,29 +1074,6 @@ public class USASpending {
   //** getOrCreateSource
   //**************************************************************************
     private static Long getOrCreateSource(Connection conn) throws Exception {
-        String name = "usaspending.gov";
-
-        javaxt.sql.Record r = conn.getRecord(
-        "select id from source where name='" + name + "'");
-
-        if (r==null){
-            try (Recordset rs = conn.getRecordset(
-                "select * from source where id=-1", false)){
-                rs.addNew();
-                rs.setValue("name", name);
-                rs.update();
-                return rs.getGeneratedKey().toLong();
-            }
-        }
-        else{
-            return r.get(0).toLong();
-        }
-    }
-
-  //**************************************************************************
-  //** getOrCreateSource
-  //**************************************************************************
-    private static Long getOrCreateCompany(Connection conn) throws Exception {
         String name = "usaspending.gov";
 
         javaxt.sql.Record r = conn.getRecord(
