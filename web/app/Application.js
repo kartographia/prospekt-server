@@ -108,8 +108,12 @@ prospekt.Application = function(parent, config) {
 
 
               //Parse id as needed
-                if (id.indexOf("_")===-1){
-                    try { id = parseInt(id); } catch(e) {}
+                if (id.indexOf("_")===-1 && id.indexOf("-")===-1){
+                    try {
+                        var i = parseInt(id);
+                        if (!isNaN(i)) id = i;
+                    }
+                    catch(e) {}
                 }
 
 
@@ -274,6 +278,28 @@ prospekt.Application = function(parent, config) {
 
 
   //**************************************************************************
+  //** showCompanies
+  //**************************************************************************
+    var showCompanies = function(){
+        var companyPanel = panels["Companies"];
+
+        Object.values(panels).forEach((panel)=>{
+            if (panel===companyPanel) return;
+            panel.hide();
+        });
+
+
+        if (companyPanel){
+            companyPanel.show();
+        }
+        else{
+            companyPanel = new prospekt.companies.CompanyPanel(body, config);
+            panels["Companies"] = companyPanel;
+        }
+    };
+
+
+  //**************************************************************************
   //** showAdmin
   //**************************************************************************
     var showAdmin = function(){
@@ -362,6 +388,7 @@ prospekt.Application = function(parent, config) {
         addTab("Home", showDashboard);
         addTab("Opportunities", showOpportunities);
         addTab("Awards", showAwards);
+        addTab("Companies", showCompanies);
         addTab("Admin", showAdmin);
     };
 
