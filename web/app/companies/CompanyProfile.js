@@ -19,6 +19,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var innerDiv;
     var companyOverview;
 
+    var naiscCodes = {};
+
 
   //**************************************************************************
   //** Constructor
@@ -48,9 +50,6 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
 
-
-
-
         me.el = outerDiv;
         addShowHide(me);
     };
@@ -61,6 +60,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //**************************************************************************
     this.clear = function(){
         innerDiv.innerHTML = "";
+
     };
 
 
@@ -70,29 +70,52 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     this.update = function(company){
         me.clear();
 
-
-        get("Awards?recipientID=" + company.id, {
+        naiscCodes = {};
+        get("data/naics.tsv", {
             success: function(text){
-                company.awards = parseResponse(text);
+                text.split("\n").forEach((row)=>{
+                    row = row.trim();
+                    var arr = row.split("\t");
+                    if (arr.length===2){
+                        var code = arr[0];
+                        var desc = arr[1];
+                        if (desc.lastIndexOf("T")===desc.length-1){
+                            desc = desc.substring(0, desc.length-1);
+                        }
+                        naiscCodes[code] = desc;
+                    }
+                });
 
 
-                get("CompanyOfficers?companyID=" + company.id, {
+
+
+                get("Awards?recipientID=" + company.id, {
                     success: function(text){
-                        company.officers = parseResponse(text);
-                        update(company);
+                        company.awards = parseResponse(text);
+
+
+                        get("CompanyOfficers?companyID=" + company.id, {
+                            success: function(text){
+                                company.officers = parseResponse(text);
+                                update(company);
+                            },
+                            failure: function(request){
+                                alert(request);
+                            }
+                        });
+
                     },
                     failure: function(request){
                         alert(request);
                     }
                 });
 
+
             },
-            failure: function(request){
-                alert(request);
+            failure: function(){
+
             }
         });
-
-
     };
 
 
@@ -101,8 +124,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //**************************************************************************
     var update = function(company){
 
-
-      //Row 1
+      //Add company overview
         var row = createElement("div", innerDiv, {
             width: "100%"
         });
@@ -122,8 +144,15 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         createRevenueChart(company, td);
 
 
+      //Add pie charts
+        createPieCharts(company, createElement("div", innerDiv));
 
-      //Company Officers
+
+      //Add treemap
+        createTreeMap(company, createElement("div", innerDiv));
+
+
+      //Add Officers
         createOfficerInfo(company, createElement("div", innerDiv));
 
     };
@@ -133,7 +162,6 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //** createCompanyOverview
   //**************************************************************************
     var createCompanyOverview = function(company, parent){
-        console.log(company);
 
       //Create title
         createElement("div", parent, "company-name").innerText = company.name;
@@ -206,17 +234,19 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         }
 
         if (company.recentNaics){
-            companyOverview.set("Services Concentration", company.recentNaics.join(", "));
+
+            var codes = {};
+            company.recentNaics.forEach((code)=>{
+                code = code.substring(0, 3);
+                codes[code] = naiscCodes[code];
+            });
+            companyOverview.set("Services Concentration", Object.values(codes).join("; "));
         }
 
 
 
         if (company.recentAwards) companyOverview.set("Status", "Active");
         else companyOverview.set("Status", "Inactive");
-
-
-
-
 
     };
 
@@ -328,12 +358,6 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
 
-        console.log("totalAwards", totalAwards, totalRevenue);
-        console.log("totalFunding", totalFunding);
-
-
-
-
         var data = [];
         var totalBacklog = 0;
         var annualRevenue = 0;
@@ -373,9 +397,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
         companyOverview.set("Annual Revenue", "$" + addCommas(Math.round(annualRevenue)));
         companyOverview.set("Backlog", "$" + addCommas(Math.round(totalBacklog)));
-        //companyOverview.set("Total Revenue", "$" + addCommas(Math.round(totalRevenue-totalBacklog)));
 
-console.log(annualRevenue, previousRevenue, annualRevenue-previousRevenue);
 
 
       //Create main table
@@ -386,7 +408,7 @@ console.log(annualRevenue, previousRevenue, annualRevenue-previousRevenue);
 
       //Create title
         var titleArea = table.addRow().addColumn("chart-title");
-        createElement("div", titleArea, "preamble").innerText = "Estimated Revenue";
+        createElement("div", titleArea, "preamble").innerText = "Estimated Revenue*";
 
         var div = createElement("div", titleArea, {
             width: "100%",
@@ -416,7 +438,7 @@ console.log(annualRevenue, previousRevenue, annualRevenue-previousRevenue);
         var chartArea = table.addRow().addColumn("chart-area");
         var footerArea = table.addRow().addColumn("chart-disclaimer");
         footerArea.innerText =
-        "Monthly revenue estimates are based on contract value divided over the period of performance. " +
+        "*Monthly revenue estimates are based on contract value divided over the period of performance. " +
         "In the case of IDIQ awards, total funding is used instead of contract value. " +
         "Actual monthly revenue may vary significantly.";
 
@@ -453,15 +475,348 @@ console.log(annualRevenue, previousRevenue, annualRevenue-previousRevenue);
     };
 
 
+  //**************************************************************************
+  //** createPieCharts
+  //**************************************************************************
+    var createPieCharts = function(company, parent){
+        createElement("h2", parent).innerText = "Revenue Mix";
+
+
+        var revenueByType = {};
+        var revenueByCustomer = {};
+        var revenueByNaics = {};
+
+        company.awards.forEach((award)=>{
+
+          //Get total value of the award
+            var awardValue = award.value;
+
+
+          //Ignore total value if IDIQ. Only look at funded value
+            if (award.type==="IDIQ"){
+                if (award.funded) awardValue = award.funded;
+                else return;
+            }
+
+
+          //Compute revenue
+            if (award.startDate && awardValue){
+                var startDate = moment(award.startDate);
+                var endDate = award.endDate ? moment(award.endDate) : startDate.clone().add(1, "year");
+                var totalMonths =  Math.ceil(endDate.diff(new Date(startDate), 'months', true));
+                var monthlyRevenue = awardValue/totalMonths;
+
+
+                var d = startDate.clone();
+                var t = 0;
+                for (var i=0; i<totalMonths; i++){
+
+
+                  //Compute revenue for the current month
+                  //Ensure that it exceed total revenue
+                    var currRevenue;
+                    if (t+monthlyRevenue>awardValue){
+                        currRevenue = awardValue-t;
+                    }
+                    else{
+                        currRevenue = monthlyRevenue;
+                    }
+                    t += currRevenue;
+
+
+
+                  //Increment date by one month
+                    d.add(1, "month");
+                }
+
+
+
+                var prevValue = revenueByType[award.type];
+                if (!prevValue) prevValue = 0;
+                revenueByType[award.type] = t+prevValue;
+
+
+                var prevValue = revenueByCustomer[award.customer];
+                if (!prevValue) prevValue = 0;
+                revenueByCustomer[award.customer] = t+prevValue;
+
+
+                var naics = award.naics;
+                if (naics){
+                    naics = naics.substring(0, 3);
+                    var prevValue = revenueByNaics[naics];
+                    if (!prevValue) prevValue = 0;
+                    revenueByNaics[naics] = t+prevValue;
+                }
+            }
+
+        });
 
 
 
 
-    var createOfficerInfo = function(company, parent){
-        console.log(company.officers);
+      //Create main table
+        var table = createTable(parent);
+
+
+      //Create pie charts
+        var tr = table.addRow();
+        var addPieChart = function(kvp, title){
+            var parent = tr.addColumn();
+            createElement("div", parent, "subtitle").innerText = title;
+
+            var data = [];
+            Object.keys(kvp).forEach((key)=>{
+                data.push({
+                    key: key,
+                    value: kvp[key]
+                });
+            });
+            data.sort((a, b)=>{
+                return b.value-a.value;
+            });
+
+            var div = createElement("div", parent, {
+                width: "400px",
+                height: "400px",
+                margin: "0 auto"
+            });
+            var pieChart = new bluewave.charts.PieChart(div, {
+                pieCutout: 0.65,
+                labelOffset: 120
+            });
+
+          //Update the chart using data from demo1
+            pieChart.update(data, "key", "value");
+
+
+          //Return sorted data
+            return data;
+        };
+
+        revenueByCustomer = addPieChart(revenueByCustomer, "Revenue By Customer");
+        revenueByNaics = addPieChart(revenueByNaics, "Revenue By Product/Service");
+        revenueByType = addPieChart(revenueByType, "Revenue By Contract Type");
+
+
+      //Create tables under the pie charts
+        var tr = table.addRow();
+        var addTable = function(data, isNaisc){
+            var td = tr.addColumn({
+                verticalAlign: "top"
+            });
+            var table = createTable(td);
+            table.style.width = "";
+            table.style.height = "";
+            table.style.margin = "0 auto";
+            table.className = "company-overview";
+            data.forEach((d)=>{
+                var tr = table.addRow();
+                tr.addColumn({minWidth: "150px"}).innerText = d.key + (isNaisc ? (": " + naiscCodes[d.key]) : "");
+                tr.addColumn({textAlign: "right"}).innerText = "$" + addCommas(Math.round(d.value));
+            });
+        };
+
+        addTable(revenueByCustomer);
+        addTable(revenueByNaics, true);
+        addTable(revenueByType);
+
     };
 
 
+  //**************************************************************************
+  //** createTreeMap
+  //**************************************************************************
+    var createTreeMap = function(company, parent){
+        //createElement("h2", parent).innerText = "Contract Mix";
+
+        /*
+            //Create treemap chart using "demo2" div
+            var div = document.getElementById("demo2");
+            var voronoiTreemap = new bluewave.charts.TreeMapChart(div, {});
+
+
+            var chartConfig = {
+                key: "username",
+                value: "commits",
+                groupBy: "repo",
+                shape: "circle" //<--vs "square" default
+            };
+
+
+            var data = d3.csvParse(csv);
+
+            voronoiTreemap.update(chartConfig, data);
+         */
+
+    };
+
+
+  //**************************************************************************
+  //** createOfficerInfo
+  //**************************************************************************
+    var createOfficerInfo = function(company, parent){
+
+        createElement("h2", parent).innerText = "Officers";
+
+        var table = createTable(parent);
+        var tr = table.addRow();
+        var leftCol = tr.addColumn({
+            width: "100%",
+            verticalAlign: "top"
+        });
+        var rightCol = tr.addColumn("chart-area");
+
+
+        updateOfficers(company.officers, function(){
+            console.log(company.officers);
+
+
+          //Separate current and inactive officers
+            var currOfficers = [];
+            var olderOfficers = [];
+            var lastYear = moment().subtract(1, "year");
+            company.officers.forEach((officer)=>{
+                var lastUpdate = moment(new Date(officer.lastUpdate));
+                if (lastUpdate.isBefore(lastYear)){
+                    olderOfficers.push(officer);
+                }
+                else{
+                    currOfficers.push(officer);
+                }
+            });
+
+
+          //Sort officer groups by salary
+            currOfficers.sort((a, b)=>{
+                return b.salary-a.salary;
+            });
+            olderOfficers.sort((a, b)=>{
+                return b.salary-a.salary;
+            });
+
+
+          //Render officers in a grid view
+            var table = createTable(leftCol);
+            table.style.maxWidth = "750px";
+            var tr = table.addRow("table-header");
+            tr.addColumn({ width: "100$"}).innerText = "Name";
+            tr.addColumn({ width: "100$"}).innerText = "Salary";
+            tr.addColumn({ width: "100$"}).innerText = "Active";
+            var addRow = function(officer, active){
+                var tr = table.addRow();
+                tr.addColumn().innerText = officer.person.fullName;
+                tr.addColumn().innerText = "$" + addCommas(Math.round(officer.salary));
+                tr.addColumn().innerText = active===true ? true : "-";
+            };
+            currOfficers.forEach((officer)=>{
+                addRow(officer, true);
+            });
+            olderOfficers.forEach((officer)=>{
+                addRow(officer);
+            });
+
+
+
+
+          //Render salary history
+            var div = createElement("div", rightCol, {
+                width: "600px",
+                height: "300px"
+            });
+            var lineChart = new bluewave.charts.LineChart(div, {
+                xGrid: false,
+                yGrid: true
+            });
+
+            var addLine = function(officer, current){
+                if (!officer.info) return;
+                if (!officer.info.salaryHistory) return;
+                var fullName = officer.person.fullName;
+                var data = [];
+                officer.info.salaryHistory.forEach((d)=>{
+                    data.push({
+                        date: moment(new Date(d.date)).format("YYYY-MM-DD"),
+                        salary: d.salary
+                    });
+                });
+                data.sort((a, b)=>{
+                    return b.date-a.date;
+                });
+                var arr = [];
+                var prevSal = 0;
+                for (var i=0; i<data.length; i++){
+                    var currSal = data[i].salary;
+
+                    if (currSal>prevSal){
+                        arr.push(data[i]);
+                        prevSal = currSal;
+                    }
+                    else{
+                        if (i===data.length-1){
+                            arr.push({date: data[i].date, salary: prevSal});
+                        }
+                    }
+
+                }
+
+                var line = new bluewave.chart.Line();
+                lineChart.addLine(line, arr, "date", "salary");
+            };
+
+            olderOfficers.sort((a, b)=>{
+                return a.salary-b.salary;
+            });
+            olderOfficers.forEach((officer)=>{
+                addLine(officer);
+            });
+
+            currOfficers.sort((a, b)=>{
+                return a.salary-b.salary;
+            });
+            currOfficers.forEach((officer)=>{
+                addLine(officer);
+            });
+
+            lineChart.update();
+        });
+    };
+
+
+  //**************************************************************************
+  //** updateOfficers
+  //**************************************************************************
+    var updateOfficers = function(officers, callback){
+
+        var queue = [];
+        officers.forEach((officer)=>{
+            if (!officer.person) queue.push(officer);
+        });
+
+        var getNextPerson = function(){
+            if (queue.length===0){
+                callback();
+                return;
+            }
+            var officer = queue.shift();
+            get("person?id=" + officer.personID, {
+                success: function(text){
+                    officer.person = JSON.parse(text);
+                    getNextPerson();
+                },
+                failure: function(){
+                    getNextPerson();
+                }
+            });
+        };
+        getNextPerson();
+    };
+
+
+
+  //**************************************************************************
+  //** addCommas
+  //**************************************************************************
     var addCommas = function(x) {
         return round(x, 2).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     };
