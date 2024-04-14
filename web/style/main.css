@@ -470,7 +470,7 @@ body, textarea, input, select, td, th {
     position: relative;
     width: 100%;
     height: 100%;
-    overflow: hidden auto;
+    /*overflow: hidden auto;*/
     max-width: 1440px;
 
     border: 1px solid #ccc;
@@ -559,10 +559,43 @@ body, textarea, input, select, td, th {
     color: #777;
 }
 
-.chart-area .tick,
-.chart-area .domain {
+
+.chart-area .axis {
     color:#a9a9a9
 }
+
+.chart-area .label {
+    font-family: 'Segoe UI Variable Small'; /* for windows */
+    font-size: 10px;
+    color: #555;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -o-user-select: none;
+    -ms-user-select: none;
+    -khtml-user-select: none;
+    user-select: none;
+}
+
+.chart-area .grid {
+    stroke-width: 0.2;
+    color:#a9a9a9;
+}
+
+
+.treemap .label {
+    font-size: 12px;
+}
+
+.treemap .group.label {
+    font-size: 14px;
+}
+
+.treemap .value.label {
+    font-size: 10px;
+}
+
+
+
 
 .chart-disclaimer {
     color: #777;
@@ -570,6 +603,23 @@ body, textarea, input, select, td, th {
     font-style: italic;
     padding: 15px 8px 0 60px;
 }
+
+
+
+.chart-data-table  td {
+    padding: 2px 8px;
+    color:#777;
+    font-size: 12px;
+}
+
+
+.chart-data-table  td:first-child {
+    font-weight:normal;
+    color:#000;
+}
+
+
+
 
 
 

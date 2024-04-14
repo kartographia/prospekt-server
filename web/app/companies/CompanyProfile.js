@@ -30,22 +30,28 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         if (!config) config = {};
         config = merge(config, defaultConfig);
 
-        //"document-panel center"
 
-
-      //Create divs
+      //Create main div with overflow
         var outerDiv = createElement("div", parent, {
             position: "relative",
-            height: "100%"
-        });
-
-
-        innerDiv = createElement("div", outerDiv, {
-            position: "absolute",
-            width: "100%",
             height: "100%",
             overflow: "hidden",
             overflowY: "auto"
+        });
+
+
+      //Create content div. Oddly needed 2 divs, one with "inline-flex" to get
+      //padding to work correctly
+        var div = createElement("div", outerDiv, {
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            display: "inline-flex"
+        });
+        innerDiv = createElement("div", div, {
+            width: "100%",
+            height: "100%",
+            padding: "20px"
         });
 
 
@@ -563,7 +569,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         var tr = table.addRow();
         var addPieChart = function(kvp, title){
             var parent = tr.addColumn();
-            createElement("div", parent, "subtitle").innerText = title;
+            createElement("div", parent, "chart-title").innerText = title;
 
             var data = [];
             Object.keys(kvp).forEach((key)=>{
@@ -581,6 +587,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                 height: "400px",
                 margin: "0 auto"
             });
+            div.className = "chart-area";
             var pieChart = new bluewave.charts.PieChart(div, {
                 pieCutout: 0.65,
                 labelOffset: 120
@@ -609,7 +616,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             table.style.width = "";
             table.style.height = "";
             table.style.margin = "0 auto";
-            table.className = "company-overview";
+            table.className = "chart-data-table";
             data.forEach((d)=>{
                 var tr = table.addRow();
                 tr.addColumn({minWidth: "150px"}).innerText = d.key + (isNaisc ? (": " + naiscCodes[d.key]) : "");
