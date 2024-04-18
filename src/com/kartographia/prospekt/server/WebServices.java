@@ -1,5 +1,6 @@
 package com.kartographia.prospekt.server;
 import com.kartographia.prospekt.model.User;
+import com.kartographia.prospekt.model.Person;
 import com.kartographia.prospekt.service.*;
 
 import java.util.*;
@@ -57,6 +58,7 @@ public class WebServices extends WebService {
       //Instantiate web services
         webservices = new ConcurrentHashMap<>();
         webservices.put("sql", new SQLService());
+        //webservices.put("awards", new AwardService());
 
 
       //Websocket stuff
@@ -73,10 +75,13 @@ public class WebServices extends WebService {
                     QueryJob queryJob = (QueryJob) data.toObject();
                     me.notify(event+","+model+","+queryJob.getID()+","+queryJob.getUserID());
                 }
-
-                if (event.equals("WebRequest")){
-                    me.notify(event+","+model+",0,"+data); //WebRequest,Service,ModelID,UserID
+                else if (model.equals("WebFile")){
+                    me.notify(event+","+model+",0,"+data+",-1");
                 }
+                else if (model.equals("WebRequest")){
+                    //me.notify(event+","+model+",0,"+data);
+                }
+
             }
         });
     }
@@ -326,44 +331,27 @@ public class WebServices extends WebService {
             else if (op.equals("list")){
 
 
-              //Join "user" to "person"
+              //Compile new sql statement. Join "user" to "person".
                 javaxt.sql.Parser parser = new javaxt.sql.Parser(sql);
                 String tableName = parser.getFromString();
-
-
-                String select = "";
-                for (ServiceRequest.Field field : request.getFields()){
-                    String column = field.getColumn();
-                    if (column.equalsIgnoreCase("id")){
-                        column = tableName + ".id";
-                    }
-                    if (select.length()>0) select += ", ";
-                    select += column;
-                }
-                if (select.isBlank()) select = "*";
-
-
-                sql = "select " + select + " from " + tableName +
+                sql = request.getSelectStatement(User.class, Person.class) +
+                " from " + tableName +
                 " join person on " + tableName + ".person_id=person.id";
-                String where = parser.getWhereString();
-                if (where!=null && !where.isBlank()){
-                    sql += " where " + where;
-                }
 
 
-                String limit = parser.getLimitString();
-                String offset = parser.getOffsetString();
+              //Add "where" statement. Since we are now joining two tables, we
+              //need to generate a new where statement
+                String where = request.getWhereStatement(User.class, Person.class);
+                if (where!=null) sql += where;
 
 
-                if (conn.getDatabase().getDriver().equals("H2")){
-                    if (limit!=null && !limit.isBlank()) sql += " LIMIT " + limit;
-                    if (offset!=null && !offset.isBlank()) sql += " OFFSET " + offset;
-                }
-                else{
-                    if (offset!=null && !offset.isBlank()) sql += " OFFSET " + offset;
-                    if (limit!=null && !limit.isBlank()) sql += " LIMIT " + limit;
-                }
+              //Add orderby string
+                String orderBy = parser.getOrderByString();
+                if (orderBy!=null) sql += " order by " + orderBy;
 
+
+              //Add limit and offset
+                sql += request.getOffsetLimitStatement(conn.getDatabase().getDriver());
             }
 
         }
