@@ -15,10 +15,17 @@ prospekt.Application = function(parent, config) {
         style: javaxt.dhtml.style.default
     };
 
+    var appName = "Prospekt";
+
     var waitmask;
     var auth = new javaxt.dhtml.Authentication("login", "logoff");
     var currUser;
+
+  //Web socket stuff
     var ws; //web socket listener
+    var connected = false;
+    var communicationError;
+
 
   //Header components
     var profileButton, menuButton; //header buttons
@@ -92,7 +99,6 @@ prospekt.Application = function(parent, config) {
     this.update = function(user){
         updateUser(user);
 
-        //if (cart) cart.clear();
 
 
       //Create web socket listener
@@ -125,14 +131,18 @@ prospekt.Application = function(parent, config) {
                 processEvent(op, model, id, userID);
 
 
-              //Dispatch event to other panels
-                for (var key in panels) {
-                    if (panels.hasOwnProperty(key)){
-                        var panel = panels[key];
-                        if (panel.notify) panel.notify(op, model, id, userID);
-                    }
+            },
+            onConnect: function(){
+                if (!connected){
+                    connected = true;
+                    processEvent("connect", "WebSocket", -1, -1);
                 }
-
+            },
+            onDisconnect: function(){
+                if (connected){
+                    connected = false;
+                    processEvent("disconnect", "WebSocket", -1, -1);
+                }
             }
         });
     };
@@ -143,7 +153,7 @@ prospekt.Application = function(parent, config) {
   //**************************************************************************
     var updateUser = function(user){
         currUser = user;
-        document.title = "Prospekt";
+        document.title = appName + " - Home";
         if (user.person){
             profileButton.innerHTML = user.person.firstName.substring(0,1);
         }
@@ -193,21 +203,71 @@ prospekt.Application = function(parent, config) {
   //**************************************************************************
   //** processEvent
   //**************************************************************************
+  /** Used to process web socket events and dispatch them to other panels as
+   *  needed
+   */
     var processEvent = function(op, model, id, userID){
 
-        if (model==="User" && id===document.user.id){
-            if (op==="delete") logoff();
-            else if (op==="update"){
-                get("user?id=" + id, {
-                    success: function(text){
-                        var user = JSON.parse(text);
-                        document.user = merge(user, document.user);
-                        if (document.user.status!==1) logoff();
-                        else updateUser(document.user);
-                    }
-                });
+
+      //Process event
+        if (model==="WebSocket"){
+            if (currUser){
+                if (op==="connect"){
+                    if (communicationError) communicationError.hide();
+                }
+                else{
+                    if (!communicationError) createErrorMessage();
+                    communicationError.show();
+                }
+            }
+            else{
+                //logout initiated
             }
         }
+        else if (model==="WebFile"){
+            if (currUser && currUser.preferences){
+                var autoReload = currUser.preferences.get("AutoReload");
+                if (autoReload===true || autoReload==="true"){
+                    console.log("reload!");
+                    location.reload();
+                }
+                else{
+                    console.log("prompt to reload!");
+                    location.reload();
+                }
+            }
+        }
+        else{
+            if (id===document.user.id){
+                if (model==="User"){
+                    if (op==="delete"){
+                        logoff();
+                        return;
+                    }
+                    else if (op==="update"){
+                        get("user?id=" + id, {
+                            success: function(text){
+                                var user = JSON.parse(text);
+                                document.user = merge(user, document.user);
+                                if (document.user.status!==1) logoff();
+                                else updateUser(document.user);
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+
+
+      //Dispatch event to other panels
+        for (var key in panels) {
+            if (panels.hasOwnProperty(key)){
+                var panel = panels[key];
+                if (panel.notify) panel.notify(op, model, id, userID);
+            }
+        }
+
     };
 
 
@@ -379,6 +439,7 @@ prospekt.Application = function(parent, config) {
                 if (fn){
                     fn.apply(me, []);
                 }
+                document.title = appName + " - " + label;
                 document.user.preferences.set("Tab", label);
             };
             tabs[label] = tab;
@@ -473,6 +534,63 @@ prospekt.Application = function(parent, config) {
         };
         addShowHide(div);
         return div;
+    };
+
+
+  //**************************************************************************
+  //** createErrorMessage
+  //**************************************************************************
+  /** Used to create a communications error message
+   */
+    var createErrorMessage = function(){
+
+      //Create main div
+        var div = createElement("div", parent, {
+            position: "absolute",
+            top: "10px",
+            width: "100%",
+            display: "none"
+        });
+
+
+      //Create show/hide functions
+        var fx = config.fx;
+        var transitionEffect = "ease";
+        var duration = 1000;
+        var isVisible = false;
+
+        div.show = function(){
+            if (isVisible) return;
+            isVisible = true;
+            fx.fadeIn(div, transitionEffect, duration, function(){
+
+            });
+        };
+        div.hide = function(){
+            if (!isVisible) return;
+            isVisible = false;
+            fx.fadeOut(div, transitionEffect, duration/2, function(){
+
+            });
+        };
+        div.isVisible = function(){
+            return isVisible;
+        };
+
+
+      //Add content
+        var error = createElement("div", div, "communication-error center");
+        createElement("div", error, "icon");
+        createElement("div", error, "title").innerText = "Connection Lost";
+        createElement("div", error, "message").innerText =
+        "The connection to the server has been lost. The internet might be down " +
+        "or there might be a problem with the server. Don't worry, this app will " +
+        "automatically reconnect once the issue is resolved.";
+
+
+      //Add main div to windows array so it closes automatically on logoff
+        windows.push(div);
+        communicationError = div;
     };
 
 

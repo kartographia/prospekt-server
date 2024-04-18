@@ -161,9 +161,62 @@ body, textarea, input, select, td, th {
 }
 
 
+/**************************************************************************/
+/** Communications Error Popup
+/**************************************************************************/
+
+.communication-error {
+    width: 450px;
+    min-height: 64px;
+    background-color: #ffeef1;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 12px 14px 0 rgba(0, 0, 0, 0.2), 0 13px 20px 0 rgba(0, 0, 0, 0.2);
+}
+
+.communication-error .icon,
+.communication-error .title {
+    height: 24px;
+    font-size: 20px;
+    display: inline-block;
+    float:left;
+}
+
+.communication-error .icon {
+    width: 40px;
+    position: relative;
+}
+
+.communication-error .icon:before,
+.communication-error .icon:after {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    position: absolute;
+    color: #9d172e;
+}
+
+
+.communication-error .icon:before{
+    content: "\f12a"; /* exclaimation */
+    left: 11px;
+}
+
+.communication-error .icon:after{
+    content: "\f1eb"; /* wifi */
+    opacity: 0.2;
+    font-size: 24px;
+}
+
+.communication-error .message {
+    font-size: 11px;
+    display: inline-block;
+    color: #777;
+    margin-top: 8px;
+}
+
 
 /**************************************************************************/
-/** Error Popup
+/** Form Error Popup
 /**************************************************************************/
 /** The following classes are used to define the style for pop-up callouts
  *  generated using the javaxt.dhtml.Callout class.
@@ -482,6 +535,79 @@ body, textarea, input, select, td, th {
 .company-panel h2 {
     font-weight: normal;
 }
+
+
+.company-panel .toolbar {
+    height: 55px;
+}
+
+.company-panel .toolbar .pulldown {
+    float: left;
+    position: relative;
+    display: inline-block;
+    height: 36px;
+    line-height: 36px;
+    border: 1px solid #a7a6ab;
+    border-radius: 4px;
+
+    text-align: center;
+    text-transform: none;
+
+    font-weight: 700;
+    font-size: 14px;
+
+
+    padding: 0 12px;
+    margin: 0 8px;
+
+    cursor: pointer;
+}
+
+.company-panel .toolbar .pulldown.active,
+.company-panel .toolbar .pulldown.filter {
+    border-color: #006aff;
+    background-color: aliceblue;
+}
+
+
+.company-panel .toolbar .pulldown:after {
+    font-family: "Font Awesome 5 Free";
+    content: "\f078"; /* fas fa-chevron-down */
+    display: inline-block; /* important if you want to apply transition */
+    padding: 0 7px 0 7px;
+    /*transition: 0.5s;*/
+}
+
+.company-panel .toolbar .pulldown.active:after {
+    /*content: "\f077"; /* fas fa-chevron-down */
+    transform: rotate(180deg);
+    /*transition: 0s;*/
+}
+
+
+.toolbar .menu {
+    position: absolute;
+    background-color: #fff;
+    padding: 10px;
+    border: 1px solid #a7a6ab;
+    border-radius: 8px;
+    box-shadow: 0 12px 14px 0 rgba(0, 0, 0, 0.2), 0 13px 20px 0 rgba(0, 0, 0, 0.2);
+}
+
+
+.toolbar .menu .button {
+    background-color: #006aff;
+    line-height: 44px;
+    height: 44px;
+    color: #fff;
+    font-size: 16px;
+    border-radius: 5px;
+}
+
+.toolbar .menu .button:hover{
+    background-color: #0d4599
+}
+
 
 
 /**************************************************************************/

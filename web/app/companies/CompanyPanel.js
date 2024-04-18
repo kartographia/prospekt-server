@@ -65,14 +65,106 @@ prospekt.companies.CompanyPanel = function(parent, config) {
   //**************************************************************************
     var createList = function(parent){
 
+      //Create table with 2 rows
         var table = createTable(parent);
-        var toolbar = table.addRow().addColumn();
+        var toolbar = table.addRow().addColumn("toolbar");
         var body = table.addRow().addColumn({height:"100%"});
-
         addShowHide(table);
 
 
 
+      //Populate toolbar using the first row
+        var buttons = [];
+        var createButton = function(label, onShowMenu){
+
+            var button = createElement("div", toolbar, "pulldown noselect");
+            button.classList.has = function(className){
+                for (var i=0; i<this.length; i++){
+                    if (this[i]===className) return true;
+                }
+                return false;
+            };
+            button.innerText = label;
+            button.onclick = function(){
+                buttons.forEach((b)=>{
+                    if (b!=button) b.classList.remove("active");
+                });
+
+                if (button.classList.has("active")){
+                    button.classList.remove("active");
+                    button.menu.hide();
+                }
+                else{
+                    button.classList.add("active");
+                    if (!button.menu) button.menu = createMenu(button);
+                    button.menu.show();
+                    if (onShowMenu) onShowMenu.apply(me, [button.menu]);
+                }
+            };
+            buttons.push(button);
+            return button;
+        };
+        var createMenu = function(button){
+            var menu = createElement("div", button, "menu");
+            menu.style.width = menu.style.height = "400px"; //temporary
+            addShowHide(menu);
+            var _show = menu.show;
+            menu.show = function(){
+                if (menu.isVisible()) return;
+
+
+                buttons.forEach((b)=>{
+                    if (b.menu) b.menu.hide();
+                });
+
+                var highestElements = getHighestElements();
+                var zIndex = highestElements.zIndex;
+                if (!highestElements.contains(menu)) zIndex++;
+                menu.style.zIndex = zIndex;
+
+                var rect = javaxt.dhtml.utils.getRect(button);
+                menu.style.left = "-2px"; //not sure why 0 doesn't work...
+                menu.style.top = (rect.height+2) + "px";
+
+                _show.apply(menu, []);
+            };
+            menu.hide();
+
+
+
+            var table = createTable(menu);
+            var title = table.addRow().addColumn();
+            var body = table.addRow().addColumn({height: "100%"});
+            var apply = createElement("div", table.addRow().addColumn(), "button");
+            apply.innerText = "Apply";
+            apply.onclick = function(){
+
+                menu.hide();
+
+                var hasFilter = true;
+                if (hasFilter){
+                    if (!button.classList.has("filter")){
+                        button.classList.add("filter");
+                    }
+                }
+                else{
+                    button.classList.remove("filter");
+                }
+            };
+
+            return menu;
+        };
+        var customerButton = createButton("Customer", (menu)=>{
+
+        });
+        var naiscButton = createButton("NAISC");
+        var revenueButton = createButton("Revenue");
+        var moreButton = createButton("More");
+
+
+
+
+      //Populate the second row with a list of companies
         companyList = new javaxt.dhtml.DataGrid(body, {
             style: config.style.table,
             hideHeader: true,
@@ -178,6 +270,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
   //**************************************************************************
   //** Utils
   //**************************************************************************
+    var getHighestElements = javaxt.dhtml.utils.getHighestElements;
     var createElement = javaxt.dhtml.utils.createElement;
     var createTable = javaxt.dhtml.utils.createTable;
     var addShowHide = javaxt.dhtml.utils.addShowHide;
