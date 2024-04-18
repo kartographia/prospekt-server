@@ -6,6 +6,7 @@ import java.util.*;
 import java.io.IOException;
 import java.security.KeyStore;
 import java.net.InetSocketAddress;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javaxt.express.*;
 import javaxt.express.notification.*;
@@ -15,7 +16,9 @@ import javaxt.http.servlet.*;
 
 import javaxt.json.*;
 import javaxt.io.Jar;
+import javaxt.io.Directory;
 import javaxt.encryption.BCrypt;
+import static javaxt.utils.Timer.*;
 import static javaxt.utils.Console.*;
 
 
@@ -178,6 +181,14 @@ public class WebServer extends HttpServlet {
 
       //Instantiate file manager
         fileManager = new FileManager(web);
+
+
+      //Watch for changes to the web directory
+        EventProcessor p = new EventProcessor();
+        fileManager.getFileUpdates((Directory.Event event) -> {
+            p.processEvent(event);
+        });
+
 
 
       //Instantiate web services
@@ -365,4 +376,54 @@ public class WebServer extends HttpServlet {
         fileManager.sendFile(path, request, response);
 
     }
+
+
+  //**************************************************************************
+  //** EventProcessor
+  //**************************************************************************
+  /** Used to periodically update the NotificationService when files in the
+   *  web directory have been created, edited, moved, or deleted. Instead of
+   *  broadcasting every single file change, this function will wait for the
+   *  directory to "settle down" and simply broadcast the fact that something
+   *  has changed.
+   */
+    private class EventProcessor{
+        private ConcurrentHashMap<String, Long> updates = new ConcurrentHashMap<>();
+        private int len = web.getPath().length();
+        public EventProcessor(){
+
+            setInterval(()->{
+                synchronized(updates){
+                    if (!updates.isEmpty()){
+
+                        long currTime = System.currentTimeMillis();
+                        long lastUpdate = Integer.MAX_VALUE;
+
+                        Iterator<String> it = updates.keySet().iterator();
+                        while (it.hasNext()){
+                            String key = it.next();
+                            long t = updates.get(key);
+                            if (t>lastUpdate) lastUpdate = t;
+                        }
+
+                        if (currTime-lastUpdate>2000){
+                            NotificationService.notify("update", "WebFile", null);
+                            updates.clear();
+                            updates.notify();
+                        }
+                    }
+                }
+            }, 250);
+
+        }
+        public void processEvent(Directory.Event event){
+            java.io.File f = new java.io.File(event.getFile());
+            String path = f.toString().substring(len).replace("\\", "/");
+            synchronized(updates){
+                updates.put(path, event.getDate().getTime());
+                updates.notify();
+            }
+        }
+    }
+
 }
