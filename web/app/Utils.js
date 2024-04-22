@@ -178,6 +178,156 @@ prospekt.utils = {
     },
 
 
+  //**************************************************************************
+  //** createToolBar
+  //**************************************************************************
+  /** Used to create a Zillow-like toolbar
+   */
+    createToolBar: function(parent, config){
+
+        var getHighestElements = javaxt.dhtml.utils.getHighestElements;
+        var createElement = javaxt.dhtml.utils.createElement;
+        var createTable = javaxt.dhtml.utils.createTable;
+        var addShowHide = javaxt.dhtml.utils.addShowHide;
+
+
+        var toolbar = createElement("div", parent, "toolbar");
+
+
+
+      //Add text search to the toolbar
+        var searchBar = prospekt.utils.createSearchBar(createElement("div", toolbar, {
+            width: "400px",
+            display: "inline-block",
+            float: "left"
+        }));
+        searchBar.onSearch = function(q){
+            console.log(q);
+        };
+        searchBar.el.onclick = function(){
+            buttons.forEach((b)=>{
+                b.classList.remove("active");
+                if (b.menu) b.menu.hide();
+            });
+        };
+
+
+
+      //Add buttons to the toolbar
+        var buttons = [];
+        var createButton = function(label, className){
+
+            var button = createElement("div", toolbar, "pulldown noselect");
+            button.classList.has = function(className){
+                for (var i=0; i<this.length; i++){
+                    if (this[i]===className) return true;
+                }
+                return false;
+            };
+            button.innerText = label;
+            button.onclick = function(e){
+
+                if (button.menu && button.menu.isVisible()){
+                    //TODO: Check if client clicked on button. Only return if
+                    //client clicked outside the button (e.g. menu)
+                    return;
+                };
+
+                buttons.forEach((b)=>{
+                    if (b!=button) b.classList.remove("active");
+                });
+
+                if (button.classList.has("active")){
+                    button.classList.remove("active");
+                    button.menu.hide();
+                }
+                else{
+                    button.classList.add("active");
+                    if (!button.menu) button.menu = createMenu(button);
+                    button.menu.show();
+                    //if (onShowMenu) onShowMenu.apply(me, [button.menu]);
+                    if (!button.menu.filter && className){
+                        var cls = eval(className);
+                        if (cls){
+                            button.menu.filter = new cls(button.menu.body, config);
+                        }
+                    }
+                }
+            };
+            buttons.push(button);
+            return button;
+        };
+        var createMenu = function(button){
+            var menu = createElement("div", button, "menu");
+            menu.style.width = menu.style.height = "400px"; //temporary
+            addShowHide(menu);
+
+          //Override the show() method
+            var _show = menu.show;
+            menu.show = function(){
+                if (menu.isVisible()) return;
+
+                buttons.forEach((b)=>{
+                    if (b.menu) b.menu.hide();
+                });
+
+                var highestElements = getHighestElements();
+                var zIndex = highestElements.zIndex;
+                if (!highestElements.contains(menu)) zIndex++;
+                menu.style.zIndex = zIndex;
+
+                var rect = javaxt.dhtml.utils.getRect(button);
+                menu.style.left = "-2px"; //not sure why 0 doesn't work...
+                menu.style.top = (rect.height+2) + "px";
+
+                _show.apply(menu, []);
+            };
+
+            menu.hide();
+
+
+          //Add close button
+            var closeButton = createElement("div", menu, "close-button");
+            closeButton.onclick = function(){
+                menu.hide();
+            };
+
+
+          //Add content
+            var table = createTable(menu);
+            menu.title = table.addRow().addColumn();
+            menu.body = table.addRow().addColumn({height: "100%"});
+            var apply = createElement("div", table.addRow().addColumn(), "button");
+            apply.innerText = "Apply";
+            apply.onclick = function(){
+
+                menu.hide();
+
+                var hasFilter = true;
+                if (hasFilter){
+                    if (!button.classList.has("filter")){
+                        button.classList.add("filter");
+                    }
+                }
+                else{
+                    button.classList.remove("filter");
+                }
+            };
+
+            return menu;
+        };
+
+        return {
+            el: toolbar,
+            buttons: buttons,
+            searchBar: searchBar,
+            addButton: function(label, className){
+                return createButton(label, className);
+            }
+        };
+
+    },
+
 
   //**************************************************************************
   //** createWindow
@@ -187,6 +337,48 @@ prospekt.utils = {
         if (!prospekt.windows) prospekt.windows = [];
         prospekt.windows.push(win);
         return win;
+    },
+
+
+  //**************************************************************************
+  //** getNaicsCodes
+  //**************************************************************************
+    getNaicsCodes: function(callback){
+        if (!callback) return;
+
+        if (prospekt.data){
+            if (prospekt.data.naics){
+                callback.apply(this, [prospekt.data.naics]);
+                return;
+            }
+        }
+        else {
+            prospekt.data = {};
+        }
+
+
+        javaxt.dhtml.utils.get("data/naics.tsv", {
+            success: function(text){
+                var naiscCodes = {};
+                text.split("\n").forEach((row)=>{
+                    row = row.trim();
+                    var arr = row.split("\t");
+                    if (arr.length===2){
+                        var code = arr[0];
+                        var desc = arr[1];
+                        if (desc.lastIndexOf("T")===desc.length-1){
+                            desc = desc.substring(0, desc.length-1);
+                        }
+                        naiscCodes[code] = desc;
+                    }
+                });
+
+
+                prospekt.data.naics = naiscCodes;
+                callback.apply(this, [naiscCodes]);
+            }
+        });
+
     }
 
 };
