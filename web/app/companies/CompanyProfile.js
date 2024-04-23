@@ -18,7 +18,9 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
     var innerDiv;
     var companyOverview;
+    var awardDetails;
 
+    var loading = false;
     var naiscCodes = {};
 
 
@@ -73,54 +75,37 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //**************************************************************************
   //** update
   //**************************************************************************
-    this.update = function(company){
+    this.update = function(company, naics){
+        if (loading) return;
         me.clear();
 
-        naiscCodes = {};
-        get("data/naics.tsv", {
-            success: function(text){
-                text.split("\n").forEach((row)=>{
-                    row = row.trim();
-                    var arr = row.split("\t");
-                    if (arr.length===2){
-                        var code = arr[0];
-                        var desc = arr[1];
-                        if (desc.lastIndexOf("T")===desc.length-1){
-                            desc = desc.substring(0, desc.length-1);
-                        }
-                        naiscCodes[code] = desc;
-                    }
-                });
+        loading = true;
+        var onFailure = function(request){
+            loading = false;
+            alert(request);
+        };
+        getNaicsCodes(function(naics){
+            naiscCodes = naics;
 
 
+            get("Awards?recipientID=" + company.id, {
+                success: function(text){
+                    company.awards = parseResponse(text);
 
 
-                get("Awards?recipientID=" + company.id, {
-                    success: function(text){
-                        company.awards = parseResponse(text);
+                    get("CompanyOfficers?companyID=" + company.id, {
+                        success: function(text){
+                            company.officers = parseResponse(text);
+                            loading = false;
+                            update(company);
+                        },
+                        failure: onFailure
+                    });
 
+                },
+                failure: onFailure
+            });
 
-                        get("CompanyOfficers?companyID=" + company.id, {
-                            success: function(text){
-                                company.officers = parseResponse(text);
-                                update(company);
-                            },
-                            failure: function(request){
-                                alert(request);
-                            }
-                        });
-
-                    },
-                    failure: function(request){
-                        alert(request);
-                    }
-                });
-
-
-            },
-            failure: function(){
-
-            }
         });
     };
 
@@ -156,6 +141,10 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
       //Add treemap
         createTreeMap(company, createElement("div", innerDiv));
+
+
+      //Add awards table
+        createAwardsList(company, createElement("div", innerDiv));
 
 
       //Add Officers
@@ -632,6 +621,186 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
   //**************************************************************************
+  //** createAwardsList
+  //**************************************************************************
+    var createAwardsList = function(company, parent){
+
+        createElement("h2", parent).innerText = "Awards";
+
+        var div = createElement("div", parent, "small");
+        div.style.height = "600px";
+
+        var today = moment();
+
+        var grid = new javaxt.dhtml.DataGrid(div, {
+            style: config.style.table,
+            columns: [
+                {header: 'Customer', width:'80px'},
+
+                {header: 'Name', width:'100%'},
+
+                {header: 'Contract', width:'75px', align: "left"},
+
+                {header: 'Competed', width:'75px', align: "center"},
+                {header: 'Start Date', width:'75px', align: "right"},
+                {header: 'End Date', width:'75px', align: "right"},
+                {header: 'Funding', width:'100px', align: "right"},
+
+                {header: 'Actions', width:'50px', align: 'center'}
+            ],
+            update: function(row, award){
+                row.set("Customer", award.customer);
+                row.set("Name", award.name);
+                row.set("Contract", award.type);
+
+                if (award.competed==true){}
+                else{
+                    row.set("Competed", "<i class=\"fas fa-times\" style=\"color:#e7a2a2;\"></i>");
+                }
+
+
+                row.set("Start Date", moment(award.date).format("YYYY-MM-DD"));
+
+                if (award.endDate){
+                    row.set("End Date", moment(award.endDate).format("YYYY-MM-DD"));
+                }
+                else{
+                    row.set("End Date", "-");
+                }
+
+
+                var inactive = false;
+                if (award.extendedDate){
+                    if (award.endDate==award.extendedDate){
+                        if (award.endDate){
+                            if (moment(award.endDate).isBefore(today)){
+                                inactive = true;
+                            }
+                        }
+                    }
+                }
+                else{
+                    if (award.endDate){
+                        if (moment(award.endDate).isBefore(today)){
+                            inactive = true;
+                        }
+                    }
+                }
+
+                if (!inactive){
+                    if (award.info && award.info.actions){
+                        var lastEvent = Number.MAX_VALUE;
+                        award.info.actions.forEach((action)=>{
+                            if (action.type==="K") return; //don't look at closeout events
+                            var monthsAgo = Math.ceil(today.diff(new Date(action.date), 'months', true));
+                            lastEvent = Math.min(lastEvent, monthsAgo);
+                        });
+                        if (lastEvent>12) inactive = true;
+                    }
+                    else{
+                        inactive = true;
+                    }
+                }
+
+
+                if (inactive){
+                    var className = row.className;
+                    if (!className) className = "";
+                    row.className+= " inactive";
+                }
+
+
+
+                var val = award.funded;
+                var updateNeg = val<0;
+                val = "$" + addCommas(val, 0);
+                if (updateNeg) val = "-" + val.replace("-","");
+
+                row.set("Funding", val);
+
+                if (award.info){
+                    if (award.info.actions){
+                        row.set("Actions", addCommas(award.info.actions.length));
+                    }
+                }
+            }
+        });
+
+        grid.onRowClick = function(row, e){
+            var award = row.record;
+            if (!awardDetails){
+                var win = new javaxt.dhtml.Window(document.body, {
+                    style: config.style.window,
+                    title: "Award Details",
+                    width: 1000,
+                    height: 800,
+                    modal: true
+                });
+                awardDetails = new prospekt.awards.AwardDetails(win.getBody(), config);
+                awardDetails.show = function(){
+                    win.show();
+                };
+                awardDetails.hide = function(){
+                    win.hide();
+                };
+                awardDetails.setTitle = function(title){
+                    win.setTitle(title);
+                };
+            }
+            awardDetails.update(award);
+            //awardDetails.setTitle(award.name); //TODO: trim
+            awardDetails.show();
+        };
+
+
+        var records = company.awards.slice(0, company.awards.length);
+        records.sort((a, b)=>{
+            if (isString(a.date)) a.date = new Date(a.date);
+            if (isString(b.date)) b.date = new Date(b.date);
+            return b.date.getTime() - a.date.getTime();
+        });
+
+
+      //Create function to get records by page
+        var getData = function(page){
+            var limit = 50;
+            var offset = 0;
+            if (page>1) offset = ((page-1)*limit)+1;
+
+            var data = [];
+            for (var i=offset; i<records.length; i++){
+                data.push(records[i]);
+                if (data.length===limit) break;
+            }
+            return data;
+        };
+
+
+      //Get data
+        var page = 1;
+        var data = getData(page);
+
+
+      //Load data
+        grid.load(data, page);
+
+
+      //Watch for scroll events to load more data
+        var pages = {};
+        pages[page+''] = true;
+        grid.onPageChange = function(currPage, prevPage){
+            page = currPage;
+
+            if (!pages[page+'']){
+                grid.load(getData(page), page);
+                pages[page+''] = true;
+            }
+        };
+    };
+
+
+
+  //**************************************************************************
   //** createTreeMap
   //**************************************************************************
     var createTreeMap = function(company, parent){
@@ -676,7 +845,6 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
         updateOfficers(company.officers, function(){
-            console.log(company.officers);
 
 
           //Separate current and inactive officers
@@ -821,12 +989,6 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
 
-  //**************************************************************************
-  //** addCommas
-  //**************************************************************************
-    var addCommas = function(x) {
-        return round(x, 2).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    };
 
 
   //**************************************************************************
@@ -835,11 +997,15 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var createElement = javaxt.dhtml.utils.createElement;
     var createTable = javaxt.dhtml.utils.createTable;
     var addShowHide = javaxt.dhtml.utils.addShowHide;
+    var isString = javaxt.dhtml.utils.isString;
     var merge = javaxt.dhtml.utils.merge;
     var round = javaxt.dhtml.utils.round;
     var get = javaxt.dhtml.utils.get;
 
+
     var parseResponse = prospekt.utils.parseResponse;
+    var getNaicsCodes = prospekt.utils.getNaicsCodes;
+    var addCommas = prospekt.utils.addCommas;
 
     init();
 
