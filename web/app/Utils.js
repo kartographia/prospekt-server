@@ -205,10 +205,7 @@ prospekt.utils = {
             console.log(q);
         };
         searchBar.el.onclick = function(){
-            buttons.forEach((b)=>{
-                b.classList.remove("active");
-                if (b.menu) b.menu.hide();
-            });
+            hideMenus();
         };
 
 
@@ -316,6 +313,12 @@ prospekt.utils = {
 
             return menu;
         };
+        var hideMenus = function(){
+            buttons.forEach((b)=>{
+                b.classList.remove("active");
+                if (b.menu) b.menu.hide();
+            });
+        };
 
         return {
             el: toolbar,
@@ -323,7 +326,8 @@ prospekt.utils = {
             searchBar: searchBar,
             addButton: function(label, className){
                 return createButton(label, className);
-            }
+            },
+            hideMenus: hideMenus
         };
 
     },
@@ -379,6 +383,55 @@ prospekt.utils = {
             }
         });
 
+    },
+
+
+  //**************************************************************************
+  //** getActionCodes
+  //**************************************************************************
+    getActionCodes: function(callback){
+        if (!callback) return;
+
+        if (prospekt.data){
+            if (prospekt.data.action){
+                callback.apply(this, [prospekt.data.action]);
+                return;
+            }
+        }
+        else {
+            prospekt.data = {};
+        }
+
+
+        javaxt.dhtml.utils.get("data/action.tsv", {
+            success: function(text){
+                var actionCodes = {};
+                text.split("\n").forEach((row)=>{
+                    row = row.trim();
+                    var arr = row.split("\t");
+                    if (arr.length===2){
+                        var code = arr[0];
+                        var desc = arr[1];
+                        actionCodes[code] = desc;
+                    }
+                });
+
+
+                prospekt.data.action = actionCodes;
+                callback.apply(this, [actionCodes]);
+            }
+        });
+
+    },
+
+
+
+  //**************************************************************************
+  //** addCommas
+  //**************************************************************************
+    addCommas: function(x, decimals) {
+        if (isNaN(decimals)) decimals = 0;
+        return javaxt.dhtml.utils.round(x, decimals).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
 };
