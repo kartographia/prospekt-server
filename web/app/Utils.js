@@ -191,6 +191,12 @@ prospekt.utils = {
         var addShowHide = javaxt.dhtml.utils.addShowHide;
 
 
+        var o = {
+            filter: {},
+            onChange: function(){}
+        };
+
+
         var toolbar = createElement("div", parent, "toolbar");
 
 
@@ -202,7 +208,8 @@ prospekt.utils = {
             float: "left"
         }));
         searchBar.onSearch = function(q){
-            console.log(q);
+            o.filter["Search"] = q;
+            o.onChange("Search", q);
         };
         searchBar.el.onclick = function(){
             hideMenus();
@@ -221,6 +228,7 @@ prospekt.utils = {
                 }
                 return false;
             };
+            button.title = label;
             button.innerText = label;
             button.onclick = function(e){
 
@@ -249,14 +257,20 @@ prospekt.utils = {
                             button.menu.filter = new cls(button.menu.body, config);
                         }
                     }
+
+                    if (button.menu.filter && button.menu.filter.update){
+                        button.menu.filter.update(o.filter[button.title]);
+                    }
                 }
             };
+
+
             buttons.push(button);
             return button;
         };
         var createMenu = function(button){
             var menu = createElement("div", button, "menu");
-            menu.style.width = menu.style.height = "400px"; //temporary
+            menu.style.width = "400px";
             addShowHide(menu);
 
           //Override the show() method
@@ -292,23 +306,44 @@ prospekt.utils = {
 
           //Add content
             var table = createTable(menu);
-            menu.title = table.addRow().addColumn();
+            //menu.title = table.addRow().addColumn();
             menu.body = table.addRow().addColumn({height: "100%"});
             var apply = createElement("div", table.addRow().addColumn(), "button");
             apply.innerText = "Apply";
             apply.onclick = function(){
 
+              //Hide menu
                 menu.hide();
 
-                var hasFilter = true;
-                if (hasFilter){
+
+              //Update filter
+                var currFilter = o.filter[button.title];
+                var newFilter = button.menu.filter.getValues();
+                if (currFilter){
+                    for (var key in newFilter) {
+                        if (newFilter.hasOwnProperty(key)){
+                            currFilter[key] = newFilter[key];
+                        }
+                    }
+                }
+                else{
+                    currFilter = newFilter;
+                }
+                if (true){ //javaxt.dhtml.utils.isDirty()
+                    o.onChange(button.title, o.filter[button.title]);
+                }
+
+
+              //Update style based on filter
+                if (javaxt.dhtml.utils.isEmpty(currFilter)){
+                    button.classList.remove("filter");
+                }
+                else{
                     if (!button.classList.has("filter")){
                         button.classList.add("filter");
                     }
                 }
-                else{
-                    button.classList.remove("filter");
-                }
+
             };
 
             return menu;
@@ -320,15 +355,54 @@ prospekt.utils = {
             });
         };
 
-        return {
-            el: toolbar,
-            buttons: buttons,
-            searchBar: searchBar,
-            addButton: function(label, className){
-                return createButton(label, className);
-            },
-            hideMenus: hideMenus
+
+
+        o.el = toolbar;
+        o.buttons = buttons;
+        o.searchBar = searchBar;
+        o.addButton = function(label, className){
+            return createButton(label, className);
         };
+        o.hideMenus = hideMenus;
+        o.update = function(filter){
+
+          //Update filter
+            for (var key in filter) {
+                if (filter.hasOwnProperty(key)){
+                    o.filter[key] = filter[key];
+                }
+            }
+
+
+          //Update searchbar
+            var searchFilter = o.filter["Search"];
+            if (searchFilter){
+                searchBar.setValue(searchFilter, true)
+            }
+
+
+          //Update buttons
+            buttons.forEach((button)=>{
+                var buttonFilter = o.filter[button.title];
+
+
+              //Update style based on filter
+                if (!buttonFilter || javaxt.dhtml.utils.isEmpty(buttonFilter)){
+                    button.classList.remove("filter");
+                }
+                else{
+                    if (!button.classList.has("filter")){
+                        button.classList.add("filter");
+                    }
+                }
+
+
+                if (button.menu && button.menu.filter){
+                    if (button.menu.filter.update) button.menu.filter.update(filter);
+                }
+            });
+        };
+        return o;
 
     },
 
