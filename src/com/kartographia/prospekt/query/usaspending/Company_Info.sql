@@ -10,6 +10,7 @@ legal_entity_address_line1 as address,
 legal_entity_city_name as city,
 legal_entity_state_code as state,
 legal_entity_zip5 as zip,
+legal_entity_country_name as country,
 
 high_comp_officer1_full_na as o1_name,
 high_comp_officer1_amount as o1_sal,
