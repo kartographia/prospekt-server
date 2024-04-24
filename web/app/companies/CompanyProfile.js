@@ -263,6 +263,9 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
           //Get total value of the award
             var awardValue = award.value;
+
+            if (!award.value) awardValue = award.funded;
+
             totalAwards += awardValue;
 
           //Ignore total value if IDIQ. Only look at funded value
@@ -382,12 +385,23 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             });
         });
 
-        if (annualRevenue===0){
-            data.push({
-                date: moment().format("YYYY-MM-DD"),
-                amount: 0
-            });
+
+
+      //Add zeros to the end of the dataset as needed
+        var d = new Date(data[data.length-1].date);
+        var monthsAgo = Math.ceil(moment().diff(d, 'months', true));
+        if (monthsAgo>12){
+            var m = moment(d);
+            for (var i=0; i<monthsAgo; i++){
+                m.add(1, "month");
+                data.push({
+                    date: m.format("YYYY-MM-DD"),
+                    amount: 0
+                });
+            }
         }
+
+
 
 
         companyOverview.set("Annual Revenue", "$" + addCommas(Math.round(annualRevenue)));
@@ -479,12 +493,17 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
         var revenueByType = {};
         var revenueByCustomer = {};
-        var revenueByNaics = {};
+        var revenueBySector = {};
+        var revenueBySubsector = {};
 
         company.awards.forEach((award)=>{
 
           //Get total value of the award
             var awardValue = award.value;
+
+
+          //If there is no value, look at the total funding instead
+            if (!award.value) awardValue = award.funded;
 
 
           //Ignore total value if IDIQ. Only look at funded value
@@ -538,10 +557,18 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
                 var naics = award.naics;
                 if (naics){
-                    naics = naics.substring(0, 3);
-                    var prevValue = revenueByNaics[naics];
+                    var sector = naics.substring(0, 2);
+                    var subsector = naics.substring(0, 3);
+
+
+                    var prevValue = revenueBySector[sector];
                     if (!prevValue) prevValue = 0;
-                    revenueByNaics[naics] = t+prevValue;
+                    revenueBySector[sector] = t+prevValue;
+
+
+                    var prevValue = revenueBySubsector[subsector];
+                    if (!prevValue) prevValue = 0;
+                    revenueBySubsector[subsector] = t+prevValue;
                 }
             }
 
@@ -564,7 +591,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             Object.keys(kvp).forEach((key)=>{
                 data.push({
                     key: key,
-                    value: kvp[key]
+                    value: Math.round(kvp[key])
                 });
             });
             data.sort((a, b)=>{
@@ -579,8 +606,15 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             div.className = "chart-area";
             var pieChart = new bluewave.charts.PieChart(div, {
                 pieCutout: 0.65,
-                labelOffset: 120
+                labelOffset: 120,
+                pieSort: "value",
+                pieSortDir: "descending",
+                showTooltip: true
             });
+            pieChart.getTooltipLabel = function(d){
+                return d.key + "<br/>" + "$" + addCommas(Math.round(d.value));
+            };
+
 
           //Update the chart using data from demo1
             pieChart.update(data, "key", "value");
@@ -591,7 +625,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         };
 
         revenueByCustomer = addPieChart(revenueByCustomer, "Revenue By Customer");
-        revenueByNaics = addPieChart(revenueByNaics, "Revenue By Product/Service");
+        revenueBySector = addPieChart(revenueBySector, "Revenue By Product/Service");
+        //revenueBySubsector = addPieChart(revenueBySubsector, "Revenue By Product/Service");
         revenueByType = addPieChart(revenueByType, "Revenue By Contract Type");
 
 
@@ -614,7 +649,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         };
 
         addTable(revenueByCustomer);
-        addTable(revenueByNaics, true);
+        addTable(revenueBySector, true);
         addTable(revenueByType);
 
     };

@@ -523,7 +523,7 @@ body, textarea, input, select, td, th {
     position: relative;
     width: 100%;
     height: 100%;
-    /*overflow: hidden auto;*/
+    overflow: hidden auto;
     max-width: 1440px;
 
     border: 1px solid #ccc;
@@ -539,7 +539,14 @@ body, textarea, input, select, td, th {
 
 .company-panel .toolbar {
     height: 55px;
+    border-bottom: 1px solid #ccc;
+    background-color: #e9ebec;
 }
+
+.company-panel .toolbar > div { /*centers pulldowns and searchbar*/
+    margin-top: 9px !important;
+}
+
 
 .company-panel .toolbar .pulldown {
     float: left;
@@ -547,7 +554,8 @@ body, textarea, input, select, td, th {
     display: inline-block;
     height: 36px;
     line-height: 36px;
-    border: 1px solid #a7a6ab;
+    background-color: #fff;
+    border: 1px solid #ccc;
     border-radius: 4px;
 
     text-align: center;
@@ -560,7 +568,16 @@ body, textarea, input, select, td, th {
     padding: 0 12px;
     margin: 0 8px;
 
+    box-shadow: 1px 1px 2px 0 rgba(0, 0, 0, 0.09);
+    color: #595959;
+
     cursor: pointer;
+}
+
+.company-panel .toolbar .pulldown:hover{
+    border-color: #a7a6ab;
+    box-shadow: 1px 2px 6px 0 rgba(0, 0, 0, 0.2);
+    transition: 0.4s;
 }
 
 .company-panel .toolbar .pulldown.active,
@@ -579,36 +596,209 @@ body, textarea, input, select, td, th {
 }
 
 .company-panel .toolbar .pulldown.active:after {
-    /*content: "\f077"; /* fas fa-chevron-down */
-    transform: rotate(180deg);
+    transform: rotate(180deg); /* vs "fas fa-chevron-down" (content: "\f077";) */
     /*transition: 0s;*/
 }
 
 
-.toolbar .menu {
+.company-panel .toolbar .menu {
     position: absolute;
     background-color: #fff;
-    padding: 10px;
+    padding: 15px;
     border: 1px solid #a7a6ab;
     border-radius: 8px;
     box-shadow: 0 12px 14px 0 rgba(0, 0, 0, 0.2), 0 13px 20px 0 rgba(0, 0, 0, 0.2);
 }
 
+.company-panel .toolbar .menu .close-button{
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    display: inline-block;
+}
 
-.toolbar .menu .button {
+
+.company-panel .toolbar .menu .close-button:after{
+    font-family: "Font Awesome 5 Free";
+    content: "\f00d"; /* fas fa-times */
+    display: inline-block;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+/****************************************************************/
+
+.company-panel .toolbar .menu .button {
     background-color: #006aff;
     line-height: 44px;
     height: 44px;
     color: #fff;
     font-size: 16px;
     border-radius: 5px;
+    margin-top: 28px;
+    width: 100%;
+    border: 0 none;
 }
 
-.toolbar .menu .button:hover{
+.company-panel .toolbar .menu .button:hover{
     background-color: #0d4599
 }
 
+.company-panel .toolbar .menu .button-group div {
+    width: 100%;
+}
 
+.company-panel .toolbar .menu .button-group .button {
+    background-color: #f6f6fa;
+    border: 1px solid #777;
+    color: #777;
+    height: 40px;
+    line-height: 40px;
+    margin-top: 0;
+}
+
+.company-panel .toolbar .menu .button-group .button.button-selected {
+    background-color: #f2faff;
+    border: 1px solid #006aff;
+}
+
+
+
+.company-panel .toolbar .menu .button-group td:first-child .button {
+    border-radius: 5px 0 0 5px !important;
+}
+
+.company-panel .toolbar .menu .button-group td:last-child .button {
+    border-radius: 0 5px 5px 0 !important;
+}
+
+
+
+
+
+/****************************************************************/
+.company-panel .toolbar .menu .form-input-button,
+.company-panel .toolbar .menu .form-input.form-input-with-button {
+    height: 44px;
+    line-height: 44px;
+    background-color: #f6f6fa;
+    border-color: #d1d1d5;
+}
+
+.company-panel .toolbar .menu .form-input.form-input-with-button:focus{
+    box-shadow: none;
+}
+
+.company-panel .toolbar .menu .form-input-button {
+    box-shadow: none;
+    border-left:  0 none;
+    background-position: 5px 13px;
+}
+
+.company-panel .toolbar .menu .form-input-menu {
+    text-align: left;
+}
+
+/****************************************************************/
+
+
+.company-panel .toolbar .menu .tab-bar {
+    background-color: #fff;
+    font-weight: normal;
+    border: 0 none;
+    height: 36px;
+}
+
+.company-panel .toolbar .menu .tab-bar li {
+    line-height: 36px;
+    color: #000;
+}
+
+.company-panel .toolbar .menu .tab-inactive {
+    background-color: #f0f0f0;
+    border-width: 0 1px;
+}
+
+.company-panel .toolbar .menu .tab-active {
+    background-color: #eff7fe;
+    border-top: 2px solid #69b9ff;
+    margin-top: -2px;
+    border-left: 1px solid #b7d5ff;
+    border-right: 1px solid #b7d5ff;
+    border-radius: 4px 4px 0 0;
+
+}
+
+.company-panel .toolbar .menu .tab-body {
+    border-radius: 0 0 8px; /* doesn't work... */
+    font-weight: normal;
+}
+
+/****************************************************************/
+
+.company-panel .toolbar .search-bar {
+    height: 38px;
+    margin: 0 10px;
+    padding: 0px;
+}
+
+.company-panel .toolbar .search-bar-input {
+    height: 38px;
+    box-shadow: 1px 1px 2px 0px rgba(0, 0, 0, 0.16) inset, 1px 1px 6px 0px rgba(0, 0, 0, 0.08) inset;
+    border-top: 1px solid #959595;
+    border-left: 1px solid #959595;
+}
+
+.company-panel .toolbar .search-bar-icon,
+.company-panel .toolbar .search-bar-cancel{
+    top: 8px
+}
+
+.company-panel .toolbar .search-bar-input:focus {
+    border-color: rgba(82, 168, 236, 0.8);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 8px rgba(82, 168, 236, 0.6);
+    transition: box-shadow 1.4s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+
+/****************************************************************/
+
+.company-panel .table-col {
+    height: 50px;
+    line-height: 50px;
+}
+
+.company-panel .table-row{
+    background-color: #fff;
+}
+
+.company-panel .table-row:hover{
+    background-color:#f6fbff;
+}
+
+.company-panel .table-row-selected{
+    background-color:#f0f8ff;
+}
+
+.company-panel .table-row-selected:hover{
+    background-color:#e5f3ff;
+}
+
+/**************************************************************************/
+/** Small table
+/**************************************************************************/
+
+.small .table-col {
+    height: 21px;
+    line-height: 21px;
+    font-size: 12px;
+}
+
+.table-row.inactive .table-col {
+    color: #ccc7b9;
+}
 
 /**************************************************************************/
 /** Company
@@ -629,6 +819,25 @@ body, textarea, input, select, td, th {
     color:#000;
 }
 
+
+/**************************************************************************/
+/** Popover panel
+/**************************************************************************/
+/** Used to slide a div over another div in the company panel
+*/
+.popover-panel {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    left: 1440px; /* should match the max-width of the company-panel */
+    z-index: 10;
+    top: 0;
+    background-color: #fff;
+}
+
+.company-panel > div {
+    transition: opacity 0.8s, left 0.4s;
+}
 
 /**************************************************************************/
 /** Charts
@@ -745,6 +954,22 @@ body, textarea, input, select, td, th {
 }
 
 
+
+
+/**************************************************************************/
+/** Tooltip
+/**************************************************************************/
+/** This class is used by bluewave-charts
+*/
+.tooltip {
+    position: absolute;
+    background-color: #fff;
+    padding: 5px 7px;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    color: #636363;
+    box-shadow: 0 12px 14px 0 rgba(0, 0, 0, 0.2), 0 13px 20px 0 rgba(0, 0, 0, 0.2);
+}
 
 
 

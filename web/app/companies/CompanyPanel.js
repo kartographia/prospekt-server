@@ -19,6 +19,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
     var companyList, companyProfile;
     var filter = {};
 
+    var naiscCodes = {};
+
 
   //**************************************************************************
   //** Constructor
@@ -33,7 +35,11 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         createProfile(div);
 
 
-        onRender(div, me.update);
+
+        getNaicsCodes(function(codes){
+            naiscCodes = codes;
+            onRender(div, me.update);
+        });
 
 
         me.el = div;
@@ -45,6 +51,13 @@ prospekt.companies.CompanyPanel = function(parent, config) {
   //** clear
   //**************************************************************************
     this.clear = function(){
+
+        for (var key in filter) {
+            if (filter.hasOwnProperty(key)){
+                filter[key] = "";
+            }
+        }
+
         companyProfile.hide();
         companyList.clear();
         companyList.show();
@@ -56,7 +69,22 @@ prospekt.companies.CompanyPanel = function(parent, config) {
   //**************************************************************************
     this.update = function(){
         me.clear();
-        companyList.load();
+
+
+        var companyFilter = document.user.preferences.get("CompanyFilter");
+        if (!companyFilter){
+            filter.recent_award_val = ">1";
+            filter.estimated_revenue = "";
+        }
+        else{
+            for (var key in companyFilter) {
+                if (companyFilter.hasOwnProperty(key)){
+                    filter[key] = companyFilter[key];
+                }
+            }
+        }
+
+        companyList.update();
     };
 
 
@@ -65,106 +93,65 @@ prospekt.companies.CompanyPanel = function(parent, config) {
   //**************************************************************************
     var createList = function(parent){
 
-      //Create table with 2 rows
-        var table = createTable(parent);
-        var toolbar = table.addRow().addColumn("toolbar");
-        var body = table.addRow().addColumn({height:"100%"});
-        addShowHide(table);
-
-
-
-      //Populate toolbar using the first row
-        var buttons = [];
-        var createButton = function(label, onShowMenu){
-
-            var button = createElement("div", toolbar, "pulldown noselect");
-            button.classList.has = function(className){
-                for (var i=0; i<this.length; i++){
-                    if (this[i]===className) return true;
-                }
-                return false;
-            };
-            button.innerText = label;
-            button.onclick = function(){
-                buttons.forEach((b)=>{
-                    if (b!=button) b.classList.remove("active");
-                });
-
-                if (button.classList.has("active")){
-                    button.classList.remove("active");
-                    button.menu.hide();
-                }
-                else{
-                    button.classList.add("active");
-                    if (!button.menu) button.menu = createMenu(button);
-                    button.menu.show();
-                    if (onShowMenu) onShowMenu.apply(me, [button.menu]);
-                }
-            };
-            buttons.push(button);
-            return button;
-        };
-        var createMenu = function(button){
-            var menu = createElement("div", button, "menu");
-            menu.style.width = menu.style.height = "400px"; //temporary
-            addShowHide(menu);
-            var _show = menu.show;
-            menu.show = function(){
-                if (menu.isVisible()) return;
-
-
-                buttons.forEach((b)=>{
-                    if (b.menu) b.menu.hide();
-                });
-
-                var highestElements = getHighestElements();
-                var zIndex = highestElements.zIndex;
-                if (!highestElements.contains(menu)) zIndex++;
-                menu.style.zIndex = zIndex;
-
-                var rect = javaxt.dhtml.utils.getRect(button);
-                menu.style.left = "-2px"; //not sure why 0 doesn't work...
-                menu.style.top = (rect.height+2) + "px";
-
-                _show.apply(menu, []);
-            };
-            menu.hide();
-
-
-
-            var table = createTable(menu);
-            var title = table.addRow().addColumn();
-            var body = table.addRow().addColumn({height: "100%"});
-            var apply = createElement("div", table.addRow().addColumn(), "button");
-            apply.innerText = "Apply";
-            apply.onclick = function(){
-
-                menu.hide();
-
-                var hasFilter = true;
-                if (hasFilter){
-                    if (!button.classList.has("filter")){
-                        button.classList.add("filter");
-                    }
-                }
-                else{
-                    button.classList.remove("filter");
-                }
-            };
-
-            return menu;
-        };
-        var customerButton = createButton("Customer", (menu)=>{
-
+      //Create main div
+        var div = createElement("div", parent, {
+            width: "100%",
+            height: "100%"
         });
-        var naiscButton = createButton("NAISC");
-        var revenueButton = createButton("Revenue");
-        var moreButton = createButton("More");
 
 
+      //Create table
+        var table = createTable(div);
 
 
-      //Populate the second row with a list of companies
+      //Add toolbar
+        var toolbar = createToolBar(table.addRow().addColumn(), config);
+        toolbar.addButton("Customer", prospekt.filters.CustomerFilter);
+        toolbar.addButton("NAICS", prospekt.filters.NaicsFilter);
+        toolbar.addButton("Revenue", prospekt.filters.RevenueFilter);
+        toolbar.addButton("More");
+        toolbar.onChange = function(field, values){
+            var orgFilter = JSON.parse(JSON.stringify(filter));
+
+            if (field==="Search"){
+                console.log(values);
+            }
+            else if (field==="Revenue"){
+                var where = [];
+                if (values.min){
+                    where.push(">" + values.min);
+                }
+                else{
+                    where.push(">1");
+                }
+                if (values.max){
+                    where.push("<" + values.max);
+                }
+                if (where.length==0) where = "";
+                else if (where.length==1) where = where[0];
+
+
+                var type = values["type"];
+                if (type==="Awards"){
+                    filter.recent_award_val = where;
+                    filter.estimated_revenue = "";
+                }
+                else{
+                    filter.recent_award_val = "";
+                    filter.estimated_revenue = where;
+                }
+            }
+
+
+            if (isDirty(filter, orgFilter)){
+                document.user.preferences.set("CompanyFilter", filter);
+                companyList.load();
+            }
+        };
+
+
+      //Add company list
+        var body = table.addRow().addColumn({height:"100%"});
         companyList = new javaxt.dhtml.DataGrid(body, {
             style: config.style.table,
             hideHeader: true,
@@ -184,25 +171,22 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
         companyList.show = function(){
-            table.show();
-        };
-        companyList.hide = function(){
-            table.hide();
+            div.style.opacity = 1;
         };
 
 
         companyList.onRowClick = function(row, e){
             var company = row.record;
 
-
-            table.hide();
+            toolbar.hideMenus();
+            div.style.opacity = 0.5;
             companyProfile.show();
 
 
             get("company?id=" + company.id, {
                 success: function(text){
                     var company = parseResponse(text);
-                    companyProfile.update(company);
+                    companyProfile.update(company, naiscCodes);
                 },
                 failure: function(request){
                     alert(request);
@@ -210,6 +194,41 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             });
 
 
+        };
+
+
+        companyList.update = function(){
+
+            var toolbarFilter = {};
+            for (var key in filter) {
+                if (filter.hasOwnProperty(key)){
+                    var val = filter[key];
+
+                    if (key==="recent_award_val" ||
+                        key==="estimated_revenue"){
+
+                        var f = {
+                            type: key==="recent_award_val" ? "Awards" : "Revenue"
+                        };
+
+
+                        if (!isArray(val)) val = [val];
+
+                        val.forEach((v)=>{
+                            if (v.indexOf(">")==0) f.min = parseFloat(v.substring(1));
+                            if (v.indexOf("<")==0) f.max = parseFloat(v.substring(1));
+                        });
+
+                        toolbarFilter.Revenue = f;
+
+                    }
+                }
+            }
+
+            toolbar.update(toolbarFilter);
+
+
+            companyList.load();
         };
 
     };
@@ -220,20 +239,22 @@ prospekt.companies.CompanyPanel = function(parent, config) {
   //**************************************************************************
     var createProfile = function(parent){
 
-        var table = createTable();
+        var div = createElement("div", parent, "popover-panel");
+
+
+        var table = createTable(div);
         var toolbar = table.addRow().addColumn();
         var body = table.addRow().addColumn({height:"100%"});
-        addShowHide(table);
-        table.hide();
-        parent.appendChild(table);
 
 
         companyProfile = new prospekt.companies.CompanyProfile(body, config);
         companyProfile.show = function(){
-            table.show();
+            div.style.left = 0;
+            div.style.opacity = 1;
         };
         companyProfile.hide = function(){
-            table.hide();
+            div.style.left = "";
+            div.style.opacity = 0;
         };
 
 
@@ -270,15 +291,18 @@ prospekt.companies.CompanyPanel = function(parent, config) {
   //**************************************************************************
   //** Utils
   //**************************************************************************
-    var getHighestElements = javaxt.dhtml.utils.getHighestElements;
     var createElement = javaxt.dhtml.utils.createElement;
     var createTable = javaxt.dhtml.utils.createTable;
     var addShowHide = javaxt.dhtml.utils.addShowHide;
     var onRender = javaxt.dhtml.utils.onRender;
+    var isDirty = javaxt.dhtml.utils.isDirty;
+    var isArray = javaxt.dhtml.utils.isArray;
     var merge = javaxt.dhtml.utils.merge;
     var get = javaxt.dhtml.utils.get;
 
+    var getNaicsCodes = prospekt.utils.getNaicsCodes;
     var parseResponse = prospekt.utils.parseResponse;
+    var createToolBar = prospekt.utils.createToolBar;
     var createButton = prospekt.utils.createButton;
 
     init();
