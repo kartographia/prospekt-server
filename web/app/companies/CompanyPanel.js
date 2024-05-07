@@ -110,11 +110,18 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         toolbar.addButton("NAICS", prospekt.filters.NaicsFilter);
         toolbar.addButton("Revenue", prospekt.filters.RevenueFilter);
         toolbar.addButton("More");
+
         toolbar.onChange = function(field, values){
+            console.log(field, values);
             var orgFilter = JSON.parse(JSON.stringify(filter));
 
             if (field==="Search"){
-                console.log(values);
+                if (values && values.length>0){
+                    filter.name = "'" + values.toUpperCase() + "%'";
+                }
+                else{
+                    delete filter.name;
+                }
             }
             else if (field==="Revenue"){
                 var where = [];
@@ -141,11 +148,34 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                     filter.estimated_revenue = where;
                 }
             }
+            else if (field==="NAICS"){
+                var naics = values["naics"];
+                console.log(naics);
+                if (naics && naics.length>0){
+                    filter.recent_naics = naics.join(",");
+                }
+                else{
+                    delete filter["recent_naics"];
+                }
+                console.log(filter);
+            }
 
 
             if (isDirty(filter, orgFilter)){
                 document.user.preferences.set("CompanyFilter", filter);
                 companyList.load();
+            }
+        };
+
+
+        toolbar.onShowMenu = function(menu, button){
+
+          //Special case for the NAICS picker
+            if (button.title==="NAICS"){
+                menu.buttonBar.style.display = "none";
+                if (menu.filter.onApply) menu.filter.onApply = function(){
+                    menu.button.click();
+                };
             }
         };
 
@@ -156,6 +186,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             style: config.style.table,
             hideHeader: true,
             url: "companies",
+            post: true,
             filter: filter,
             //fields: ["id","firstName","lastName","fullName","accessLevel","status"],
             parseResponse: function(request){
@@ -199,12 +230,31 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
         companyList.update = function(){
 
+          //Create filter for the toolbar
             var toolbarFilter = {};
             for (var key in filter) {
                 if (filter.hasOwnProperty(key)){
                     var val = filter[key];
 
-                    if (key==="recent_award_val" ||
+                    if (key==="name"){
+
+                        if (val.indexOf("'")===0 && val.lastIndexOf("'")===val.length-1){
+                            val = val.substring(1, val.length-1);
+                            if (val.lastIndexOf("%")===val.length-1){
+                                val = val.substring(0, val.length-1);
+                            }
+                        }
+
+                        toolbarFilter.Search = val;
+
+                    }
+                    else if (key==="recent_naics"){
+                        toolbarFilter.NAICS = {
+                            naics: val
+                        };
+                    }
+                    else if (
+                        key==="recent_award_val" ||
                         key==="estimated_revenue"){
 
                         var f = {
@@ -225,9 +275,12 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 }
             }
 
+
+          //Update toolbar
             toolbar.update(toolbarFilter);
 
 
+          //Update company list
             companyList.load();
         };
 

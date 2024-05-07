@@ -77,6 +77,38 @@ prospekt.utils = {
     },
 
 
+  //**************************************************************************
+  //** createChiclet
+  //**************************************************************************
+    createChiclet: function(parent, label){
+        var createElement = javaxt.dhtml.utils.createElement;
+
+
+        var div = createElement("div", parent, "chiclet");
+        var innerDiv = createElement("div", div, {});
+        innerDiv.innerText = label;
+
+        var cancelButton = createElement("div", div, "close noselect");
+
+        var chiclet = {
+            el: div,
+            onClick: function(){},
+            onClose: function(){}
+        };
+
+        div.onclick = function(){
+            chiclet.onClick();
+        };
+
+        cancelButton.onclick = function(){
+            parent.removeChild(div);
+            chiclet.onClose();
+        };
+
+
+        return chiclet;
+    },
+
 
   //**************************************************************************
   //** createSearchBar
@@ -113,9 +145,7 @@ prospekt.utils = {
         input.setAttribute("spellcheck", "false");
         searchBar.input = input;
 
-        var timer;
-        input.oninput = function(e){
-            var q = searchBar.getValue();
+        var updateIcons = function(q){
             if (q){
                 searchIcon.hide();
                 cancelButton.show();
@@ -124,6 +154,12 @@ prospekt.utils = {
                 searchIcon.show();
                 cancelButton.hide();
             }
+        };
+
+        var timer;
+        input.oninput = function(e){
+            var q = searchBar.getValue();
+            updateIcons(q);
             searchBar.onChange(q);
 
             if (timer) clearTimeout(timer);
@@ -169,6 +205,15 @@ prospekt.utils = {
             }
             return q;
         };
+        searchBar.setValue = function(q, silent){
+            if (q && q.length>0){
+                input.value = q;
+                updateIcons(q);
+            }
+            else{
+                searchBar.clear(silent);
+            }
+        };
 
         searchBar.onSearch = function(q){};
         searchBar.onChange = function(q){};
@@ -191,37 +236,42 @@ prospekt.utils = {
         var addShowHide = javaxt.dhtml.utils.addShowHide;
 
 
-        var o = {
+        var toolbar = {
+            el: createElement("div", parent, "toolbar"),
+            buttons: [],
             filter: {},
-            onChange: function(){}
+            onChange: function(){},
+            onShowMenu: function(){}
         };
 
-
-        var toolbar = createElement("div", parent, "toolbar");
 
 
 
       //Add text search to the toolbar
-        var searchBar = prospekt.utils.createSearchBar(createElement("div", toolbar, {
+        var searchBar = prospekt.utils.createSearchBar(createElement("div", toolbar.el, {
             width: "400px",
             display: "inline-block",
             float: "left"
         }));
         searchBar.onSearch = function(q){
-            o.filter["Search"] = q;
-            o.onChange("Search", q);
+            toolbar.filter["Search"] = q;
+            toolbar.onChange("Search", q);
+        };
+        searchBar.onClear = function(){
+            delete toolbar.filter["Search"];
+            toolbar.onChange("Search", null);
         };
         searchBar.el.onclick = function(){
             hideMenus();
         };
+        toolbar.searchBar = searchBar;
 
 
 
       //Add buttons to the toolbar
-        var buttons = [];
         var createButton = function(label, className){
 
-            var button = createElement("div", toolbar, "pulldown noselect");
+            var button = createElement("div", toolbar.el, "pulldown noselect");
             button.classList.has = function(className){
                 for (var i=0; i<this.length; i++){
                     if (this[i]===className) return true;
@@ -238,7 +288,7 @@ prospekt.utils = {
                     return;
                 };
 
-                buttons.forEach((b)=>{
+                toolbar.buttons.forEach((b)=>{
                     if (b!=button) b.classList.remove("active");
                 });
 
@@ -249,8 +299,8 @@ prospekt.utils = {
                 else{
                     button.classList.add("active");
                     if (!button.menu) button.menu = createMenu(button);
-                    button.menu.show();
-                    //if (onShowMenu) onShowMenu.apply(me, [button.menu]);
+
+
                     if (!button.menu.filter && className){
                         var cls = eval(className);
                         if (cls){
@@ -259,18 +309,22 @@ prospekt.utils = {
                     }
 
                     if (button.menu.filter && button.menu.filter.update){
-                        button.menu.filter.update(o.filter[button.title]);
+                        button.menu.filter.update(toolbar.filter[button.title]);
                     }
+
+                    button.menu.show();
                 }
             };
 
 
-            buttons.push(button);
+            toolbar.buttons.push(button);
             return button;
         };
+
+
         var createMenu = function(button){
             var menu = createElement("div", button, "menu");
-            menu.style.width = "400px";
+            menu.style.minWidth = "400px";
             addShowHide(menu);
 
           //Override the show() method
@@ -278,7 +332,7 @@ prospekt.utils = {
             menu.show = function(){
                 if (menu.isVisible()) return;
 
-                buttons.forEach((b)=>{
+                toolbar.buttons.forEach((b)=>{
                     if (b.menu) b.menu.hide();
                 });
 
@@ -292,6 +346,7 @@ prospekt.utils = {
                 menu.style.top = (rect.height+2) + "px";
 
                 _show.apply(menu, []);
+                toolbar.onShowMenu(menu, button);
             };
 
             menu.hide();
@@ -308,16 +363,20 @@ prospekt.utils = {
             var table = createTable(menu);
             //menu.title = table.addRow().addColumn();
             menu.body = table.addRow().addColumn({height: "100%"});
-            var apply = createElement("div", table.addRow().addColumn(), "button");
-            apply.innerText = "Apply";
-            apply.onclick = function(){
+            menu.buttonBar = table.addRow();
+            menu.button = createElement("div", menu.buttonBar.addColumn(), "button");
+            menu.button.innerText = "Apply";
+            menu.button.onclick = function(e){
+                e.preventDefault();
+                e.stopPropagation();
+
 
               //Hide menu
                 menu.hide();
 
 
               //Update filter
-                var currFilter = o.filter[button.title];
+                var currFilter = toolbar.filter[button.title];
                 var newFilter = button.menu.filter.getValues();
                 if (currFilter){
                     for (var key in newFilter) {
@@ -330,7 +389,7 @@ prospekt.utils = {
                     currFilter = newFilter;
                 }
                 if (true){ //javaxt.dhtml.utils.isDirty()
-                    o.onChange(button.title, o.filter[button.title]);
+                    toolbar.onChange(button.title, currFilter);
                 }
 
 
@@ -349,7 +408,7 @@ prospekt.utils = {
             return menu;
         };
         var hideMenus = function(){
-            buttons.forEach((b)=>{
+            toolbar.buttons.forEach((b)=>{
                 b.classList.remove("active");
                 if (b.menu) b.menu.hide();
             });
@@ -357,43 +416,55 @@ prospekt.utils = {
 
 
 
-        o.el = toolbar;
-        o.buttons = buttons;
-        o.searchBar = searchBar;
-        o.addButton = function(label, className){
+        toolbar.addButton = function(label, className){
             return createButton(label, className);
         };
-        o.hideMenus = hideMenus;
-        o.update = function(filter){
+        toolbar.hideMenus = hideMenus;
+        toolbar.update = function(filter){
 
           //Update filter
             for (var key in filter) {
                 if (filter.hasOwnProperty(key)){
-                    o.filter[key] = filter[key];
+                    toolbar.filter[key] = filter[key];
                 }
             }
 
 
           //Update searchbar
-            var searchFilter = o.filter["Search"];
+            var searchFilter = toolbar.filter["Search"];
             if (searchFilter){
-                searchBar.setValue(searchFilter, true)
+                searchBar.setValue(searchFilter, true);
             }
 
 
           //Update buttons
-            buttons.forEach((button)=>{
-                var buttonFilter = o.filter[button.title];
+            toolbar.buttons.forEach((button)=>{
 
 
-              //Update style based on filter
+              //Check if the button has any active filters associated with it
+                var hasFilter;
+                var buttonFilter = toolbar.filter[button.title];
                 if (!buttonFilter || javaxt.dhtml.utils.isEmpty(buttonFilter)){
-                    button.classList.remove("filter");
+                    hasFilter = false;
                 }
                 else{
+                    hasFilter = true;
+
+                  //Hack for revenue button. Need to figure out a better solution...
+                    if (button.title==="Revenue"){
+                        if (buttonFilter["min"]==1) hasFilter=false;
+                    }
+                }
+
+
+              //Update button style if there's a filter
+                if (hasFilter){
                     if (!button.classList.has("filter")){
                         button.classList.add("filter");
                     }
+                }
+                else{
+                    button.classList.remove("filter");
                 }
 
 
@@ -402,8 +473,8 @@ prospekt.utils = {
                 }
             });
         };
-        return o;
 
+        return toolbar;
     },
 
 

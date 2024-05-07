@@ -16,6 +16,24 @@ body, textarea, input, select, td, th {
 
 
 /**************************************************************************/
+/** Colors
+/**************************************************************************/
+
+:root {
+    --header-color: #637a87;
+    --nav-color: #465761;
+
+    --green-background: #238f23;
+    --green-font: #edffed;
+
+    --green-background-hover: #008000;
+    --green-font-hover: #fff;
+
+    --big-button-size: 60px;
+}
+
+
+/**************************************************************************/
 /** App Header
 /**************************************************************************/
 
@@ -618,6 +636,7 @@ body, textarea, input, select, td, th {
     height: 24px;
     line-height: 24px;
     display: inline-block;
+    z-index: 1;
 }
 
 
@@ -627,6 +646,10 @@ body, textarea, input, select, td, th {
     display: inline-block;
     font-weight: 700;
     font-size: 18px;
+}
+
+.company-panel .toolbar .menu .close-button:hover{
+    color: #b11818; /*red */
 }
 
 /****************************************************************/
@@ -762,6 +785,11 @@ body, textarea, input, select, td, th {
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 8px rgba(82, 168, 236, 0.6);
     transition: box-shadow 1.4s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
+
+
+
+
+
 
 /****************************************************************/
 
@@ -954,6 +982,217 @@ body, textarea, input, select, td, th {
 }
 
 
+/**************************************************************************/
+/** NAICS Picker
+/**************************************************************************/
+
+.naics-picker .body {
+    border: 1px solid #dcdcdc;
+    height: 100%;
+    position: relative;
+    overflow: hidden auto;
+}
+
+.naics-picker .header {
+    text-align: center;
+    height: 30px;
+}
+
+
+.naics-picker .item {
+    cursor: pointer;
+    padding: 0 0 0 7px;
+    text-align: left;
+    white-space: nowrap;
+    font-size: 12px;
+    color: #4a4a4a;
+    height: 20px;
+    line-height: 20px;
+}
+
+.naics-picker .item:hover {
+    background-color: aliceblue;
+}
+
+.naics-picker .item.selected {
+    background-color: #d5ebff;
+}
+
+
+
+/**************************************************************************/
+/** NAICS Filter
+/**************************************************************************/
+
+.naics-filter {
+    width: 800px;
+    height: 400px;
+    position: relative;
+}
+
+.naics-filter .form-input {
+    border-radius: 4px 0 0 4px;
+    -moz-border-radius: 4px 0 0 4px;
+    -webkit-border-radius: 4px 0 0 4px;
+    border-right: 0 none;
+
+    font-size: 12px;
+    color: #4a4a4a;
+}
+
+
+.naics-filter .form-input:disabled {
+    background-color:#f8f8f8;
+}
+
+.naics-filter .form-button {
+    border: 1px solid  var(--green-background);
+    border-radius: 0 3px 3px 0;
+    -moz-border-radius: 0 3px 3px 0;
+    -webkit-border-radius: 0 3px 3px 0;
+    box-shadow: none;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    margin: 0;
+
+    background-color: var(--green-background);
+    color: #fff;
+    text-shadow: none;
+    font-size: 18px;
+}
+
+
+.naics-filter .form-button:hover, .naics-filter .form-button:focus {
+    background-color: var(--green-background-hover);
+    box-shadow: none;
+}
+
+
+.naics-filter .form-button:disabled {
+    background-color: #8fa98f;
+    border: 1px solid #8fa98f;
+}
+
+
+
+
+.naics-filter .message-box {
+    position: absolute;
+    display: inline-block;
+    background-color: #e6ffc6;
+    color: green;
+    font-weight: normal;
+    padding: 0 25px;
+    top: -6px;
+    left: 290px;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.2);
+    border: 1px solid #96d496;
+    z-index: 1;
+
+    -webkit-transition: opacity 0.8s, -webkit-transform 0.8s;
+    transition: opacity 0.8s, -webkit-transform 0.8s;
+    transition: opacity 0.8s, transform 0.8s;
+    transition: opacity 0.8s, transform 0.8s, -webkit-transform 0.8s;
+}
+
+
+.naics-filter .message-box.initial {
+    opacity: 0;
+    -webkit-transform: translate3d(0, -30px, 0);
+    transform: translate3d(0, -30px, 0);
+}
+
+.naics-filter .message-box.hidden {
+    opacity: 0;
+    /*
+    -webkit-transform: translate3d(0, 10px, 0);
+    transform: translate3d(0, 10px, 0);
+    */
+}
+
+.naics-filter .message-box.visible {
+    opacity: 1;
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+}
+
+.naics-filter .message-box:before{
+    font-family: "Font Awesome 5 Free";
+    content: "\f00c";
+    font-weight: 700;
+    padding-right: 10px
+}
+
+
+.naics-filter .button {
+    float: right;
+    width: 190px !important;
+    margin-top: 10px !important;
+    margin: 10px 12px 10px 0;
+}
+
+
+/**************************************************************************/
+/** Chiclet
+/**************************************************************************/
+
+.chiclet {
+    display: inline-block;
+    float: left;
+    position: relative;
+    padding: 0 30px 0 10px;
+    white-space: nowrap;
+    font-size: 12px;
+    color: #4a4a4a;
+    margin: 10px 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    height: 25px;
+    line-height: 25px;
+    box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.2);
+    transition: 0.4s;
+}
+
+.chiclet:hover{
+    background-color: #eff7fe;
+    border: 1px solid #b7d5ff;
+    box-shadow: 0 12px 14px 0 rgba(0, 0, 0, 0.2);
+}
+
+.chiclet > div {
+    max-width: 350px;
+    overflow: hidden;
+}
+
+.chiclet .close {
+    top: 1px;
+    right: 6px;
+    position: absolute;
+    font-size: 16px;
+    color: #777;
+    width: 18px;
+    height: 18px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.chiclet .close:after {
+    font-family: "Font Awesome 5 Free";
+    content: "\f00d"; /* fas fa-times */
+    display: inline-block;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+
+
+.chiclet:hover > div.close,
+.chiclet .close:hover {
+    color: #b11818; /*red */
+}
 
 
 /**************************************************************************/
