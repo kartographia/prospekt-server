@@ -18,9 +18,9 @@ var models = {
             {name: 'info',          type: 'json'}
         ],
         constraints: [
-            {name: 'street',        required: true},
+            {name: 'street',        required: false},
             {name: 'city',          required: true},
-            {name: 'state',         required: true},
+            {name: 'state',         required: false},
             {name: 'country',       required: true}
         ],
         defaults: [

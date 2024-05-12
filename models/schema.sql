@@ -2,9 +2,9 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 
 CREATE TABLE ADDRESS (
     ID BIGSERIAL NOT NULL,
-    STREET varchar NOT NULL,
+    STREET varchar,
     CITY varchar NOT NULL,
-    STATE varchar NOT NULL,
+    STATE varchar,
     COUNTRY varchar NOT NULL DEFAULT 'US',
     POSTAL_CODE varchar,
     SEARCH_TERM varchar,
