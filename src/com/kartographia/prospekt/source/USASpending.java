@@ -5,6 +5,7 @@ import static com.kartographia.prospekt.query.Index.getQuery;
 
 import java.util.*;
 import java.math.BigDecimal;
+import static java.lang.Integer.parseInt;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javaxt.sql.*;
@@ -188,8 +189,12 @@ public class USASpending {
                     return in.getConnection();
                 });
 
+                Connection c2 = (Connection) get("c2", () -> {
+                    return out.getConnection();
+                });
+
                 try{
-                    //updateCompany(uei, conn, c2);
+                    updateCompany(uei, conn, c2);
                     recordCounter.incrementAndGet();
                 }
                 catch(Exception e){
@@ -200,6 +205,9 @@ public class USASpending {
             public void exit(){
                 Connection conn = (Connection) get("conn");
                 if (conn!=null) conn.close();
+
+                Connection c2 = (Connection) get("c2");
+                if (c2!=null) c2.close();
             }
 
         }.start();
@@ -209,8 +217,11 @@ public class USASpending {
         String sql = getQuery("usaspending", "distinct_uei");
         try (Connection conn = in.getConnection()){
             for (javaxt.sql.Record record : conn.getRecords(sql)){
-                pool.add(record.get(0).toString());
-                t++;
+                String uei = record.get(0).toString();
+                if (uei!=null){
+                    pool.add(uei);
+                    t++;
+                }
             }
         }
         statusLogger.setTotalRecords(t);
@@ -243,6 +254,8 @@ public class USASpending {
             javaxt.utils.Date lastUpdate = record.get("l").toDate();
 
 
+if (!id.equals(uei)) continue;
+
 
           //Update company names
             String[] companyName = getCompanyName(record.get("name").toString());
@@ -268,6 +281,7 @@ public class USASpending {
             address.setStreet(record.get("address").toString());
             address.setCity(record.get("city").toString());
             address.setState(record.get("state").toString());
+            address.setCountry(record.get("country").toString()); //fallback for missing state
             String addressKey = getAddress(address); //exclude zip!
             address.setPostalCode(record.get("zip").toString());
 
@@ -431,7 +445,7 @@ public class USASpending {
 
 
           //Get or create addresses
-            console.log("Addresses:");
+            //console.log("Addresses:");
             LinkedHashMap<String, CompanyAddress> addresses = companyAddresses.get(uei);
             Iterator<String> i2 = addresses.keySet().iterator();
             while (i2.hasNext()){
@@ -439,13 +453,13 @@ public class USASpending {
                 CompanyAddress companyAddress = addresses.get(addressKey);
                 javaxt.utils.Date lastUpdate = companyAddress.getDate();
 
-                console.log("-", addressKey, lastUpdate.toString("M/d/yyyy"));
+                //console.log("-", addressKey, lastUpdate.toString("M/d/yyyy"));
 
 
               //Get or create address
                 Long addressID;
                 try (Recordset rs = out.getRecordset(
-                    "select * from address where search_term='" + addressKey + "'", false)){ //lazy key search
+                    "select * from address where search_term='" + addressKey.replace("'", "''") + "'", false)){ //lazy key search
 
                     if (rs.EOF){
                         rs.addNew();
@@ -494,178 +508,173 @@ public class USASpending {
 
 
           //Get or create officers
-            console.log("Officers:");
+            //console.log("Officers:");
             LinkedHashMap<String, CompanyOfficer> officers = companyOfficers.get(uei);
-            i2 = officers.keySet().iterator();
-            while (i2.hasNext()){
-                String searchTerm = i2.next();
-                CompanyOfficer officer = officers.get(searchTerm);
-                Person person = officer.getPerson();
+            if (officers!=null){
+                i2 = officers.keySet().iterator();
+                while (i2.hasNext()){
+                    String searchTerm = i2.next();
+                    CompanyOfficer officer = officers.get(searchTerm);
+                    Person person = officer.getPerson();
 
 
-              //Parse metadata
-                Integer salary = null;
-                javaxt.utils.Date lastUpdate = null;
-                JSONObject info = officer.getInfo();
-                if (info!=null){
-                    JSONArray salaryHistory = info.get("salaryHistory").toJSONArray();
-                    if (salaryHistory!=null){
+                  //Parse metadata
+                    Integer salary = null;
+                    javaxt.utils.Date lastUpdate = null;
+                    JSONObject info = officer.getInfo();
+                    if (info!=null){
+                        JSONArray salaryHistory = info.get("salaryHistory").toJSONArray();
+                        if (salaryHistory!=null){
 
 
-                      //Create an ordered list of salaries
-                        TreeMap<String, TreeSet<Integer>> salaries = new TreeMap<>();
-                        for (JSONValue a : salaryHistory){
-                            String date = a.get("date").toString();
-                            Integer sal = a.get("salary").toInteger();
-                            TreeSet<Integer> s = salaries.get(date);
-                            if (s==null){
-                                s = new TreeSet<>();
-                                salaries.put(date, s);
-                            }
-                            s.add(sal);
-                        }
-
-
-                      //Update salaryHistory
-                        salaryHistory = new JSONArray();
-                        info.set("salaryHistory", salaryHistory);
-                        Integer prevSal = null;
-                        Iterator<String> i3 = salaries.keySet().iterator();
-                        while (i3.hasNext()){
-                            String date = i3.next();
-                            TreeSet<Integer> s = salaries.get(date);
-                            Integer sal = s.last(); //biggest value
-
-                            if (!sal.equals(prevSal) || date.equals(salaries.lastKey())){
-                                //console.log(date, sal);
-                                JSONObject json = new JSONObject();
-                                json.set("date", date);
-                                json.set("salary", sal);
-                                salaryHistory.add(json);
+                          //Create an ordered list of salaries
+                            TreeMap<String, TreeSet<Integer>> salaries = new TreeMap<>();
+                            for (JSONValue a : salaryHistory){
+                                String date = a.get("date").toString();
+                                Integer sal = a.get("salary").toInteger();
+                                TreeSet<Integer> s = salaries.get(date);
+                                if (s==null){
+                                    s = new TreeSet<>();
+                                    salaries.put(date, s);
+                                }
+                                s.add(sal);
                             }
 
-                            prevSal = sal;
+
+                          //Update salaryHistory
+                            salaryHistory = new JSONArray();
+                            info.set("salaryHistory", salaryHistory);
+                            Integer prevSal = null;
+                            Iterator<String> i3 = salaries.keySet().iterator();
+                            while (i3.hasNext()){
+                                String date = i3.next();
+                                TreeSet<Integer> s = salaries.get(date);
+                                Integer sal = s.last(); //biggest value
+
+                                if (!sal.equals(prevSal) || date.equals(salaries.lastKey())){
+                                    //console.log(date, sal);
+                                    JSONObject json = new JSONObject();
+                                    json.set("date", date);
+                                    json.set("salary", sal);
+                                    salaryHistory.add(json);
+                                }
+
+                                prevSal = sal;
+                            }
+
+
+                          //Set salary
+                            salary = prevSal;
+
+
+                          //Set lastUpdate
+                            javaxt.utils.Date lastDate = new javaxt.utils.Date(salaries.lastKey());
+                            if (lastUpdate==null || lastDate.isAfter(lastUpdate)) lastUpdate = lastDate;
+
                         }
-
-
-                      //Set salary
-                        salary = prevSal;
-
-
-                      //Set lastUpdate
-                        javaxt.utils.Date lastDate = new javaxt.utils.Date(salaries.lastKey());
-                        if (lastUpdate==null || lastDate.isAfter(lastUpdate)) lastUpdate = lastDate;
-
                     }
-                }
 
 
-                console.log("-", person.getFullName(), lastUpdate.toString("M/d/yyyy"), salary);
+                    //console.log("-", person.getFullName(), lastUpdate.toString("M/d/yyyy"), salary);
 
 
 
-              //Get or create person
-                Long personID;
-                try (Recordset rs = out.getRecordset(
-                    "select * from person where search_term='" + searchTerm + "'", false)){ //lazy key search
+                  //Get or create person
+                    Long personID;
+                    try (Recordset rs = out.getRecordset(
+                        "select * from person where search_term='" + searchTerm.replace("'", "''") + "'", false)){ //lazy key search
 
-                    if (rs.EOF){
-                        rs.addNew();
-                        rs.setValue("search_term", searchTerm);
+                        if (rs.EOF){
+                            rs.addNew();
+                            rs.setValue("search_term", searchTerm);
 
-                        JSONObject json = person.toJson();
-                        for (String key : json.keySet()){
-                            if (key.equals("info")){
-                                if (!json.isNull(key)){
-                                    rs.setValue(key, new javaxt.sql.Function(
-                                        "?::jsonb", new Object[]{
-                                            json.get(key).toString()
-                                        }
-                                    ));
+                            JSONObject json = person.toJson();
+                            for (String key : json.keySet()){
+                                if (key.equals("info")){
+                                    if (!json.isNull(key)){
+                                        rs.setValue(key, new javaxt.sql.Function(
+                                            "?::jsonb", new Object[]{
+                                                json.get(key).toString()
+                                            }
+                                        ));
+                                    }
+                                }
+                                else{
+                                    rs.setValue(camelCaseToUnderScore(key), json.get(key));
                                 }
                             }
-                            else{
-                                rs.setValue(camelCaseToUnderScore(key), json.get(key));
-                            }
+
+                            rs.update();
+                            personID = rs.getGeneratedKey().toLong();
+                        }
+                        else{
+                            personID = rs.getValue("id").toLong();
+                        }
+                    }
+
+
+
+
+                  //Get or create company officer
+                    try (Recordset rs = out.getRecordset(
+                        "select * from company_officer where company_id=" +
+                        companyID + " and person_id=" + personID, false)){
+
+                        if (rs.EOF){
+                            rs.addNew();
+                            rs.setValue("company_id", companyID);
+                            rs.setValue("person_id", personID);
+                        }
+
+
+                        if (salary!=null){
+                            Integer prevSalary = rs.getValue("salary").toInteger();
+                            if (!salary.equals(prevSalary)) rs.setValue("salary", salary);
+                        }
+
+
+                        if (lastUpdate!=null){
+                            rs.setValue("last_update", lastUpdate);
+                        }
+
+
+                        if (info!=null){
+                            rs.setValue("info", new javaxt.sql.Function(
+                                "?::jsonb", new Object[]{
+                                    info.toString()
+                                }
+                            ));
                         }
 
                         rs.update();
-                        personID = rs.getGeneratedKey().toLong();
                     }
-                    else{
-                        personID = rs.getValue("id").toLong();
-                    }
-                }
-
-
-
-
-              //Get or create company officer
-                try (Recordset rs = out.getRecordset(
-                    "select * from company_officer where company_id=" +
-                    companyID + " and person_id=" + personID, false)){
-
-                    if (rs.EOF){
-                        rs.addNew();
-                        rs.setValue("company_id", companyID);
-                        rs.setValue("person_id", personID);
-                    }
-
-
-                    if (salary!=null){
-                        Integer prevSalary = rs.getValue("salary").toInteger();
-                        if (!salary.equals(prevSalary)) rs.setValue("salary", salary);
-                    }
-
-
-                    if (lastUpdate!=null){
-                        rs.setValue("last_update", lastUpdate);
-                    }
-
-
-                    if (info!=null){
-                        rs.setValue("info", new javaxt.sql.Function(
-                            "?::jsonb", new Object[]{
-                                info.toString()
-                            }
-                        ));
-                    }
-
-                    rs.update();
                 }
             }
 
 
           //Update awards associated with the company
-            updateAwards(uei, in, out);
+            ArrayList<JSONObject> awards = getAwards(uei, in);
+            saveAwards(awards, companyID, out);
+
+
+          //Update company profile
+            updateCompanyProfile(awards, companyID, out);
         }
     }
 
 
   //**************************************************************************
-  //** updateAwards
+  //** getAwards
   //**************************************************************************
-  /** Used to update awards associated with a company
+  /** Returns an ordered list of awards for a given company
+   *  @param uei Company ID
+   *  @param conn Connection to the awards database
    */
-    public static void updateAwards(String uei, Connection in, Connection out) throws Exception {
-
-
-      //Get company ID
-        Long companyID = null;
-        javaxt.sql.Record r = out.getRecord("select id from company where uei='" + uei + "'");
-        if (r!=null) companyID = r.get(0).toLong();
-        if (companyID==null) throw new Exception();
-
-
-      //Get sourceID
-        long sourceID = getOrCreateSource(out);
-
-
-      //Generate a unique list of awards (json)
+    private static ArrayList<JSONObject> getAwards(String uei, Connection conn) throws Exception {
         JSONObject prevAward = new JSONObject();
         ArrayList<JSONObject> awards = new ArrayList<>();
         String sql = getQuery("usaspending", "awards_by_company").replace("{uei}", uei);
-        for (javaxt.sql.Record record : in.getRecords(sql)){
+        for (javaxt.sql.Record record : conn.getRecords(sql)){
 
 
           //Get award ID (sourceKey)
@@ -854,16 +863,9 @@ public class USASpending {
 
 
 
-        console.log("Found " + format(awards.size()) + " awards");
-
-
-
-      //Save awards
+      //Update award name, date, type, and funded value
         for (JSONObject award : awards){
-            award.set("source_id", sourceID);
 
-
-          //Update award name, date, type, and funded value
             JSONObject info = award.get("info").toJSONObject();
             JSONArray actions = info.get("actions").toJSONArray();
             TreeMap<String, String> titles = new TreeMap<>();
@@ -874,7 +876,8 @@ public class USASpending {
                 if (desc!=null && desc.contains("IDIQ")) foundIDIQ = true;
 
                 if (titles.containsKey(date)){
-
+                    String t = titles.get(date);
+                    if (t==null && desc!=null) titles.put(date, desc);
                 }
                 else{
                     titles.put(date, desc);
@@ -886,7 +889,10 @@ public class USASpending {
             javaxt.utils.Date startDate = award.get("start_date").toDate();
             if (startDate!=null && startDate.isBefore(awardDate)) awardDate = startDate;
             award.set("date", awardDate);
-            award.set("name", titles.get(firstDate));
+
+            String title = titles.get(firstDate);
+            if (title==null) title = "n/a";
+            award.set("name", title);
 
             if (foundIDIQ){
                 award.set("type", "IDIQ");
@@ -912,14 +918,38 @@ public class USASpending {
                 }
             }
             award.set("funded", totalFunding);
+        }
 
+
+        return awards;
+    }
+
+
+  //**************************************************************************
+  //** saveAwards
+  //**************************************************************************
+  /** Used to save awards and update the profile for a given company
+   *  @param awards An ordered list of awards for a given company. See getAwards()
+   *  @param companyID Database key associated with the company
+   *  @param conn Connection to the prospekt database
+   */
+    private static void saveAwards(ArrayList<JSONObject> awards, Long companyID, Connection conn) throws Exception {
+        if (companyID==null) throw new Exception();
+
+
+      //Get sourceID
+        long sourceID = getOrCreateSource(conn);
+
+
+      //Save awards
+        for (JSONObject award : awards){
 
             //System.out.println(award.toString(4));
 
 
           //Save award in the database
             String sourceKey = award.get("source_key").toString();
-            try (Recordset rs = out.getRecordset(
+            try (Recordset rs = conn.getRecordset(
                 "select * from award where recipient_id=" + companyID +
                 " and source_id=" + sourceID +
                 " and source_key='" + sourceKey + "'", false)){
@@ -933,6 +963,7 @@ public class USASpending {
 
                 for (String key : award.keySet()){
                     if (key.equals("info")){
+                        JSONObject info = award.get("info").toJSONObject();
                         rs.setValue("info", new javaxt.sql.Function(
                             "?::jsonb", new Object[]{
                                 info.toString()
@@ -946,74 +977,173 @@ public class USASpending {
                 rs.update();
             }
         }
+    }
 
 
+  //**************************************************************************
+  //** updateCompanyProfile
+  //**************************************************************************
+  /** Used to update a company profile including estimated revenue, backlog,
+   *  recent customers, etc using awards data
+   *  @param awards An ordered list of awards for a given company. See getAwards()
+   *  @param companyID Database key associated with the company
+   *  @param conn Connection to the prospekt database
+   */
+    private static void updateCompanyProfile(ArrayList<JSONObject> awards, Long companyID, Connection conn) throws Exception {
 
-      //Update company profile with recent awards
-        javaxt.utils.Date currDate = new javaxt.utils.Date(getDate());
-        javaxt.utils.Date d = currDate.clone().add(-1, "year");
+
+        var dbDate = getDate();
+        dbDate = new javaxt.utils.Date(dbDate).subtract(1, "month").format("YYYY-MM-") + "01";
+        javaxt.utils.Date lastUpdate = new javaxt.utils.Date(dbDate).add(1, "month").subtract(1, "second");
+
+
+        javaxt.utils.Date prevYear = lastUpdate.clone().add(-1, "year");
         HashSet<String> recentCustomers = new HashSet<>();
         HashSet<String> recentNaics = new HashSet<>();
         int recentAwards = 0;
         int competedAwards = 0;
         double totalValue = 0.0;
-        double estimatedRevenue = 0.0;
-        double estimatedBacklog = 0.0;
+        double annualRevenue = 0.0;
+        double totalBacklog = 0.0;
+        var revenue = new TreeMap<String, Double>();
+
+
         for (JSONObject award : awards){
+
+            Double awardValue = award.get("value").toDouble();
+            Double awardFunded = award.get("funded").toDouble();
+            String awardType = award.get("type").toString();
+            if (awardType==null) awardType = "";
+
+
+
+          //Determine the true value of the award. Use the funded value if
+          //the award "value" is null or if the award "type" is an IDIQ
+            if (awardValue==null || awardValue==0) awardValue = awardFunded;
+            if (awardType.equals("IDIQ")){
+                if (awardFunded!=null) awardValue = awardFunded;
+            }
+
+
+
+          //Estimate monthly revenue for the award
             javaxt.utils.Date startDate = award.get("start_date").toDate();
-            javaxt.utils.Date endDate = award.get("end_date").toDate();
-            if (startDate==null) continue;
-            if (endDate==null) endDate = startDate.clone().add(1, "year");
-
-            long totalMonths = endDate.compareTo(startDate, "months");
-            long completedMonths = d.compareTo(startDate, "months");
-            long remainingMonths = endDate.compareTo(d, "months");
-
-            if (endDate.isAfter(d)){
-
-                recentAwards++;
-                if (award.get("competed").toBoolean()) competedAwards++;
+            if (startDate!=null && awardValue!=null){
 
 
-                String customer = award.get("customer").toString();
-                if (customer!=null) recentCustomers.add(customer);
+              //Come up with a reasonable end date
+                javaxt.utils.Date endDate = startDate.clone();
+                javaxt.utils.Date m = award.get("end_date").toDate();
+                if (m!=null){
+                    if (m.isAfter(endDate)) endDate = m;
+                }
+                m = award.get("extended_date").toDate();
+                if (m!=null){
+                    if (m.isAfter(endDate)) endDate = m;
+                }
+                var t = lastUpdate.clone().add(1, "year");
+                if (endDate.isAfter(t)){
+                    endDate = t;
+                }
 
-                String naics = award.get("naics").toString();
-                if (naics!=null) recentNaics.add(naics);
+
+              //Calculate monthly revenue
+                var diff = javaxt.utils.Date.getMonthsBetween(startDate, endDate);
+                var totalMonths = (int) Math.ceil(diff);
+                var monthlyRevenue = awardValue/totalMonths;
 
 
-                Double value = award.get("value").toDouble();
-                if (value!=null){
-                    totalValue+=value;
+                var d = startDate.clone();
+                var ttl = 0;
 
-                    boolean isIDIQ = false;
-                    String type = award.get("type").toString();
-                    if (type!=null) isIDIQ = type.equals("IDIQ");
+                for (var i=0; i<totalMonths; i++){
 
-                    if (isIDIQ){
+                  //Generate key using the last day of the month
+                    var nextMonth = d.clone().add(1, "month");
+                    nextMonth.setDate(nextMonth.getYear(), nextMonth.getMonth(), 1).removeTimeStamp();
+                    var key = nextMonth.add(-1, "day").toString("yyyy-MM-dd");
 
-                        //TODO: Only look at what's been funded
 
+                  //Compute revenue for the current month
+                  //Ensure that it does not exceed total revenue
+                    var currRevenue = 0.0;
+                    if (ttl+monthlyRevenue>awardValue){
+                        currRevenue = awardValue-ttl;
                     }
                     else{
-                        double monthlyRevenue = value/totalMonths;
-
-                      //Computed estimated revenue
-                        double revenue = monthlyRevenue*completedMonths;
-                        estimatedRevenue+=revenue;
-
-                      //Computed estimated backlog
-                        double backlog = monthlyRevenue*remainingMonths;
-                        estimatedBacklog+=backlog;
+                        currRevenue = monthlyRevenue;
                     }
+                    ttl += currRevenue;
+
+
+
+                  //Update all revenue
+                    var val = revenue.get(key);
+                    if (val!=null) val += currRevenue;
+                    else val = currRevenue;
+                    revenue.put(key, val);
+
+
+
+
+                  //Increment date by one month
+                    d.add(1, "month");
                 }
 
             }
+
+
+
+          //Update recent customers and naics codes
+            javaxt.utils.Date endDate = award.get("end_date").toDate();
+            if (endDate==null) endDate = award.get("extended_date").toDate();
+            if (endDate==null) endDate = startDate;
+            if (endDate!=null && endDate.isAfter(prevYear)){
+
+              //Update total value of recent awards
+                if (awardValue!=null) totalValue += awardValue;
+
+              //Update count of recent and competed awards
+                recentAwards++;
+                if (award.get("competed").toBoolean()) competedAwards++;
+
+              //Update customers
+                String customer = award.get("customer").toString();
+                if (customer!=null) recentCustomers.add(customer);
+
+              //Update naics
+                String naics = award.get("naics").toString();
+                if (naics!=null) recentNaics.add(naics);
+            }
+
         }
 
 
 
-        try (Recordset rs = out.getRecordset(
+      //Compute annual revenue and total backlog
+        var today = parseInt(lastUpdate.toString("yyyyMMdd"));
+        var lastYear = parseInt(prevYear.toString("yyyyMMdd"));
+        Iterator<String> it = revenue.keySet().iterator();
+        while (it.hasNext()){
+            String date = it.next();
+            var d = parseInt(date.replaceAll("-",""));
+
+            if (d>today){
+                totalBacklog+=revenue.get(date);
+                continue;
+            }
+            else{
+                if (d>=lastYear){
+                    annualRevenue+=revenue.get(date);
+                }
+            }
+
+        }
+
+
+
+
+        try (Recordset rs = conn.getRecordset(
             "select * from company where id=" + companyID, false)){
 
             if (recentAwards>0){
@@ -1027,8 +1157,8 @@ public class USASpending {
                 if (recentNaics.isEmpty()) rs.setValue("recent_naics", null);
                 else rs.setValue("recent_naics",recentNaics.toArray(new String[recentNaics.size()]));
 
-                rs.setValue("estimated_revenue", Math.round(estimatedRevenue));
-                rs.setValue("estimated_backlog", Math.round(estimatedBacklog));
+                rs.setValue("estimated_revenue", Math.round(annualRevenue));
+                rs.setValue("estimated_backlog", Math.round(totalBacklog));
             }
             else{
                 rs.setValue("recent_awards", 0);
@@ -1039,6 +1169,24 @@ public class USASpending {
                 rs.setValue("estimated_revenue", 0);
                 rs.setValue("estimated_backlog", 0);
             }
+
+
+
+            JSONObject monthlyRevenue = new JSONObject();
+            it = revenue.keySet().iterator();
+            while (it.hasNext()){
+                String date = it.next();
+                monthlyRevenue.set(date, revenue.get(date));
+            }
+
+            JSONObject info;
+            try{ info = new JSONObject(rs.getValue("info").toString()); }
+            catch(Exception e){ info = new JSONObject(); }
+            info.set("monthlyRevenue", monthlyRevenue);
+            rs.setValue("info", new javaxt.sql.Function(
+                "?::jsonb", info.toString()
+            ));
+
 
             rs.update();
         }
