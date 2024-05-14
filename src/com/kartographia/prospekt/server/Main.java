@@ -74,32 +74,52 @@ public class Main {
             Config.initDatabase();
 
 
+          //Check whether to disable authentication
+            Boolean disableAuth = new javaxt.utils.Value(args.get("-disableAuth")).toBoolean();
+            disableAuth = (disableAuth==null || disableAuth==true);
+            User defaultUser = null;
+            if (disableAuth){
+                int id = Integer.parseInt(args.get("-defaultUser"));
+                defaultUser = new User();
+                javaxt.sql.Record r = Config.getDatabase().getRecord(
+                "select * from \"user\" where id=" + id);
+                if (r!=null){
+                    JSONObject json = javaxt.express.utils.DbUtils.getJson(r);
+                    defaultUser.update(json);
+                }
+                defaultUser.setID((long)id);
+                defaultUser.setAccessLevel(5);
+            }
+
+
           //Prompt user to create an admin account if one doesn't exist
-            User admin = null;
-            boolean missingAuth = true;
-            for (User user : User.find("access_level=", 5)){
-                Integer accessLevel = user.getAccessLevel();
-                if (accessLevel!=null && accessLevel==5){
-                    if (user.getStatus()==1){
-                        UserAuthentication[] auth = UserAuthentication.find("user_id=", user.getID());
-                        if (auth!=null && auth.length>0){
-                            admin = user;
-                            missingAuth = false;
-                            break;
+            if (!disableAuth){
+                User admin = null;
+                boolean missingAuth = true;
+                for (User user : User.find("access_level=", 5)){
+                    Integer accessLevel = user.getAccessLevel();
+                    if (accessLevel!=null && accessLevel==5){
+                        if (user.getStatus()==1){
+                            UserAuthentication[] auth = UserAuthentication.find("user_id=", user.getID());
+                            if (auth!=null && auth.length>0){
+                                admin = user;
+                                missingAuth = false;
+                                break;
+                            }
                         }
                     }
                 }
-            }
-            if (admin==null) {
-                System.out.println("Missing admin user.");
-                HashMap<String, String> props = new HashMap<>();
-                props.put("-accessLevel", "5");
-                addUser(props);
-            }
-            else{
-                if (missingAuth){
-                    System.out.println("Missing authentication info.");
-                    addUserName(admin);
+                if (admin==null) {
+                    System.out.println("Missing admin user.");
+                    HashMap<String, String> props = new HashMap<>();
+                    props.put("-accessLevel", "5");
+                    addUser(props);
+                }
+                else{
+                    if (missingAuth){
+                        System.out.println("Missing authentication info.");
+                        addUserName(admin);
+                    }
                 }
             }
 
@@ -116,6 +136,13 @@ public class Main {
             if (args.containsKey("-port")){
                 Integer port = Integer.parseInt(args.get("-port"));
                 if (port!=null) webConfig.set("port", port);
+            }
+
+
+          //Get default user (optional)
+            if (disableAuth){
+                webConfig.set("disableAuth", disableAuth);
+                webConfig.set("defaultUser", defaultUser);
             }
 
 
@@ -396,8 +423,7 @@ public class Main {
         if (numThreads==null) numThreads = 4;
 
       //Get input database (i.e. usaspending.gov)
-        javaxt.sql.Database in = javaxt.express.Config.getDatabase(
-        Config.get("sources").get("usaspending.gov").get("database"));
+        javaxt.sql.Database in = Config.getAwardsDatabase();
 
 
       //Get output database
@@ -436,7 +462,7 @@ public class Main {
       //Update company
         try(Connection c1 = in.getConnection()){
             try(Connection c2 = out.getConnection()){
-                USASpending.updateAwards(uei, c1, c2);
+                //USASpending.updateAwards(uei, c1, c2);
             }
         }
     }
@@ -467,7 +493,7 @@ public class Main {
             String q = com.kartographia.prospekt.query.Index.getQuery(folder, file);
             console.log(q);
         }
-        else if (test.equals("usaspending")){
+        else if (test.equals("usaspending") || test.equals("awards")){
             testUSASpending(args);
         }
         else{
@@ -483,6 +509,14 @@ public class Main {
 
         JSONObject config = Config.get("sources").get("usaspending.gov").toJSONObject();
 
+
+        Database database = Config.getAwardsDatabase();
+        console.log(USASpending.getDate(database));
+        try (Connection conn = database.getConnection()){
+            for (Table table : Database.getTables(conn)){
+                System.out.println(table);
+            }
+        }
     }
 
 
