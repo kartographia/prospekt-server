@@ -232,12 +232,14 @@ public class Utils {
         StringBuilder str = new StringBuilder();
 
 
+      //Add street
         String[] street = getStreet(address.getStreet());
         if (street[0]!=null) str.append(street[0]);
 
 
+      //Add city
         String city = address.getCity();
-        if (city==null || city.isBlank()) throw new IllegalArgumentException();
+        if (city==null || city.isBlank()) throw new IllegalArgumentException("Missing city");
         city = city.trim();
         if (city.equalsIgnoreCase("Washington DC") || city.equalsIgnoreCase("DC")){
             city = "Washington";
@@ -246,13 +248,32 @@ public class Utils {
         str.append(city);
 
 
-
+      //Add state or country
         String state = address.getState();
-        if (state==null || state.isBlank()) throw new IllegalArgumentException();
-        state = state.trim();
-        str.append(", ");
-        str.append(state);
+        if (state==null || state.isBlank()){
 
+          //Add country if state is missing
+            String country = address.getCountry();
+            if (country==null || country.isBlank()){
+                throw new IllegalArgumentException("Missing state and no country");
+            }
+            else{
+                country = country.trim();
+                str.append(" ");
+                str.append(country);
+            }
+
+          //Return early
+            return str.toString().trim();
+        }
+        else{
+            state = state.trim();
+            str.append(", ");
+            str.append(state);
+        }
+
+
+      //Add postal code
         String zip = address.getPostalCode();
         if (zip!=null){
             zip = zip.trim();
