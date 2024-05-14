@@ -34,6 +34,7 @@ public class WebServer extends HttpServlet {
 
     private javaxt.io.Directory web;
     private javaxt.io.Directory logDir;
+    private User defaultUser;
     private ArrayList<InetSocketAddress> addresses;
     private Integer maxThreads;
     private Logger logger;
@@ -114,6 +115,18 @@ public class WebServer extends HttpServlet {
             catch(Exception e){
                 keystore = null;
                 keypass = null;
+            }
+        }
+
+
+      //Get default user (optional)
+        if (config.has("disableAuth")){
+            Boolean b = config.get("disableAuth").toBoolean();
+            if (b==true){
+                defaultUser = (User) config.get("defaultUser").toObject();
+                if (defaultUser==null){
+                    defaultUser = new User();
+                }
             }
         }
 
@@ -215,6 +228,8 @@ public class WebServer extends HttpServlet {
                 User user = (User) getUser();
                 if (user!=null) return user;
 
+                if (defaultUser!=null) user = defaultUser;
+                else
                 try{
 
                     String[] credentials = getCredentials();
@@ -301,6 +316,13 @@ public class WebServer extends HttpServlet {
         String service = path==null ? "" : path.toLowerCase();
         if (service.contains("/")) service = service.substring(0, service.indexOf("/"));
 
+
+
+      //Special case for when authentication is disabled
+        if (service.equals("user") && defaultUser!=null){
+            response.write(defaultUser.toJson().toString());
+            return;
+        }
 
 
       //Generate response
