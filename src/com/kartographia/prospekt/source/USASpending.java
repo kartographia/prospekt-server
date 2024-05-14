@@ -6,6 +6,7 @@ import static com.kartographia.prospekt.query.Index.getQuery;
 import java.util.*;
 import java.math.BigDecimal;
 import static java.lang.Integer.parseInt;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javaxt.sql.*;
@@ -18,6 +19,9 @@ import static javaxt.express.utils.StringUtils.*;
 
 
 public class USASpending {
+
+    private static ConcurrentHashMap<String, Long> addresses = new ConcurrentHashMap<>(1000000);
+    private static ConcurrentHashMap<String, Long> people = new ConcurrentHashMap<>(1000000);
 
 
   //**************************************************************************
@@ -88,8 +92,20 @@ public class USASpending {
   //**************************************************************************
   /** Returns the last update associated with the database
    */
-    public static String getDate(){
-        return "2024-02-08";
+    public static String getDate() {
+        return getDate(null);
+    }
+
+    public static String getDate(Database db){
+        if (db==null) db = com.kartographia.prospekt.server.Config.getAwardsDatabase();
+        String name = db.getName();
+        int idx = name.indexOf("_");
+        if (idx==-1) throw new IllegalArgumentException();
+        String date = name.substring(idx+1);
+        String year = date.substring(0, 4);
+        String month = date.substring(4, 6);
+        String day = date.substring(6);
+        return year+"-"+month+"-"+day; //"2024-02-08";
     }
 
 
@@ -457,35 +473,7 @@ if (!id.equals(uei)) continue;
 
 
               //Get or create address
-                Long addressID;
-                try (Recordset rs = out.getRecordset(
-                    "select * from address where search_term='" + addressKey.replace("'", "''") + "'", false)){ //lazy key search
-
-                    if (rs.EOF){
-                        rs.addNew();
-                        rs.setValue("search_term", addressKey);
-                        JSONObject address = companyAddress.getAddress().toJson();
-                        for (String key : address.keySet()){
-                            if (key.equals("info")){
-                                if (!address.isNull(key)){
-                                    rs.setValue(key, new javaxt.sql.Function(
-                                        "?::jsonb", new Object[]{
-                                            address.get(key).toString()
-                                        }
-                                    ));
-                                }
-                            }
-                            else{
-                                rs.setValue(key, address.get(key));
-                            }
-                        }
-                        rs.update();
-                        addressID = rs.getGeneratedKey().toLong();
-                    }
-                    else{
-                        addressID = rs.getValue("id").toLong();
-                    }
-                }
+                Long addressID = getOrCreateAddress(companyAddress, addressKey, out);
 
 
               //Get or create company address
@@ -580,38 +568,7 @@ if (!id.equals(uei)) continue;
 
 
                   //Get or create person
-                    Long personID;
-                    try (Recordset rs = out.getRecordset(
-                        "select * from person where search_term='" + searchTerm.replace("'", "''") + "'", false)){ //lazy key search
-
-                        if (rs.EOF){
-                            rs.addNew();
-                            rs.setValue("search_term", searchTerm);
-
-                            JSONObject json = person.toJson();
-                            for (String key : json.keySet()){
-                                if (key.equals("info")){
-                                    if (!json.isNull(key)){
-                                        rs.setValue(key, new javaxt.sql.Function(
-                                            "?::jsonb", new Object[]{
-                                                json.get(key).toString()
-                                            }
-                                        ));
-                                    }
-                                }
-                                else{
-                                    rs.setValue(camelCaseToUnderScore(key), json.get(key));
-                                }
-                            }
-
-                            rs.update();
-                            personID = rs.getGeneratedKey().toLong();
-                        }
-                        else{
-                            personID = rs.getValue("id").toLong();
-                        }
-                    }
-
+                    Long personID = getOrCreatePerson(person, searchTerm, out);
 
 
 
@@ -660,6 +617,110 @@ if (!id.equals(uei)) continue;
           //Update company profile
             updateCompanyProfile(awards, companyID, out);
         }
+    }
+
+
+  //**************************************************************************
+  //** getOrCreateAddress
+  //**************************************************************************
+    private static synchronized Long getOrCreateAddress(CompanyAddress companyAddress, String addressKey, Connection conn) throws Exception {
+        Long addressID;
+        synchronized(addresses){
+            addressID = addresses.get(addressKey);
+        }
+        if (addressID!=null) return addressID;
+
+
+        try (Recordset rs = conn.getRecordset(
+            "select * from address where search_term='" + addressKey.replace("'", "''") + "'", false)){ //lazy key search
+
+            if (rs.EOF){
+                rs.addNew();
+                rs.setValue("search_term", addressKey);
+                JSONObject address = companyAddress.getAddress().toJson();
+                for (String key : address.keySet()){
+                    if (key.equals("info")){
+                        if (!address.isNull(key)){
+                            rs.setValue(key, new javaxt.sql.Function(
+                                "?::jsonb", new Object[]{
+                                    address.get(key).toString()
+                                }
+                            ));
+                        }
+                    }
+                    else{
+                        rs.setValue(key, address.get(key));
+                    }
+                }
+                rs.update();
+                addressID = rs.getGeneratedKey().toLong();
+            }
+            else{
+                addressID = rs.getValue("id").toLong();
+            }
+        }
+
+        if (addressID!=null){
+            synchronized(addresses){
+                addresses.put(addressKey, addressID);
+                addresses.notify();
+            }
+        }
+
+        return addressID;
+    }
+
+
+  //**************************************************************************
+  //** getOrCreatePerson
+  //**************************************************************************
+    private static synchronized Long getOrCreatePerson(Person person, String searchTerm, Connection conn) throws Exception {
+        Long personID;
+        synchronized(people){
+            personID = people.get(searchTerm);
+        }
+        if (personID!=null) return personID;
+
+
+        try (Recordset rs = conn.getRecordset(
+            "select * from person where search_term='" + searchTerm.replace("'", "''") + "'", false)){ //lazy key search
+
+            if (rs.EOF){
+                rs.addNew();
+                rs.setValue("search_term", searchTerm);
+
+                JSONObject json = person.toJson();
+                for (String key : json.keySet()){
+                    if (key.equals("info")){
+                        if (!json.isNull(key)){
+                            rs.setValue(key, new javaxt.sql.Function(
+                                "?::jsonb", new Object[]{
+                                    json.get(key).toString()
+                                }
+                            ));
+                        }
+                    }
+                    else{
+                        rs.setValue(camelCaseToUnderScore(key), json.get(key));
+                    }
+                }
+
+                rs.update();
+                personID = rs.getGeneratedKey().toLong();
+            }
+            else{
+                personID = rs.getValue("id").toLong();
+            }
+        }
+
+        if (personID!=null){
+            synchronized(people){
+                people.put(searchTerm, personID);
+                people.notify();
+            }
+        }
+
+        return personID;
     }
 
 
