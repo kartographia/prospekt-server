@@ -2,6 +2,7 @@ package com.kartographia.prospekt.server;
 import com.kartographia.prospekt.model.User;
 import com.kartographia.prospekt.model.Person;
 import com.kartographia.prospekt.service.*;
+import com.kartographia.prospekt.source.*;
 
 import java.util.*;
 import java.io.IOException;
@@ -144,6 +145,21 @@ public class WebServices extends WebService {
             return getServiceResponse(request, Config.getDatabase());
         }
 
+    }
+
+
+  //**************************************************************************
+  //** getLastUpdate
+  //**************************************************************************
+  /** Returns date associated with the last update for a given data source
+   */
+    public ServiceResponse getLastUpdate(ServiceRequest request) throws ServletException {
+        String source = request.getParameter("source").toString();
+        if (source==null) source = "";
+        if (source.equalsIgnoreCase("Awards") || source.equalsIgnoreCase("USASpending")){
+            return new ServiceResponse(USASpending.getDate());
+        }
+        return new ServiceResponse(400);
     }
 
 
