@@ -37,11 +37,13 @@ public class Config {
 
       //Update relative paths in the web config
         JSONObject webConfig = json.get("webserver").toJSONObject();
-        updateDir("webDir", webConfig, configFile, false);
-        updateDir("logDir", webConfig, configFile, true);
-        updateDir("jobDir", webConfig, configFile, true);
-        updateDir("scriptDir", webConfig, configFile, false);
-        updateFile("keystore", webConfig, configFile);
+        if (webConfig!=null){
+            updateDir("webDir", webConfig, configFile, false);
+            updateDir("logDir", webConfig, configFile, true);
+            updateDir("jobDir", webConfig, configFile, true);
+            updateDir("scriptDir", webConfig, configFile, false);
+            updateFile("keystore", webConfig, configFile);
+        }
 
 
       //Get database config
@@ -97,7 +99,7 @@ public class Config {
         Boolean initialized = get("databaseInitialized").toBoolean();
         if (initialized!=null && initialized.booleanValue()==true) return;
         set("databaseInitialized", true);
-        
+
 
         Database database = config.getDatabase();
 
@@ -133,11 +135,11 @@ public class Config {
                 schema = schemaFile.getText();
             }
         }
-        if (schema==null) throw new Exception("Schema not found");
+        //if (schema==null) throw new Exception("Schema not found");
 
 
       //Initialize schema (create tables, indexes, etc)
-        DbUtils.initSchema(database, schema, null);
+        if (schema!=null) DbUtils.initSchema(database, schema, null);
 
 
       //Enable database caching
@@ -151,6 +153,30 @@ public class Config {
       //Initialize models
         javaxt.io.Jar jar = (javaxt.io.Jar) config.get("jar").toObject();
         Model.init(jar, database.getConnectionPool());
+    }
+
+
+  //**************************************************************************
+  //** getAwardsDatabase
+  //**************************************************************************
+    public static Database getAwardsDatabase() {
+
+        JSONValue val = get("awardsDatabase");
+        if (val.toObject() instanceof javaxt.sql.Database){
+            return (javaxt.sql.Database) val.toObject();
+        }
+        else{
+            Database awardsDatabase = config.getDatabase(Config.get("sources").get("usaspending.gov").get("database"));
+            awardsDatabase.enableMetadataCache(true);
+            try{
+                awardsDatabase.initConnectionPool();
+            }
+            catch(Exception e){
+                console.log("Failed to initialize connection pool to the awards database");
+            }
+            set("awardsDatabase", awardsDatabase);
+            return awardsDatabase;
+        }
     }
 
 
