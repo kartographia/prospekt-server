@@ -41,17 +41,12 @@ public class WebServices extends WebService {
   //**************************************************************************
   //** Constructor
   //**************************************************************************
-    public WebServices(Jar jar, javaxt.io.Directory web) throws Exception {
+    public WebServices(Jar jar) throws Exception {
 
       //Register classes that this service will support
-        for (Jar.Entry entry : jar.getEntries()){
-            String name = entry.getName();
-            if (name.endsWith(".class")){
-                name = name.substring(0, name.length()-6).replace("/", ".");
-                Class c = Class.forName(name);
-                if (javaxt.sql.Model.class.isAssignableFrom(c)){
-                    addModel(c);
-                }
+        for (Class c : jar.getClasses()){
+            if (javaxt.sql.Model.class.isAssignableFrom(c)){
+                addModel(c);
             }
         }
 

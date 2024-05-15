@@ -206,7 +206,7 @@ public class WebServer extends HttpServlet {
 
       //Instantiate web services
         try{
-            ws = new WebServices(jar, web);
+            ws = new WebServices(jar);
         }
         catch(Exception e){
             throw new RuntimeException(e);
