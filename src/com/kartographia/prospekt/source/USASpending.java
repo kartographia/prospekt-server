@@ -298,7 +298,11 @@ if (!id.equals(uei)) continue;
             address.setCity(record.get("city").toString());
             address.setState(record.get("state").toString());
             address.setCountry(record.get("country").toString()); //fallback for missing state
-            String addressKey = getAddress(address); //exclude zip!
+            String addressKey = null;
+            try{
+                addressKey = getAddress(address); //exclude zip!
+            }
+            catch(Exception e){}
             address.setPostalCode(record.get("zip").toString());
 
 
@@ -406,9 +410,12 @@ if (!id.equals(uei)) continue;
         }
 
 
+        Iterator<String> it, i2;
+
+
 
       //Process company info
-        Iterator<String> it = companyNames.keySet().iterator();
+        it = companyNames.keySet().iterator();
         while (it.hasNext()){
             uei = it.next();
 
@@ -431,22 +438,27 @@ if (!id.equals(uei)) continue;
 
               //Set name
                 LinkedHashMap<String, javaxt.utils.Date> names = companyNames.get(uei);
-                String name = names.keySet().iterator().next();
-                rs.setValue("name", name);
+                if (!names.isEmpty()){
+                    String name = names.keySet().iterator().next();
+                    rs.setValue("name", name);
 
 
-              //Update metadata
-                JSONArray arr = new JSONArray();
-                info.set("names", arr);
-                Iterator<String> i2 = names.keySet().iterator();
-                while (i2.hasNext()){
-                    String companyName = i2.next();
-                    javaxt.utils.Date lastUpdate = names.get(companyName);
+                  //Update metadata
+                    JSONArray arr = new JSONArray();
+                    info.set("names", arr);
+                    i2 = names.keySet().iterator();
+                    while (i2.hasNext()){
+                        String companyName = i2.next();
+                        javaxt.utils.Date lastUpdate = names.get(companyName);
 
-                    JSONObject json = new JSONObject();
-                    json.set("name", companyName);
-                    json.set("date", lastUpdate.toString("M/d/yyyy"));
-                    arr.add(json);
+                        JSONObject json = new JSONObject();
+                        json.set("name", companyName);
+                        json.set("date", lastUpdate.toString("M/d/yyyy"));
+                        arr.add(json);
+                    }
+                }
+                else{
+                    rs.setValue("name", "n/a");
                 }
 
               //Update record
@@ -459,11 +471,10 @@ if (!id.equals(uei)) continue;
 
 
 
-
           //Get or create addresses
             //console.log("Addresses:");
             LinkedHashMap<String, CompanyAddress> addresses = companyAddresses.get(uei);
-            Iterator<String> i2 = addresses.keySet().iterator();
+            i2 = addresses.keySet().iterator();
             while (i2.hasNext()){
                 String addressKey = i2.next();
                 CompanyAddress companyAddress = addresses.get(addressKey);
@@ -823,6 +834,7 @@ if (!id.equals(uei)) continue;
 
           //Create/update award
             JSONObject award;
+            if (awardID==null) awardID = ""; //very rare NPE
             if (awardID.equals(prevAward.get("source_key").toString())){
                 award = prevAward;
 
