@@ -76,7 +76,7 @@ public class Main {
 
           //Check whether to disable authentication
             Boolean disableAuth = new javaxt.utils.Value(args.get("-disableAuth")).toBoolean();
-            disableAuth = (disableAuth==null || disableAuth==true);
+            disableAuth = (disableAuth!=null && disableAuth==true);
             User defaultUser = null;
             if (disableAuth){
                 int id = Integer.parseInt(args.get("-defaultUser"));
