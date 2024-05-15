@@ -22,6 +22,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
     var loading = false;
     var naiscCodes = {};
+    var lastUpdate;
 
 
   //**************************************************************************
@@ -75,7 +76,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //**************************************************************************
   //** update
   //**************************************************************************
-    this.update = function(company, naics){
+    this.update = function(company){
+
         if (loading) return;
         me.clear();
 
@@ -96,8 +98,21 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                     get("CompanyOfficers?companyID=" + company.id, {
                         success: function(text){
                             company.officers = parseResponse(text);
-                            loading = false;
-                            update(company);
+
+
+                            get("lastUpdate?source=Awards", {
+                                success: function(dbDate){ //'2024-02-08'
+
+                                    dbDate = moment(new Date(dbDate)).subtract(1, "month").format("YYYY-MM-") + "01";
+                                    lastUpdate = moment(new Date(dbDate)).add(1, "month").subtract(1, "second");
+
+
+                                    loading = false;
+                                    update(company);
+                                },
+                                failure: onFailure
+                            });
+
                         },
                         failure: onFailure
                     });
@@ -252,145 +267,82 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var createRevenueChart = function(company, parent){
 
 
-      //Compute stats
-        var dates = {};
+      //Get funding dates and amounts
+        var actionDates = {};
         var funding = {};
-        var revenue = {};
-        var totalAwards = 0;
         var totalFunding = 0;
-        var totalRevenue = 0;
         company.awards.forEach((award)=>{
-
-          //Get total value of the award
-            var awardValue = award.value;
-
-            if (!award.value) awardValue = award.funded;
-
-            totalAwards += awardValue;
-
-          //Ignore total value if IDIQ. Only look at funded value
-            if (award.type==="IDIQ"){
-                if (award.funded) awardValue = award.funded;
-                else return;
-            }
-
-
-          //Compute monthly revenue
-            if (award.startDate && awardValue){
-                var startDate = moment(award.startDate);
-                var endDate = award.endDate ? moment(award.endDate) : startDate.clone().add(1, "year");
-                var totalMonths =  Math.ceil(endDate.diff(new Date(startDate), 'months', true));
-                var monthlyRevenue = awardValue/totalMonths;
-
-
-                var d = startDate.clone();
-                var t = 0;
-                for (var i=0; i<totalMonths; i++){
-
-
-                  //Generate key using the last day of the month
-                    var nextMonth = d.clone().add(1, "month");
-                    nextMonth = moment([nextMonth.year(), nextMonth.month(), 1, 0, 0, 0, 0]);
-                    var key = nextMonth.subtract(1, "day").format("YYYY-MM-DD");
-
-
-
-                  //Compute revenue for the current month
-                  //Ensure that it exceed total revenue
-                    var currRevenue;
-                    if (t+monthlyRevenue>awardValue){
-                        currRevenue = awardValue-t;
-                    }
-                    else{
-                        currRevenue = monthlyRevenue;
-                    }
-                    t += currRevenue;
-
-
-
-                  //Update all revenue
-                    var val = revenue[key];
-                    if (val) val += currRevenue;
-                    else val = currRevenue;
-                    revenue[key] = val;
-
-
-                  //Increment date by one month
-                    d.add(1, "month");
-                }
-
-                totalRevenue += t;
-                //console.log(award.startDate, award.endDate, totalMonths, Math.round(monthlyRevenue), Math.round(awardValue), Math.round(t));
-            }
-
-
-
-
-          //Get funding data
             if (award.info){
                 if (award.info.actions){
                     award.info.actions.forEach((action)=>{
                         if (action.funding) {
                             totalFunding+= action.funding;
-                            var date = action.date;
-                            var prevFunding = funding[date];
+                            var actionDate = action.date; //YYYY-MM-DD
+                            var prevFunding = funding[actionDate];
                             if (!prevFunding) prevFunding = 0;
-                            funding[date] = action.funding + prevFunding;
-                            dates[date] = true;
+                            funding[actionDate] = action.funding + prevFunding;
+                            actionDates[actionDate] = true;
                         }
                     });
                 }
             }
         });
-
-
-
-
-        dates = Object.keys(dates).sort();
-        var firstDate = dates[0];
-        var lastDate = dates[dates.length-1];
+        actionDates = Object.keys(actionDates).sort();
+        var firstDate = actionDates[0];
+        var lastDate = actionDates[actionDates.length-1];
 
 
         //companyOverview.set("Since", firstDate);
         companyOverview.set("Last Update", lastDate);
 
 
-
+      //Create dataset for the line graph
         var data = [];
-        var totalBacklog = 0;
-        var annualRevenue = 0;
+        var annualRevenue = company.estimatedRevenue;
+        var totalBacklog = company.estimatedBacklog;
+        var totalRevenue = 0;
         var previousRevenue = 0;
-        var today = parseInt(moment().format("YYYYMMDD"));
-        var lastYear = parseInt(moment().subtract(1, "year").format("YYYYMMDD"));
-        var prevYear = parseInt(moment().subtract(2, "year").format("YYYYMMDD"));
-        Object.keys(revenue).sort().forEach((date)=>{
+        var monthlyRevenue = company.info.monthlyRevenue;
+        var today = parseInt(lastUpdate.format("YYYYMMDD"));
+        var lastYear = parseInt(lastUpdate.clone().subtract(1, "year").format("YYYYMMDD"));
+        var prevYear = parseInt(lastUpdate.clone().subtract(2, "year").format("YYYYMMDD"));
+        Object.keys(monthlyRevenue).sort().forEach((date)=>{
             var d = parseInt(date.replaceAll("-",""));
 
+            /*
             if (d>today){
-                totalBacklog+=revenue[date];
+                totalBacklog+=monthlyRevenue[date];
                 return;
             }
             else{
                 if (d>=lastYear){
-                    annualRevenue+=revenue[date];
+                    annualRevenue+=monthlyRevenue[date];
                 }
             }
+            */
 
-            if (d>=prevYear && d<lastYear) previousRevenue+= revenue[date];
+            if (d>=prevYear && d<lastYear) previousRevenue+= monthlyRevenue[date];
 
 
-            data.push({
-                date: date,
-                amount: revenue[date]
-            });
+            if (d<=today){
+
+                data.push({
+                    date: date,
+                    amount: monthlyRevenue[date]
+                });
+
+
+                totalRevenue += monthlyRevenue[date];
+            }
         });
 
 
 
       //Add zeros to the end of the dataset as needed
         var d = new Date(data[data.length-1].date);
-        var monthsAgo = Math.ceil(moment().diff(d, 'months', true));
-        if (monthsAgo>12){
+        var monthsAgo = lastUpdate.diff(d, 'months', true);
+        if (monthsAgo>1){
+            monthsAgo = Math.ceil(monthsAgo);
             var m = moment(d);
             for (var i=0; i<monthsAgo; i++){
                 m.add(1, "month");
@@ -417,7 +369,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
       //Create title
         var titleArea = table.addRow().addColumn("chart-title");
-        createElement("div", titleArea, "preamble").innerText = "Estimated Revenue*";
+        createElement("div", titleArea, "preamble").innerText = "Estimated Annual Revenue*";
 
         var div = createElement("div", titleArea, {
             width: "100%",
@@ -478,8 +430,6 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
       //Update the chart to render the data
         lineChart.update();
-
-
 
     };
 
@@ -665,7 +615,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         var div = createElement("div", parent, "small");
         div.style.height = "600px";
 
-        var today = moment();
+        var today = lastUpdate.clone();
 
         var grid = new javaxt.dhtml.DataGrid(div, {
             style: config.style.table,
@@ -885,7 +835,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
           //Separate current and inactive officers
             var currOfficers = [];
             var olderOfficers = [];
-            var lastYear = moment().subtract(1, "year");
+            var lastYear = lastUpdate.clone().subtract(1, "year");
             company.officers.forEach((officer)=>{
                 var lastUpdate = moment(new Date(officer.lastUpdate));
                 if (lastUpdate.isBefore(lastYear)){
