@@ -87,6 +87,16 @@ public class Config {
 
     }
 
+    
+  //**************************************************************************
+  //** load
+  //**************************************************************************
+  /** Used to load a json document and update config settings
+   */
+    public static void load(JSONObject json){
+        config.init(json);
+    }
+
 
   //**************************************************************************
   //** initDatabase
