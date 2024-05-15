@@ -18,8 +18,9 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
     var companyList, companyProfile;
     var filter = {};
+    var lastUpdate;
 
-    var naiscCodes = {};
+    var naiscCodes;
 
 
   //**************************************************************************
@@ -36,10 +37,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
 
-        getNaicsCodes(function(codes){
-            naiscCodes = codes;
-            onRender(div, me.update);
-        });
+        onRender(div, me.update);
 
 
         me.el = div;
@@ -84,7 +82,26 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             }
         }
 
-        companyList.update();
+
+        getNaicsCodes(function(naics){
+            naiscCodes = naics;
+
+            get("lastUpdate?source=Awards", {
+                success: function(dbDate){ //'2024-02-08'
+
+                    dbDate = moment(new Date(dbDate)).subtract(1, "month").format("YYYY-MM-") + "01";
+                    lastUpdate = moment(new Date(dbDate)).add(1, "month").subtract(1, "second");
+
+                    companyList.update();
+                },
+                failure: function(request){
+                    alert(request);
+                }
+            });
+
+        });
+
+
     };
 
 
@@ -196,7 +213,142 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 {header: 'Name', width:'100%'}
             ],
             update: function(row, company){
-                row.set("Name", company.name);
+
+                var table = createTable();
+                var tr = table.addRow();
+
+
+              //Create left column for company info
+                var td = tr.addColumn({
+                    verticalAlign: "top",
+                    width: "100%"
+                });
+                var wrapper = createElement("div", td, {
+                    position: "relative",
+                    width: "100%",
+                    height: "100%",
+                    overflow: "hidden"
+                });
+                var companyInfo = createElement("div", wrapper, {
+                    position: "absolute",
+                    width: "100%",
+                    height: "100%"
+                });
+
+
+              //Create right column for the chart
+                var chartArea = createElement("div", tr.addColumn(), {
+                    width: "300px",
+                    height: "150px"
+                });
+
+                row.set("Name", table);
+
+
+
+
+
+
+
+                var data = [];
+                var previousRevenue = 0;
+                var monthlyRevenue = company.info.monthlyRevenue;
+                var today = parseInt(lastUpdate.format("YYYYMMDD"));
+                var lastYear = parseInt(lastUpdate.clone().subtract(1, "year").format("YYYYMMDD"));
+                var prevYear = parseInt(lastUpdate.clone().subtract(2, "year").format("YYYYMMDD"));
+                Object.keys(monthlyRevenue).sort().forEach((date)=>{
+                    var d = parseInt(date.replaceAll("-",""));
+
+                    if (d>=prevYear && d<lastYear) previousRevenue+= monthlyRevenue[date];
+
+                    if (d<=today){
+                        data.push({
+                            date: date,
+                            amount: monthlyRevenue[date]
+                        });
+                    }
+                });
+
+
+              //Add zeros to the end of the dataset as needed
+                var d = data.length>0 ? new Date(data[data.length-1].date) : lastUpdate.clone().subtract(1, "year").toDate();
+                var monthsAgo = lastUpdate.diff(d, 'months', true);
+                if (monthsAgo>1){
+                    monthsAgo = Math.ceil(monthsAgo);
+                    var m = moment(d);
+                    for (var i=0; i<monthsAgo; i++){
+                        m.add(1, "month");
+                        data.push({
+                            date: m.format("YYYY-MM-DD"),
+                            amount: 0
+                        });
+                    }
+                }
+
+
+
+                var companyName = createElement("div", companyInfo, "company-name");
+                companyName.innerText = company.name;
+
+                var annualRevenue = createElement("div", companyInfo, "company-info");
+                annualRevenue.innerText = "Annual Revenue: $" + addCommas(company.estimatedRevenue);
+
+                /*
+                var p = ((company.estimatedRevenue-previousRevenue)/previousRevenue)*100;
+                var d = createElement("div", annualRevenue, "change " + (p>0 ? "positive" : "negative") );
+                d.style.display = "inline-block";
+                d.innerText = round(p<0 ? -p : p, 1) + "%";
+                */
+
+                var customers = createElement("div", companyInfo, "company-info");
+                customers.innerText = "Recent Customers: " + (company.recentCustomers ? company.recentCustomers.join(", ") : "");
+
+                var services = createElement("div", companyInfo, "company-info");
+                var recentNaics = {};
+                if (company.recentNaics) company.recentNaics.forEach((code)=>{
+                    if (code.length>2) code = code.substring(0, 2);
+                    recentNaics[code] = naiscCodes[code];
+                });
+                services.innerText = "Services Concentration: " + Object.values(recentNaics).join(", ");
+
+
+
+                var lineChart = new bluewave.charts.LineChart(chartArea, {
+                    xGrid: false,
+                    yGrid: false,
+                    xTicks: false,
+                    yTicks: false,
+                    animationSteps: 0
+                });
+
+                var values = data.length>0 ? data.map(d => d.amount) : [];
+                var lineColor = trend_value(values)>0 ? "green" : "red";
+
+              //Add revenue line to the chart
+                var line = new bluewave.chart.Line({
+                    color: lineColor,
+                    opacity: 0.25
+                });
+                lineChart.addLine(line, data, "date", "amount");
+
+
+              //Add moving average to the chart
+                var lineAvg = new bluewave.chart.Line({
+                    smoothing: "movingAverage",
+                    smoothingValue: 90, //in months
+                    width: 1,
+                    color: lineColor,
+                    fill: {
+                        color: lineColor,
+                        startOpacity: 0.15,
+                        endOpacity: 0
+                    }
+                });
+                lineChart.addLine(lineAvg, data, "date", "amount");
+
+
+              //Update the chart
+                lineChart.update();
             }
         });
 
@@ -217,7 +369,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             get("company?id=" + company.id, {
                 success: function(text){
                     var company = parseResponse(text);
-                    companyProfile.update(company, naiscCodes);
+                    companyProfile.update(company);
                 },
                 failure: function(request){
                     alert(request);
@@ -341,6 +493,31 @@ prospekt.companies.CompanyPanel = function(parent, config) {
     };
 
 
+
+    var trend_value = function(nums){
+        var summed_nums = nums.reduce((a, b) => a + b); //sum(nums)
+        var multiplied_data = 0;
+        var summed_index = 0;
+        var squared_index = 0;
+
+        nums.forEach((num, index)=>{ //for index, num in enumerate(nums):
+            index += 1;
+            multiplied_data += index * num;
+            summed_index += index;
+            squared_index += index**2;
+        });
+
+        var numerator = ((nums).length * multiplied_data) - (summed_nums * summed_index);
+        var denominator = ((nums).length * squared_index) - summed_index**2;
+        if (denominator != 0)
+            return numerator/denominator;
+        else
+            return 0;
+    };
+    var val = trend_value([2781, 2667, 2785, 1031, 646, 2340, 2410]);
+    console.log(val)  //# -139.5
+
+
   //**************************************************************************
   //** Utils
   //**************************************************************************
@@ -350,6 +527,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
     var onRender = javaxt.dhtml.utils.onRender;
     var isDirty = javaxt.dhtml.utils.isDirty;
     var isArray = javaxt.dhtml.utils.isArray;
+    var round = javaxt.dhtml.utils.round;
     var merge = javaxt.dhtml.utils.merge;
     var get = javaxt.dhtml.utils.get;
 
@@ -357,6 +535,16 @@ prospekt.companies.CompanyPanel = function(parent, config) {
     var parseResponse = prospekt.utils.parseResponse;
     var createToolBar = prospekt.utils.createToolBar;
     var createButton = prospekt.utils.createButton;
+
+
+
+
+
+
+
+
+    var addCommas = prospekt.utils.addCommas;
+
 
     init();
 
