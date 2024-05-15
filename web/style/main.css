@@ -794,8 +794,7 @@ body, textarea, input, select, td, th {
 /****************************************************************/
 
 .company-panel .table-col {
-    height: 50px;
-    line-height: 50px;
+    height: 165px;
 }
 
 .company-panel .table-row{
@@ -813,6 +812,19 @@ body, textarea, input, select, td, th {
 .company-panel .table-row-selected:hover{
     background-color:#e5f3ff;
 }
+
+.company-panel .table-col .company-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e1e1e;
+    color: #595959;
+}
+
+.company-panel .table-col .company-info {
+    line-height: 20px;
+    color: #777;
+}
+
 
 /**************************************************************************/
 /** Small table
@@ -879,21 +891,21 @@ body, textarea, input, select, td, th {
     font-size: 24px;
 }
 
-.chart-title .change {
+.change {
     border-radius: 5px;
     border:1px solid;
     font-size:11px;
     padding:2px 5px;
 }
 
-.chart-title .change.positive {
+.change.positive {
     border-color: #137333;
     background-color: #e6f4ea;
     color: #137333;
 }
 
 
-.chart-title .change.negative {
+.change.negative {
     border-color: #bb2f2f;
     background-color: #fce8e6;
     color: #a50e0e;
