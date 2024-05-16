@@ -51,11 +51,9 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             height: "100%",
             display: "inline-flex"
         });
-        innerDiv = createElement("div", div, {
-            width: "100%",
-            height: "100%",
-            padding: "20px"
-        });
+        innerDiv = createElement("div", div, "company-profile");
+        innerDiv.style.width = "100%";
+        innerDiv.style.height = "100%";
 
 
 
@@ -100,15 +98,25 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                             company.officers = parseResponse(text);
 
 
-                            get("lastUpdate?source=Awards", {
-                                success: function(dbDate){ //'2024-02-08'
 
-                                    dbDate = moment(new Date(dbDate)).subtract(1, "month").format("YYYY-MM-") + "01";
-                                    lastUpdate = moment(new Date(dbDate)).add(1, "month").subtract(1, "second");
+                            get("CompanyAddresses?companyID=" + company.id, {
+                                success: function(text){
+                                    company.addresses = parseResponse(text);
 
 
-                                    loading = false;
-                                    update(company);
+                                    get("lastUpdate?source=Awards", {
+                                        success: function(dbDate){ //'2024-02-08'
+
+                                            dbDate = moment(new Date(dbDate)).subtract(1, "month").format("YYYY-MM-") + "01";
+                                            lastUpdate = moment(new Date(dbDate)).add(1, "month").subtract(1, "second");
+
+
+                                            loading = false;
+                                            update(company);
+                                        },
+                                        failure: onFailure
+                                    });
+
                                 },
                                 failure: onFailure
                             });
@@ -165,6 +173,10 @@ prospekt.companies.CompanyProfile = function(parent, config) {
       //Add Officers
         createOfficerInfo(company, createElement("div", innerDiv));
 
+
+      //Add Map
+        createMap(company, createElement("div", innerDiv));
+
     };
 
 
@@ -174,7 +186,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var createCompanyOverview = function(company, parent){
 
       //Create title
-        createElement("div", parent, "company-name").innerText = company.name;
+        var companyName = createElement("div", parent, "company-name");
+        companyName.innerText = company.name;
 
 
       //Create stats
@@ -196,7 +209,11 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
             col.setValue = function(value){
-                col.innerText = value;
+                if (isElement(value)){
+                    col.innerHTML = "";
+                    col.appendChild(value);
+                }
+                else col.innerText = value;
             };
             col.setValue(value);
 
@@ -207,6 +224,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         };
 
         [
+            "Headquarters",
+            "Website",
             "Annual Revenue",
             "EBITDA",
             "Backlog",
@@ -817,6 +836,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //** createOfficerInfo
   //**************************************************************************
     var createOfficerInfo = function(company, parent){
+        if (company.officers.length===0) return;
+
 
         createElement("h2", parent).innerText = "Officers";
 
@@ -857,17 +878,40 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
           //Render officers in a grid view
-            var table = createTable(leftCol);
-            table.style.maxWidth = "750px";
-            var tr = table.addRow("table-header");
-            tr.addColumn({ width: "100$"}).innerText = "Name";
-            tr.addColumn({ width: "100$"}).innerText = "Salary";
-            tr.addColumn({ width: "100$"}).innerText = "Active";
+            var div = createElement("div", leftCol, "small");
+            div.style.maxWidth = "750px";
+            div.style.height = "300px";
+            var table = new javaxt.dhtml.Table(div, {
+                style: config.style.table,
+                columns: [
+                    {header: 'Name', width:'100%'},
+                    {header: 'Years of Service', width:'100', align: 'center'},
+                    {header: 'Salary', width:'75', align: 'right'},
+                    {header: 'Active', width:'75', align: 'center'}
+                ]
+            });
             var addRow = function(officer, active){
-                var tr = table.addRow();
-                tr.addColumn().innerText = officer.person.fullName;
-                tr.addColumn().innerText = "$" + addCommas(Math.round(officer.salary));
-                tr.addColumn().innerText = active===true ? true : "-";
+                var yearsOfService = "";
+                if (officer.info && officer.info.salaryHistory){
+                    var salaryHistory = officer.info.salaryHistory;
+                    if (salaryHistory.length>0){
+                        salaryHistory.sort((a,b)=>{
+                            return a.date.localeCompare(b.date);
+                        });
+                        var endDate = active ? lastUpdate : moment(salaryHistory[salaryHistory.length-1].date);
+                        var yearsAgo = endDate.diff(salaryHistory[0].date, 'years', true);
+                        yearsOfService = Math.floor(yearsAgo);
+                        if (yearsOfService<1) yearsOfService = "<1";
+                        else yearsOfService = yearsOfService + "+";
+                    }
+                }
+                //console.log(officer.info.salaryHistory[0], officer.info.salaryHistory[]);
+                table.addRow(
+                    officer.person.fullName,
+                    yearsOfService,
+                    "$" + addCommas(Math.round(officer.salary)),
+                    active===true ? true : "-"
+                );
             };
             currOfficers.forEach((officer)=>{
                 addRow(officer, true);
@@ -974,6 +1018,107 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
 
+  //**************************************************************************
+  //** createMap
+  //**************************************************************************
+    var createMap = function(company, parent){
+        if (company.addresses.length===0) return;
+
+
+        updateAddresses(company.addresses, function(){
+
+            company.addresses.sort((a,b)=>{
+                return b.date.getTime()-a.date.getTime();
+            });
+
+
+          //Update headquaters in company info
+            var companyAddress = company.addresses[0];
+            var address = companyAddress.address;
+            var headquarters = "";
+            if (address){
+                if (address.state){
+                    headquarters = address.state;
+                    if (address.city) headquarters = address.city + ", " + headquarters;
+                }
+                else{
+                    if (address.city){
+                        headquarters = address.city;
+                        if (address.country) headquarters =  headquarters + ", " + address.country;
+                    }
+                    else{
+                        if (address.country) headquarters = address.country;
+                    }
+                }
+
+                companyOverview.set("Headquarters", headquarters);
+            }
+
+
+
+            var website = company.info.website;
+            var link = createElement("a");
+            link.target = "_blank";
+            if (website){
+                link.href = website;
+                var host = website;
+                link.innerHTML = host;
+            }
+            else{
+
+
+                var searchTerms = "\"" + company.name + "\"";
+                if (headquarters.length>0){
+                    searchTerms += " " + headquarters;
+                }
+                link.href = "https://www.google.com/search?q=" + encodeURIComponent(searchTerms);
+                link.innerHTML = "Search...";
+            }
+
+            companyOverview.set("Website", link);
+
+
+            /*
+            company.addresses.forEach((companyAddress)=>{
+                var address = companyAddress.address;
+                console.log(companyAddress.date, address.city, address.state);
+            });
+            */
+
+        });
+    };
+
+
+  //**************************************************************************
+  //** updateOfficers
+  //**************************************************************************
+    var updateAddresses = function(companyAddresses, callback){
+
+        var queue = [];
+        companyAddresses.forEach((companyAddress)=>{
+            if (companyAddress.date) companyAddress.date = new Date(companyAddress.date);
+            if (!companyAddress.address) queue.push(companyAddress);
+        });
+
+
+        var getNextAddress = function(){
+            if (queue.length===0){
+                callback();
+                return;
+            }
+            var companyAddress = queue.shift();
+            get("Address?id=" + companyAddress.addressID, {
+                success: function(text){
+                    companyAddress.address = JSON.parse(text);
+                    getNextAddress();
+                },
+                failure: function(){
+                    getNextAddress();
+                }
+            });
+        };
+        getNextAddress();
+    };
 
 
   //**************************************************************************
@@ -982,6 +1127,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var createElement = javaxt.dhtml.utils.createElement;
     var createTable = javaxt.dhtml.utils.createTable;
     var addShowHide = javaxt.dhtml.utils.addShowHide;
+    var isElement = javaxt.dhtml.utils.isElement;
     var isString = javaxt.dhtml.utils.isString;
     var merge = javaxt.dhtml.utils.merge;
     var round = javaxt.dhtml.utils.round;

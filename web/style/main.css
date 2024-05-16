@@ -830,6 +830,12 @@ body, textarea, input, select, td, th {
 /** Small table
 /**************************************************************************/
 
+.small .table-header-col {
+    height: 24px;
+    line-height: 24px;
+    font-size: 12px;
+}
+
 .small .table-col {
     height: 21px;
     line-height: 21px;
@@ -840,11 +846,34 @@ body, textarea, input, select, td, th {
     color: #ccc7b9;
 }
 
+
+
 /**************************************************************************/
-/** Company
+/** Company Profile
 /**************************************************************************/
 
-.company-name {
+.company-profile {
+    padding: 20px;
+}
+
+.company-profile .table-header-col {
+    border-top: 1px solid #ddd;
+}
+
+.company-profile .table-header-col:first-child {
+    border-left: 1px solid #ccc;
+}
+
+.company-profile .table-col:first-child {
+    border-left: 1px solid #ccc;
+}
+
+.company-profile .table-col:last-child {
+    border-right: 1px solid #ccc;
+}
+
+
+.company-profile .company-name {
     font-size: 36px;
 }
 
@@ -853,11 +882,15 @@ body, textarea, input, select, td, th {
     color:#777;
 }
 
-
 .company-overview  td:first-child {
     font-weight:normal;
     color:#000;
 }
+
+.company-overview a {
+    text-decoration: none;
+}
+
 
 
 /**************************************************************************/
