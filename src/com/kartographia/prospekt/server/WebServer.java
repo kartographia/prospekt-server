@@ -7,16 +7,19 @@ import java.io.IOException;
 import java.security.KeyStore;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javaxt.express.*;
 import javaxt.express.notification.*;
-import javaxt.express.Authenticator;
+import javaxt.express.utils.DateUtils;
 
 import javaxt.http.servlet.*;
 
+import javaxt.sql.*;
 import javaxt.json.*;
 import javaxt.io.Jar;
 import javaxt.io.Directory;
+import javaxt.utils.ThreadPool;
 import javaxt.encryption.BCrypt;
 import static javaxt.utils.Timer.*;
 import static javaxt.utils.Console.*;
@@ -41,6 +44,7 @@ public class WebServer extends HttpServlet {
 
     private WebServices ws;
     private FileManager fileManager;
+    private EventProcessor eventProcessor;
     private Jar jar;
 
 
@@ -192,14 +196,17 @@ public class WebServer extends HttpServlet {
         NotificationService.start();
 
 
+      //Start the EventProcessor
+        eventProcessor = new EventProcessor();
+
+
       //Instantiate file manager
         fileManager = new FileManager(web);
 
 
       //Watch for changes to the web directory
-        EventProcessor p = new EventProcessor();
         fileManager.getFileUpdates((Directory.Event event) -> {
-            p.processEvent(event);
+            eventProcessor.processEvent(event);
         });
 
 
@@ -294,7 +301,6 @@ public class WebServer extends HttpServlet {
         }
 
 
-
       //Add CORS support
         response.addHeader("Access-Control-Allow-Origin", "*");
         response.addHeader("Access-Control-Allow-Headers","*");
@@ -303,7 +309,7 @@ public class WebServer extends HttpServlet {
 
 
       //Log the request
-        if (logger!=null) logger.log(request);
+        eventProcessor.processEvent(request);
 
 
 
@@ -325,11 +331,15 @@ public class WebServer extends HttpServlet {
         }
 
 
-      //Generate response
-        Authenticator authenticator = (Authenticator) getAuthenticator(request);
-        if (!authenticator.handleRequest(service, response)){
+      //Pass the request to the authenticator. If it can handle the request, return early.
+        javaxt.express.Authenticator authenticator = (javaxt.express.Authenticator) getAuthenticator(request);
+        if (authenticator.handleRequest(service, response)) return;
 
-          //Send static file if we can
+
+
+      //Send static file if we can
+        if (!request.isWebSocket()){
+
             if (service.length()==0){
 
               //If the service is empty, send welcome file (e.g. index.html)
@@ -341,7 +351,7 @@ public class WebServer extends HttpServlet {
               //Check if the service matches a file or folder in the web
               //directory. If so, send the static file as requested.
                 for (Object obj : web.getChildren()){
-                    String name = null;
+                    String name;
                     if (obj instanceof javaxt.io.File){
                         name = ((javaxt.io.File) obj).getName();
                     }
@@ -355,14 +365,14 @@ public class WebServer extends HttpServlet {
                 }
 
             }
-
-
-          //If we're still here, we either have a bad file request or a web
-          //service request. In either case, send the request to the
-          //webservices endpoint to process.
-            ws.processRequest(service, path, request, response);
-
         }
+
+
+      //If we're still here, we either have a bad file request or a web
+      //service request. In either case, send the request to the
+      //webservices endpoint to process.
+        ws.processRequest(service, path, request, response);
+
     }
 
 
@@ -403,47 +413,175 @@ public class WebServer extends HttpServlet {
   //**************************************************************************
   //** EventProcessor
   //**************************************************************************
-  /** Used to periodically update the NotificationService when files in the
-   *  web directory have been created, edited, moved, or deleted. Instead of
-   *  broadcasting every single file change, this function will wait for the
-   *  directory to "settle down" and simply broadcast the fact that something
-   *  has changed.
+  /** Used to process changes to the web directory and log web requests
    */
     private class EventProcessor{
-        private ConcurrentHashMap<String, Long> updates = new ConcurrentHashMap<>();
+
+        private final ConcurrentHashMap<String, Long>
+        fileUpdates = new ConcurrentHashMap<>();
         private int len = web.getPath().length();
+
+        private ThreadPool pool;
+        private final ConcurrentHashMap<Long, HashMap<Long, AtomicInteger>>
+        userActivity = new ConcurrentHashMap<>();
+
+
         public EventProcessor(){
 
+
+          //Create timer task to periodically update the NotificationService
+          //when files in the web directory have been created, edited, moved,
+          //or deleted. Instead of broadcasting every single file change, this
+          //timer task will wait for the directory to "settle down" and simply
+          //broadcast the fact that something has changed.
             setInterval(()->{
-                synchronized(updates){
-                    if (!updates.isEmpty()){
+                synchronized(fileUpdates){
+                    if (!fileUpdates.isEmpty()){
 
                         long currTime = System.currentTimeMillis();
                         long lastUpdate = Integer.MAX_VALUE;
 
-                        Iterator<String> it = updates.keySet().iterator();
+                        Iterator<String> it = fileUpdates.keySet().iterator();
                         while (it.hasNext()){
                             String key = it.next();
-                            long t = updates.get(key);
+                            long t = fileUpdates.get(key);
                             if (t>lastUpdate) lastUpdate = t;
                         }
 
                         if (currTime-lastUpdate>2000){
                             NotificationService.notify("update", "WebFile", null);
-                            updates.clear();
-                            updates.notify();
+                            fileUpdates.clear();
+                            fileUpdates.notify();
                         }
                     }
                 }
             }, 250);
 
+
+
+
+          //Create timer task to periodically save user activity
+            setInterval(()->{
+
+              //Get current time as a "yyyyMMddHHmm" long
+                long currTime = DateUtils.getMilliseconds(DateUtils.getCurrentTime());
+                javaxt.utils.Date date = new javaxt.utils.Date(currTime);
+                currTime = Long.parseLong(date.toString("yyyyMMddHHmm", DateUtils.getUTC()));
+
+
+              //Insert records
+                synchronized(userActivity){
+
+                    HashSet<Long> oldKeys = new HashSet<>();
+                    Connection conn = null;
+                    Recordset rs = null;
+
+
+                    Iterator<Long> it = userActivity.keySet().iterator();
+                    while (it.hasNext()){
+                        long key = it.next();
+                        if (key<currTime){
+
+                            String time = key + "";
+                            int l = time.length();
+                            int hour = Integer.parseInt(time.substring(0, l-2));
+                            int minute = Integer.parseInt(time.substring(l-2));
+                            HashMap<Long, AtomicInteger> ua = userActivity.get(key);
+
+                            HashSet<Long> inserts = new HashSet<>();
+                            Iterator<Long> i2 = ua.keySet().iterator();
+                            while (i2.hasNext()){
+                                long userID = i2.next();
+                                int hits = ua.get(userID).get();
+
+                                try{
+                                    if (rs==null){
+                                        conn = Config.getDatabase().getConnection();
+                                        rs = conn.getRecordset("select * from user_activity where id=-1", false);
+                                    }
+                                    rs.addNew();
+                                    rs.setValue("hour", hour);
+                                    rs.setValue("minute", minute);
+                                    rs.setValue("count", hits);
+                                    rs.setValue("user_id", userID);
+                                    rs.update();
+                                    inserts.add(userID);
+                                }
+                                catch(Exception e){
+                                }
+                            }
+
+                            for (long userID : inserts) ua.remove(userID);
+                            if (ua.isEmpty()) oldKeys.add(key);
+                        }
+                    }
+
+                  //Clean up
+                    if (rs!=null) rs.close();
+                    if (conn!=null) conn.close();
+
+                    for (long key : oldKeys) userActivity.remove(key);
+
+                    userActivity.notifyAll();
+                }
+
+
+            }, 2*60*1000); //2 minutes
+
+
+
+          //Start thread pool used to update user activity
+            pool = new ThreadPool(4){
+                public void process(Object obj){
+                    Object[] arr = (Object[]) obj;
+                    Long userID = (Long) arr[0];
+                    Long timestamp = DateUtils.getMilliseconds((Long) arr[1]);
+                    javaxt.utils.Date date = new javaxt.utils.Date(timestamp);
+                    String time = date.toString("yyyyMMddHHmm", DateUtils.getUTC());
+                    long key = Long.parseLong(time);
+
+                    synchronized(userActivity){
+                        HashMap<Long, AtomicInteger> ua = userActivity.get(key);
+                        if (ua==null){
+                            ua = new HashMap<>();
+                            userActivity.put(key, ua);
+                        }
+                        AtomicInteger hits = ua.get(userID);
+                        if (hits==null){
+                            hits = new AtomicInteger(0);
+                            ua.put(userID, hits);
+                        }
+                        hits.incrementAndGet();
+                        userActivity.notifyAll();
+                    }
+                }
+            }.start();
         }
+
+
         public void processEvent(Directory.Event event){
             java.io.File f = new java.io.File(event.getFile());
             String path = f.toString().substring(len).replace("\\", "/");
-            synchronized(updates){
-                updates.put(path, event.getDate().getTime());
-                updates.notify();
+            synchronized(fileUpdates){
+                fileUpdates.put(path, event.getDate().getTime());
+                fileUpdates.notify();
+            }
+        }
+
+        
+        public void processEvent(HttpServletRequest request){
+            if (logger!=null) logger.log(request);
+            if (!request.isWebSocket()){
+                User user = (User) request.getUserPrincipal();
+                if (user!=null){
+                    long userID = user.getID();
+                    long timestamp = DateUtils.getCurrentTime();
+                    String event = "";
+                    String model = "WebRequest";
+                    javaxt.utils.Value data = new javaxt.utils.Value(userID);
+                    NotificationService.notify(event, model, data);
+                    pool.add(new Object[]{userID, timestamp});
+                }
             }
         }
     }
