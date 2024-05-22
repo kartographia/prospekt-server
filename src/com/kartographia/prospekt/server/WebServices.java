@@ -21,9 +21,8 @@ import static javaxt.express.WebService.console;
 import javaxt.express.WebService;
 import javaxt.express.ServiceRequest;
 import javaxt.express.ServiceResponse;
-import javaxt.express.notification.Listener;
-import javaxt.express.notification.NotificationService;
 import javaxt.express.services.QueryService.QueryJob;
+import javaxt.express.notification.NotificationService;
 
 import javaxt.http.servlet.HttpServletRequest;
 import javaxt.http.servlet.HttpServletResponse;
@@ -64,21 +63,26 @@ public class WebServices extends WebService {
 
       //Route notifications to websocket listeners
         WebServices me = this;
-        NotificationService.addListener(new Listener(){
-            public void processEvent(String event, String model, javaxt.utils.Value data, long timestamp){
+        NotificationService.addListener((
+            String event, String model, javaxt.utils.Value data, long timestamp)->{
 
-                if (model.equals("SQL")){
-                    QueryJob queryJob = (QueryJob) data.toObject();
-                    me.notify(event+","+model+","+queryJob.getID()+","+queryJob.getUserID());
-                }
-                else if (model.equals("WebFile")){
-                    me.notify(event+","+model+",0,"+data+",-1");
-                }
-                else if (model.equals("WebRequest")){
-                    //me.notify(event+","+model+",0,"+data);
-                }
-
+          //Simulate notify(String action, Model model, User user)
+          //notify(action+","+model.getClass().getSimpleName()+","+model.getID()+","+userID);
+            long modelID = 0;
+            long userID = -1;
+            if (model.equals("SQL")){
+                QueryJob queryJob = (QueryJob) data.toObject();
+                userID = queryJob.getUserID();
+                me.notify(event+","+model+","+queryJob.getID()+","+userID);
             }
+            else if (model.equals("WebFile")){
+                me.notify(event+","+model+","+modelID+","+userID);
+            }
+            else if (model.equals("WebRequest")){
+                userID = data.toLong();
+                me.notify(event+","+model+","+modelID+","+userID);
+            }
+
         });
     }
 
