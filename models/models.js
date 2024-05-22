@@ -344,6 +344,25 @@ var models = {
             {name: 'opportunity',   required: true, onDelete: 'cascade'},
             {name: 'interest',      required: true}
         ]
+    },
+
+
+  //**************************************************************************
+  //** UserActivity
+  //**************************************************************************
+    UserActivity: {
+        fields: [
+            {name: 'user',      type: 'User'},
+            {name: 'hour',      type: 'int'},
+            {name: 'minute',    type: 'int'},
+            {name: 'count',     type: 'int'}
+        ],
+        constraints: [
+            {name: 'user',      required: true},
+            {name: 'hour',      required: true},
+            {name: 'minute',    required: true},
+            {name: 'count',     required: true}
+        ]
     }
 
 
