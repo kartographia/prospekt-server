@@ -18,6 +18,7 @@ javaxt.dhtml.style.default = {
         title: "panel-title window-title",
         button: "window-header-button",
         buttonBar: "window-header-button-bar",
+        body: "window-body",
         mask: "window-mask"
     },
 
@@ -51,31 +52,22 @@ javaxt.dhtml.style.default = {
     },
 
 
-    /*
     checkbox : {
-        box:   "facet-checkbox",
-        label: "facet-checkbox-label",
-        hover: {
-            border: "1px solid rgb(" + color + ")",
-            background: color2
-        },
-        select: {
-            border: "1px solid #adadad",
-            background: medium
-        },
-        check: {
-            content: "",
-            display: "block",
-            width: "3px",
-            height: "6px",
-            border: "solid rgb(" + color + ")",
-            borderWidth: "0 2px 2px 0",
-            transform: "rotate(45deg)",
-            margin: "1px 0 0 4px"
-        }
-
+        panel: "checkbox-panel",
+        box: "checkbox-box",
+        label: "checkbox-label",
+        check: "checkbox-check",
+        select: "checkbox-select",
+        disable: "checkbox-disable",
+        hover: "checkbox-hover"
     },
-    */
+
+
+    button: {
+        button: "button",
+        select: "button-selected"
+    },
+
 
     toolbarButton : {
         button: "toolbar-button",
@@ -102,8 +94,33 @@ javaxt.dhtml.style.default = {
     },
 
     tabPanel: {
-
+        tabBar: "tab-bar",
+        activeTab: "tab-active",
+        inactiveTab: "tab-inactive",
+        tabBody: "tab-body"
     },
+
+    switch: {
+        groove: "switch-groove",
+        handle: "switch-handle",
+        grooveActive: "switch-groove-active",
+        handleActive: "switch-handle-active"
+    },
+
+
+    datePicker: {
+        panel: "date-picker-panel",
+        header: "date-picker-header",
+        title: "date-picker-title",
+        cell: "date-picker-cell",
+        cellHeader: "date-picker-cell-header",
+        today: "date-picker-cell-today",
+        selectedRow: "date-picker-row-selected",
+        selectedCell: "date-picker-cell-selected",
+        next: "date-picker-next",
+        back: "date-picker-back"
+    },
+
 
     merge : function(settings, defaults) {
         javaxt.dhtml.utils.merge(settings, defaults);
