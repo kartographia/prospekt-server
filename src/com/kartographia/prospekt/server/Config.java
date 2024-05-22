@@ -87,7 +87,7 @@ public class Config {
 
     }
 
-    
+
   //**************************************************************************
   //** load
   //**************************************************************************
@@ -129,9 +129,10 @@ public class Config {
 
 
           //Update list of reserved keywords to exclude "key" and "value"
-          //that are used in the USER_PREFERENCE table
+          //that are used in the USER_PREFERENCE table as well as "hour"
+          //and "minute" that are used in the USER_ACTIVITY table.
             Properties props = database.getProperties();
-            props.setProperty("NON_KEYWORDS", "KEY,VALUE");
+            props.setProperty("NON_KEYWORDS", "KEY,VALUE,HOUR,MINUTE");
         }
 
 
