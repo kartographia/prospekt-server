@@ -40,13 +40,21 @@ public class Main {
 
 
       //Get config file
-        javaxt.io.File configFile = (args.containsKey("-config")) ?
-            ConfigFile.getFile(args.get("-config"), jarFile) :
-            new javaxt.io.File(jarFile.getDirectory(), "config.json");
-
-        if (!configFile.exists()) {
-            System.out.println("Could not find config file. Use the \"-config\" parameter to specify a path to a config");
-            return;
+        javaxt.io.File configFile;
+        if (args.containsKey("-config")){
+            configFile = ConfigFile.getFile(args.get("-config"), jarFile);
+            if (!configFile.exists()) {
+                System.out.println("Could not find config file. " +
+                "Use the \"-config\" parameter to specify a path to a config");
+                return;
+            }
+        }
+        else{
+            javaxt.io.Directory dir = jarFile.getDirectory();
+            configFile = new javaxt.io.File(dir, "config.json");
+            if (!configFile.exists() && dir.getName().equals("dist")) {
+                configFile = new javaxt.io.File(dir.getParentDirectory(), "config.json");
+            }
         }
 
 

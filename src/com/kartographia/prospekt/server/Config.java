@@ -32,7 +32,13 @@ public class Config {
     public static void load(javaxt.io.File configFile, javaxt.io.Jar jar) throws Exception {
 
       //Parse config file
-        JSONObject json = new JSONObject(configFile.getText());
+        JSONObject json;
+        if (configFile.exists()) {
+            json = new JSONObject(configFile.getText());
+        }
+        else{
+            json = new JSONObject();
+        }
 
 
       //Update relative paths in the web config
@@ -48,6 +54,14 @@ public class Config {
 
       //Get database config
         JSONObject dbConfig = json.get("database").toJSONObject();
+        if (dbConfig==null || dbConfig.isEmpty()){
+            dbConfig = new JSONObject();
+            dbConfig.set("driver", "H2");
+            dbConfig.set("maxConnections", "25");
+            dbConfig.set("path", "data/database");
+            dbConfig.set("schema", "models/schema.sql");
+            json.set("database", dbConfig);
+        }
 
 
 
