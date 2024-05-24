@@ -59,10 +59,8 @@ public class Config {
             dbConfig.set("driver", "H2");
             dbConfig.set("maxConnections", "25");
             dbConfig.set("path", "data/database");
-            dbConfig.set("schema", "models/schema.sql");
             json.set("database", dbConfig);
         }
-
 
 
       //Process path variable in the database config
@@ -75,13 +73,11 @@ public class Config {
 
 
       //Get schema file from the database config
-        javaxt.io.File schemaFile = null;
-        if (dbConfig.has("schema")){
-            updateFile("schema", dbConfig, configFile);
-            schemaFile = new javaxt.io.File(dbConfig.get("schema").toString());
-            dbConfig.remove("schema");
-        }
-
+        javaxt.io.File schemaFile;
+        if (!dbConfig.has("schema")) dbConfig.set("schema", "models/schema.sql");
+        updateFile("schema", dbConfig, configFile);
+        schemaFile = new javaxt.io.File(dbConfig.get("schema").toString());
+        dbConfig.remove("schema");
 
 
       //Load config
@@ -92,7 +88,6 @@ public class Config {
         config.set("jar", jar);
         config.set("configFile", configFile);
         config.set("schemaFile", schemaFile);
-
 
 
       //Run validations
