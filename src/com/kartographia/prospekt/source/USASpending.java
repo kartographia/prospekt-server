@@ -265,6 +265,10 @@ public class USASpending {
         LinkedHashMap<String, LinkedHashMap<String, CompanyAddress>> companyAddresses = new LinkedHashMap<>();
         LinkedHashMap<String, LinkedHashMap<String, CompanyOfficer>> companyOfficers = new LinkedHashMap<>();
 
+      //Get sourceID
+        long sourceID = getOrCreateSource(out);
+
+
         for (javaxt.sql.Record record : in.getRecords(sql)){
             String id = record.get("uei").toString();
             javaxt.utils.Date lastUpdate = record.get("l").toDate();
@@ -622,7 +626,7 @@ if (!id.equals(uei)) continue;
 
           //Update awards associated with the company
             ArrayList<JSONObject> awards = getAwards(uei, in);
-            saveAwards(awards, companyID, out);
+            saveAwards(awards, companyID, sourceID, out);
 
 
           //Update company profile
@@ -1006,21 +1010,12 @@ if (!id.equals(uei)) continue;
    *  @param companyID Database key associated with the company
    *  @param conn Connection to the prospekt database
    */
-    private static void saveAwards(ArrayList<JSONObject> awards, Long companyID, Connection conn) throws Exception {
+    private static void saveAwards(ArrayList<JSONObject> awards, Long companyID, long sourceID, Connection conn) throws Exception {
         if (companyID==null) throw new Exception();
 
 
-      //Get sourceID
-        long sourceID = getOrCreateSource(conn);
-
-
-      //Save awards
         for (JSONObject award : awards){
 
-            //System.out.println(award.toString(4));
-
-
-          //Save award in the database
             String sourceKey = award.get("source_key").toString();
             try (Recordset rs = conn.getRecordset(
                 "select * from award where recipient_id=" + companyID +
@@ -1038,9 +1033,7 @@ if (!id.equals(uei)) continue;
                     if (key.equals("info")){
                         JSONObject info = award.get("info").toJSONObject();
                         rs.setValue("info", new javaxt.sql.Function(
-                            "?::jsonb", new Object[]{
-                                info.toString()
-                            }
+                            "?::jsonb", info.toString()
                         ));
                     }
                     else{
