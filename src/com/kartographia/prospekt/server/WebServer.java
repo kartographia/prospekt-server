@@ -568,7 +568,7 @@ public class WebServer extends HttpServlet {
             }
         }
 
-        
+
         public void processEvent(HttpServletRequest request){
             if (logger!=null) logger.log(request);
             if (!request.isWebSocket()){
@@ -576,9 +576,15 @@ public class WebServer extends HttpServlet {
                 if (user!=null){
                     long userID = user.getID();
                     long timestamp = DateUtils.getCurrentTime();
-                    String event = "";
+                    String event = request.getMethod() + " " + request.getPathInfo();
                     String model = "WebRequest";
-                    javaxt.utils.Value data = new javaxt.utils.Value(userID);
+
+                    javaxt.utils.Record info = new javaxt.utils.Record();
+                    info.set("method", request.getMethod());
+                    info.set("path", request.getPathInfo());
+                    info.set("userID", userID);
+
+                    javaxt.utils.Value data = new javaxt.utils.Value(info);
                     NotificationService.notify(event, model, data);
                     pool.add(new Object[]{userID, timestamp});
                 }

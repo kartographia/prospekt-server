@@ -16,13 +16,14 @@ import javaxt.sql.*;
 import javaxt.json.*;
 import javaxt.io.Jar;
 import javaxt.encryption.BCrypt;
-import static javaxt.express.WebService.console;
+import static javaxt.utils.Timer.*;
 
 import javaxt.express.WebService;
 import javaxt.express.ServiceRequest;
 import javaxt.express.ServiceResponse;
 import javaxt.express.services.QueryService.QueryJob;
 import javaxt.express.notification.NotificationService;
+import javaxt.express.utils.DateUtils;
 
 import javaxt.http.servlet.HttpServletRequest;
 import javaxt.http.servlet.HttpServletResponse;
@@ -32,6 +33,7 @@ import javaxt.http.websocket.WebSocketListener;
 
 public class WebServices extends WebService {
 
+    private ConcurrentHashMap<Long, Long> activeUsers;
     private ConcurrentHashMap<String, WebService> webservices;
     private ConcurrentHashMap<Long, WebSocketListener> listeners;
     private static AtomicLong webSocketID;
@@ -53,7 +55,10 @@ public class WebServices extends WebService {
       //Instantiate web services
         webservices = new ConcurrentHashMap<>();
         webservices.put("sql", new SQLService());
-        //webservices.put("awards", new AwardService());
+
+
+      //Create list of active users
+        createActiveUsers();
 
 
       //Websocket stuff
@@ -79,7 +84,9 @@ public class WebServices extends WebService {
                 me.notify(event+","+model+","+modelID+","+userID);
             }
             else if (model.equals("WebRequest")){
-                userID = data.toLong();
+                javaxt.utils.Record webRequest = (javaxt.utils.Record) data.toObject();
+                userID = webRequest.get("userID").toLong();
+                updateActiveUsers(webRequest, timestamp);
                 me.notify(event+","+model+","+modelID+","+userID);
             }
 
@@ -159,6 +166,90 @@ public class WebServices extends WebService {
             return new ServiceResponse(USASpending.getDate());
         }
         return new ServiceResponse(400);
+    }
+
+
+  //**************************************************************************
+  //** getActiveUsers
+  //**************************************************************************
+    public ServiceResponse getActiveUsers(ServiceRequest request, Database database)
+        throws Exception {
+
+        JSONObject json = new JSONObject();
+        synchronized(activeUsers){
+            Iterator<Long> it = activeUsers.keySet().iterator();
+            while (it.hasNext()){
+                long userID = it.next();
+                long lastEvent = DateUtils.getMilliseconds(activeUsers.get(userID));
+                json.set(userID+"", lastEvent);
+            }
+        }
+        return new ServiceResponse(json);
+    }
+
+
+  //**************************************************************************
+  //** createActiveUsers
+  //**************************************************************************
+    private void createActiveUsers(){
+
+        activeUsers = new ConcurrentHashMap<>();
+
+      //Create timer task to periodically clean up activeUsers
+        setInterval(()->{
+            long currTime = DateUtils.getCurrentTime();
+            long maxIdle = 2*60*1000; //2 minutes
+            ArrayList<Long> inactiveUsers = new ArrayList<>();
+            synchronized(activeUsers){
+                Iterator<Long> it = activeUsers.keySet().iterator();
+                while (it.hasNext()){
+                    long userID = it.next();
+                    long lastEvent = activeUsers.get(userID);
+                    if (DateUtils.getMilliseconds(currTime-lastEvent)>maxIdle){
+                        inactiveUsers.add(userID);
+                    }
+                }
+
+                for (long userID : inactiveUsers){
+                    console.log("removing " + userID);
+                    activeUsers.remove(userID);
+                    notify("inactive,User,"+userID+","+userID);
+                }
+                activeUsers.notify();
+            }
+        }, 30*1000); //30 seconds
+    }
+
+
+  //**************************************************************************
+  //** updateActiveUsers
+  //**************************************************************************
+    private void updateActiveUsers(javaxt.utils.Record webRequest, long timestamp){
+
+        Long userID = webRequest.get("userID").toLong();
+        if (userID==null) return;
+
+        String path = webRequest.get("path").toString();
+        if (path==null) path = "";
+        if (path.startsWith("/")) path = path.substring(1);
+
+        String service = path.toLowerCase();
+        if (service.contains("/")) service = service.substring(0, service.indexOf("/"));
+
+
+        synchronized(activeUsers){
+            if (service.equals("logoff")){
+                activeUsers.remove(userID);
+                notify("inactive,User,"+userID+","+userID);
+            }
+            else{
+                Long t = activeUsers.get(userID);
+                if (t==null) t = 0L;
+                if (t>=timestamp) return;
+                activeUsers.put(userID, timestamp);
+            }
+            activeUsers.notify();
+        }
     }
 
 
