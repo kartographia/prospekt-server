@@ -1258,6 +1258,64 @@ body, textarea, input, select, td, th {
 
 
 
+/**************************************************************************/
+/** DBView
+/**************************************************************************/
+
+li.tree-node:hover {
+    background: #5a606d !important;
+    cursor: pointer;
+}
+
+
+/**************************************************************************/
+/** Toolbar Icons
+/**************************************************************************/
+
+.toolbar-button-icon.fas {
+    color: #5a606d;
+    font-size: 16px;
+}
+
+.toolbar-button-icon.fas.fa-check-square {
+    color: green;
+}
+
+/*
+.toolbar-button-icon.fas.fa-trash {
+    color: #8c6c6c;
+}
+*/
+
+.toolbar-button-icon.fas.fa-copy {
+    color: #b59d71;
+}
+
+.toolbar-button-icon.fas.fa-plus-circle {
+    color: #008000; /*green*/
+}
+
+.toolbar-button-icon.fas.fa-edit {
+    color: #864a00; /*brown*/
+}
+
+.toolbar-button-icon.fas.fa-sync-alt {
+    color: #007cba; /*blue*/
+}
+
+.toolbar-button-icon.fas.fa-play {
+    color: #008000; /*green*/
+}
+
+.toolbar-button-icon.fas.fa-stop {
+    color: #000000;
+}
+
+.toolbar-button-icon.fas.fa-times {
+    color: #b11818; /*red - same color as search-bar-cancel*/
+    font-size: 21px;
+}
+
 
 /**************************************************************************/
 /** iScroll overrides

@@ -46,7 +46,11 @@ prospekt.admin.SQLView = function(parent, config) {
                     borderRight: "1px solid #383b41"
                 },
                 table: config.style.table,
-                toolbarButton: config.style.toolbarButton
+                toolbarButton: config.style.toolbarButton,
+                toolbarIcons: {
+                    run: "fas fa-play",
+                    cancel: "fas fa-stop"
+                }
             },
             getTables: getTables,
             createJob: createJob,
@@ -56,16 +60,26 @@ prospekt.admin.SQLView = function(parent, config) {
 
 
         var toolbar = dbView.getComponents().toolbar;
+
+      //Insert div before the other "standard" buttons in DBView
         var t = createElement("div", {
-            width: "250px",
-            //height: "100%",
-            display: "inline-block"
+            display: "inline-block",
+            width: "200px",
+            padding: "0 7px",
+
+          //the following styles keep the div aligned with the other toolbar
+          //buttons. See the toolbar button class in javaxt default.css
+            height: "28px",
+            marginTop: "3px"
+
         });
         toolbar.insertBefore(t, toolbar.childNodes[0]);
 
         var tr = createTable(t).addRow();
         tr.addColumn({"paddingRight": "5px"}).innerText = "Database:";
-        dbPicker = new javaxt.dhtml.ComboBox(tr.addColumn(), config);
+        dbPicker = new javaxt.dhtml.ComboBox(tr.addColumn(), {
+            style: config.style.combobox
+        });
         dbPicker.add("Awards", "awards");
         dbPicker.add("Local", "local");
         dbPicker.setValue("local", true);
@@ -74,8 +88,9 @@ prospekt.admin.SQLView = function(parent, config) {
             getTables();
         };
 
-        createSpacer(tr.addColumn());
 
+        var spacer = createElement("div", "toolbar-spacer");
+        toolbar.insertBefore(spacer, toolbar.childNodes[1]);
 
 
         me.el = dbView.el;
@@ -203,7 +218,6 @@ prospekt.admin.SQLView = function(parent, config) {
     var post = javaxt.dhtml.utils.post;
     var get = javaxt.dhtml.utils.get;
 
-    var createSpacer = prospekt.utils.createSpacer;
 
     init();
 };
