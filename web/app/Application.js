@@ -40,8 +40,46 @@ prospekt.Application = function(parent, config) {
                 "Companies": prospekt.companies.CompanyPanel,
                 "Admin": prospekt.admin.AdminPanel
             },
-            windows: prospekt.windows
+            windows: prospekt.windows,
+            renderers: {
+                profileButton: function(user, profileButton){
+                    if (user.person){
+                        profileButton.innerHTML = user.person.firstName.substring(0,1);
+                    }
+                }
+            }
         });
+
+
+      //Watch for model change events
+        app.onModelChangeEvent = function(op, model, id, userID){
+
+            if (id===document.user.id){
+                if (model==="User"){
+                    if (op==="delete"){
+                        app.logoff();
+                        return;
+                    }
+                    else if (op==="update"){
+                        get(config.url.user + "?id=" + id, {
+                            success: function(text){
+                                var user = JSON.parse(text);
+                                document.user = merge(user, document.user);
+                                if (document.user.status!==1) app.logoff();
+                                else app.update(document.user);
+                            }
+                        });
+                    }
+                }
+            }
+
+        };
+
+
+      //Watch for logoff events
+        app.onLogOff = function(){
+            document.user = null;
+        };
 
 
         me.el = app.el;
