@@ -12,6 +12,19 @@ prospekt.Application = function(parent, config) {
 
     var me = this;
     var defaultConfig = {
+        name: "Prospekt",
+        tabs: {
+            "Home": prospekt.dashboard.DashboardPanel,
+            "Opportunities": prospekt.opportunities.OpportunitiesPanel,
+            "Awards": prospekt.awards.AwardsPanel,
+            "Companies": prospekt.companies.CompanyPanel,
+            "Admin": prospekt.admin.AdminPanel
+        },
+        renderers: {
+            profileButton: function(user, profileButton){
+                updateProfileButton(user, profileButton);
+            }
+        }
     };
 
     var app;
@@ -27,28 +40,11 @@ prospekt.Application = function(parent, config) {
 
 
       //Create windows array
-        prospekt.windows = [];
+        prospekt.windows = config.windows = [];
 
 
       //Instantiate app container with horizontal tabs
-        app = new javaxt.express.app.Horizon(parent, {
-            name: "Prospekt",
-            tabs: {
-                "Home": prospekt.dashboard.DashboardPanel,
-                "Opportunities": prospekt.opportunities.OpportunitiesPanel,
-                "Awards": prospekt.awards.AwardsPanel,
-                "Companies": prospekt.companies.CompanyPanel,
-                "Admin": prospekt.admin.AdminPanel
-            },
-            windows: prospekt.windows,
-            renderers: {
-                profileButton: function(user, profileButton){
-                    if (user.person){
-                        profileButton.innerHTML = user.person.firstName.substring(0,1);
-                    }
-                }
-            }
-        });
+        app = new javaxt.express.app.Horizon(parent, config);
 
 
       //Watch for model change events
@@ -91,6 +87,16 @@ prospekt.Application = function(parent, config) {
   //**************************************************************************
     this.update = function(user){
         app.update(user);
+    };
+
+
+  //**************************************************************************
+  //** updateProfileButton
+  //**************************************************************************
+    var updateProfileButton = function(user, profileButton){
+        if (user.person){
+            profileButton.innerHTML = user.person.firstName.substring(0,1);
+        }
     };
 
 
