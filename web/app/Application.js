@@ -12,10 +12,9 @@ prospekt.Application = function(parent, config) {
 
     var me = this;
     var defaultConfig = {
+        name: "Prospekt",
         style: javaxt.dhtml.style.default
     };
-
-    var appName = "Prospekt";
 
     var waitmask;
     var auth = new javaxt.dhtml.Authentication("login", "logoff");
@@ -153,14 +152,17 @@ prospekt.Application = function(parent, config) {
   //**************************************************************************
     var updateUser = function(user){
         currUser = user;
-        document.title = appName + " - Home";
+        document.title = config.name + " - Home";
         if (user.person){
             profileButton.innerHTML = user.person.firstName.substring(0,1);
         }
 
 
+      //Watch for forward and back events via a 'popstate' listener
+        enablePopstateListener();
 
-      //Show hide admin tab
+
+      //Show/hide admin tab
         if (user.accessLevel===5){
             tabs["Admin"].show();
         }
@@ -188,7 +190,7 @@ prospekt.Application = function(parent, config) {
 
           //Click on user's last tab
             if (!currTab) currTab = user.preferences.get("Tab");
-            if (currTab){
+            if (currTab && tabs[currTab]){
                 tabs[currTab].click();
             }
             else{
@@ -272,116 +274,6 @@ prospekt.Application = function(parent, config) {
 
 
   //**************************************************************************
-  //** showDashboard
-  //**************************************************************************
-    var showDashboard = function(){
-        var dashboardPanel = panels["Dashboard"];
-
-        Object.values(panels).forEach((panel)=>{
-            if (panel===dashboardPanel) return;
-            panel.hide();
-        });
-
-
-        if (dashboardPanel){
-            dashboardPanel.show();
-        }
-        else{
-            dashboardPanel = new prospekt.dashboard.DashboardPanel(body, config);
-            panels["Dashboard"] = dashboardPanel;
-        }
-    };
-
-
-  //**************************************************************************
-  //** showOpportunities
-  //**************************************************************************
-    var showOpportunities = function(){
-        var opportunitiesPanel = panels["Opportunities"];
-
-        Object.values(panels).forEach((panel)=>{
-            if (panel===opportunitiesPanel) return;
-            panel.hide();
-        });
-
-
-        if (opportunitiesPanel){
-            opportunitiesPanel.show();
-        }
-        else{
-            opportunitiesPanel = new prospekt.opportunities.OpportunitiesPanel(body, config);
-            panels["Opportunities"] = opportunitiesPanel;
-        }
-    };
-
-
-  //**************************************************************************
-  //** showAwards
-  //**************************************************************************
-    var showAwards = function(){
-        var awardsPanel = panels["Awards"];
-
-        Object.values(panels).forEach((panel)=>{
-            if (panel===awardsPanel) return;
-            panel.hide();
-        });
-
-
-        if (awardsPanel){
-            awardsPanel.show();
-        }
-        else{
-            awardsPanel = new prospekt.awards.AwardsPanel(body, config);
-            panels["Awards"] = awardsPanel;
-        }
-    };
-
-
-  //**************************************************************************
-  //** showCompanies
-  //**************************************************************************
-    var showCompanies = function(){
-        var companyPanel = panels["Companies"];
-
-        Object.values(panels).forEach((panel)=>{
-            if (panel===companyPanel) return;
-            panel.hide();
-        });
-
-
-        if (companyPanel){
-            companyPanel.show();
-        }
-        else{
-            companyPanel = new prospekt.companies.CompanyPanel(body, config);
-            panels["Companies"] = companyPanel;
-        }
-    };
-
-
-  //**************************************************************************
-  //** showAdmin
-  //**************************************************************************
-    var showAdmin = function(){
-        var adminPanel = panels["Admin"];
-
-        Object.values(panels).forEach((panel)=>{
-            if (panel===adminPanel) return;
-            panel.hide();
-        });
-
-
-        if (adminPanel){
-            adminPanel.show();
-        }
-        else{
-            adminPanel = new prospekt.admin.AdminPanel(body, config);
-            panels["Admin"] = adminPanel;
-        }
-    };
-
-
-  //**************************************************************************
   //** createHeader
   //**************************************************************************
     var createHeader = function(parent){
@@ -426,31 +318,99 @@ prospekt.Application = function(parent, config) {
     var createTabs = function(parent){
         var div = createElement("div", parent, "app-tab-container");
 
-        var addTab = function(label, fn){
+        var addTab = function(label, className){
             var tab = createElement("div", div);
             tab.innerText = label;
-            tab.onclick = function(){
+
+            var fn = function(){
+                var panel = panels[label];
+
+                Object.values(panels).forEach((p)=>{
+                    if (p===panel) return;
+                    p.hide();
+                });
+
+
+                if (panel){
+                    panel.show();
+                }
+                else{
+                    var cls = eval(className);
+                    panel = new cls(body, config);
+                    panels[label] = panel;
+                }
+            };
+
+
+            tab.raise = function(){
                 if (this.className==="active") return;
                 hideWindows();
                 for (var i=0; i<div.childNodes.length; i++){
                     div.childNodes[i].className = "";
                 }
                 this.className = "active";
-                if (fn){
-                    fn.apply(me, []);
-                }
-                document.title = appName + " - " + label;
+                fn.apply(me, []);
+                document.title = config.name + " - " + label;
                 document.user.preferences.set("Tab", label);
             };
+
+
+            tab.onclick = function(){
+                if (this.className==="active") return;
+                this.raise();
+
+                var panel = window.history.state;
+                panel.label = label;
+                panel.popID++;
+
+                var url = ""; //window.location.href;
+                history.pushState(panel, document.title, url);
+            };
+
             tabs[label] = tab;
             addShowHide(tab);
         };
 
-        addTab("Home", showDashboard);
-        addTab("Opportunities", showOpportunities);
-        addTab("Awards", showAwards);
-        addTab("Companies", showCompanies);
-        addTab("Admin", showAdmin);
+        addTab("Home", prospekt.dashboard.DashboardPanel);
+        addTab("Opportunities", prospekt.opportunities.OpportunitiesPanel);
+        addTab("Awards", prospekt.awards.AwardsPanel);
+        addTab("Companies", prospekt.companies.CompanyPanel);
+        addTab("Admin", prospekt.admin.AdminPanel);
+    };
+
+
+  //**************************************************************************
+  //** enablePopstateListener
+  //**************************************************************************
+    var enablePopstateListener = function(){
+        disablePopstateListener();
+        window.addEventListener('popstate', popstateListener);
+
+      //Set initial history. This is critical for the popstate listener
+        if (window.history.state==null){
+            history.replaceState({}, null, '');
+        }
+    };
+
+
+  //**************************************************************************
+  //** disablePopstateListener
+  //**************************************************************************
+    var disablePopstateListener = function(){
+        window.removeEventListener('popstate', popstateListener);
+    };
+
+
+  //**************************************************************************
+  //** popstateListener
+  //**************************************************************************
+  /** Used to processes forward and back events from the browser
+   */
+    var popstateListener = function(e) {
+        var obj = e.state;
+        var label = obj.label;
+        var tab = tabs[label];
+        tab.raise();
     };
 
 
@@ -620,13 +580,7 @@ prospekt.Application = function(parent, config) {
         hideWindows();
 
 
-//      //Delete dashboards
-//        for (var i in panels){
-//            destroy(panels[i].app);
-//        }
-//        apps = [];
-//        currApp = null;
-//
+
 //      //Delete admin panel
 //        if (adminPanel){
 //            adminPanel.clear();
@@ -646,6 +600,9 @@ prospekt.Application = function(parent, config) {
             if (parent) parent.removeChild(profileMenu);
             profileMenu = null;
         }
+
+
+        disablePopstateListener();
 
 
       //Logoff
