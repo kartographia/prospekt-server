@@ -10,6 +10,7 @@ if(!prospekt.companies) prospekt.companies={};
  ******************************************************************************/
 
 prospekt.companies.CompanyPanel = function(parent, config) {
+    this.className = "prospekt.companies.CompanyPanel";
 
     var me = this;
     var defaultConfig = {
@@ -67,6 +68,13 @@ prospekt.companies.CompanyPanel = function(parent, config) {
   //**************************************************************************
     this.update = function(){
         me.clear();
+
+
+      //Enable 'popstate' listener and update history
+        enablePopstateListener();
+        updateHistory({
+            view: "list"
+        });
 
 
         var companyFilter = document.user.preferences.get("CompanyFilter");
@@ -322,7 +330,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 });
 
                 var values = data.length>0 ? data.map(d => d.amount) : [];
-                var lineColor = trend_value(values)>0 ? "green" : "red";
+                var lineColor = getTrend(values)>0 ? "green" : "red";
 
               //Add revenue line to the chart
                 var line = new bluewave.chart.Line({
@@ -354,28 +362,45 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
         companyList.show = function(){
+            companyProfile.hide();
             div.style.opacity = 1;
         };
 
 
         companyList.onRowClick = function(row, e){
             var company = row.record;
+            companyList.showProfile(company.id);
+            addHistory({
+                view: "profile",
+                companyID: company.id
+            });
+        };
+
+
+        companyList.showProfile = function(companyID){
 
             toolbar.hideMenus();
             div.style.opacity = 0.5;
-            companyProfile.show();
 
+            if (companyProfile.companyID && companyProfile.companyID===companyID){
+                companyProfile.show();
+            }
+            else{
+                companyProfile.clear();
+                companyProfile.show();
+                companyProfile.companyID = companyID;
 
-            get("company?id=" + company.id, {
-                success: function(text){
-                    var company = parseResponse(text);
-                    companyProfile.update(company);
-                },
-                failure: function(request){
-                    alert(request);
-                }
-            });
+                get("company?id=" + companyID, {
+                    success: function(text){
+                        var company = parseResponse(text);
+                        companyProfile.update(company);
+                    },
+                    failure: function(request){
+                        alert(request);
+                    }
+                });
 
+            }
 
         };
 
@@ -472,8 +497,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             icon: "fas fa-arrow-left"
         });
         backButton.onClick = function(){
-            companyProfile.hide();
-            companyList.show();
+            history.back();
         };
 
 
@@ -491,6 +515,81 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         });
 
     };
+
+
+  //**************************************************************************
+  //** addHistory
+  //**************************************************************************
+    var addHistory = function(params){
+        updateState(params, false);
+    };
+
+
+  //**************************************************************************
+  //** updateHistory
+  //**************************************************************************
+    var updateHistory = function(params){
+        updateState(params, true);
+    };
+
+
+  //**************************************************************************
+  //** updateState
+  //**************************************************************************
+    var updateState = function(params, replace){
+
+        var title = document.title;
+        var url = "";
+        var state = window.history.state;
+        if (!state) state = {};
+        state[me.className] = params;
+
+        if (replace) history.replaceState(state, title, url);
+        else history.pushState(state, title, url);
+    };
+
+
+  //**************************************************************************
+  //** enablePopstateListener
+  //**************************************************************************
+    var enablePopstateListener = function(){
+        disablePopstateListener();
+        window.addEventListener('popstate', popstateListener);
+
+      //Set initial history. This is critical for the popstate listener
+        if (window.history.state==null){
+            history.replaceState({}, null, '');
+        }
+    };
+
+
+  //**************************************************************************
+  //** disablePopstateListener
+  //**************************************************************************
+    var disablePopstateListener = function(){
+        window.removeEventListener('popstate', popstateListener);
+    };
+
+
+  //**************************************************************************
+  //** popstateListener
+  //**************************************************************************
+  /** Used to processes forward and back events from the browser
+   */
+    var popstateListener = function(e) {
+
+        var rect = javaxt.dhtml.utils.getRect(me.el);
+        if (rect.width===0) return;
+
+        var state = e.state[me.className];
+        if (state.view==="profile"){
+            companyList.showProfile(state.companyID);
+        }
+        else if (state.view==="list"){
+            companyList.show();
+        }
+    };
+
 
 
 
@@ -514,8 +613,6 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         else
             return 0;
     };
-    var val = trend_value([2781, 2667, 2785, 1031, 646, 2340, 2410]);
-    console.log(val)  //# -139.5
 
 
   //**************************************************************************
@@ -535,17 +632,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
     var parseResponse = prospekt.utils.parseResponse;
     var createToolBar = prospekt.utils.createToolBar;
     var createButton = prospekt.utils.createButton;
-
-
-
-
-
-
-
-
     var addCommas = prospekt.utils.addCommas;
-
+    var getTrend = prospekt.utils.getTrend;
 
     init();
-
 };
