@@ -577,6 +577,37 @@ prospekt.utils = {
     addCommas: function(x, decimals) {
         if (isNaN(decimals)) decimals = 0;
         return javaxt.dhtml.utils.round(x, decimals).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    },
+
+
+  //**************************************************************************
+  //** getTrend
+  //**************************************************************************
+  /** Used to calculate if trend is up, down or stable. Credit:
+   *  https://stackoverflow.com/questions/30647330/
+   *  @param nums An array of numbers. Example:
+   *  let nums = [2781, 2667, 2785, 1031, 646, 2340, 2410];
+   *  @returns A number with a trend value. Example -139.5
+   */
+    getTrend: function(nums){
+        var summed_nums = nums.reduce((a, b) => a + b); //sum(nums)
+        var multiplied_data = 0;
+        var summed_index = 0;
+        var squared_index = 0;
+
+        nums.forEach((num, index)=>{ //for index, num in enumerate(nums):
+            index += 1;
+            multiplied_data += index * num;
+            summed_index += index;
+            squared_index += index**2;
+        });
+
+        var numerator = ((nums).length * multiplied_data) - (summed_nums * summed_index);
+        var denominator = ((nums).length * squared_index) - summed_index**2;
+        if (denominator != 0)
+            return numerator/denominator;
+        else
+            return 0;
     }
 
 };
