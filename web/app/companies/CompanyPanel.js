@@ -592,29 +592,6 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
 
-
-    var trend_value = function(nums){
-        var summed_nums = nums.reduce((a, b) => a + b); //sum(nums)
-        var multiplied_data = 0;
-        var summed_index = 0;
-        var squared_index = 0;
-
-        nums.forEach((num, index)=>{ //for index, num in enumerate(nums):
-            index += 1;
-            multiplied_data += index * num;
-            summed_index += index;
-            squared_index += index**2;
-        });
-
-        var numerator = ((nums).length * multiplied_data) - (summed_nums * summed_index);
-        var denominator = ((nums).length * squared_index) - summed_index**2;
-        if (denominator != 0)
-            return numerator/denominator;
-        else
-            return 0;
-    };
-
-
   //**************************************************************************
   //** Utils
   //**************************************************************************
@@ -624,7 +601,6 @@ prospekt.companies.CompanyPanel = function(parent, config) {
     var onRender = javaxt.dhtml.utils.onRender;
     var isDirty = javaxt.dhtml.utils.isDirty;
     var isArray = javaxt.dhtml.utils.isArray;
-    var round = javaxt.dhtml.utils.round;
     var merge = javaxt.dhtml.utils.merge;
     var get = javaxt.dhtml.utils.get;
 
