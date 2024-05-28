@@ -13,13 +13,6 @@ prospekt.Application = function(parent, config) {
     var me = this;
     var defaultConfig = {
         name: "Prospekt",
-        tabs: {
-            "Home": prospekt.dashboard.DashboardPanel,
-            "Opportunities": prospekt.opportunities.OpportunitiesPanel,
-            "Awards": prospekt.awards.AwardsPanel,
-            "Companies": prospekt.companies.CompanyPanel,
-            "Admin": prospekt.admin.AdminPanel
-        },
         renderers: {
             profileButton: function(user, profileButton){
                 updateProfileButton(user, profileButton);
@@ -86,7 +79,19 @@ prospekt.Application = function(parent, config) {
   //** update
   //**************************************************************************
     this.update = function(user){
-        app.update(user);
+
+        var tabs = [
+            {name: "Home", cls: prospekt.dashboard.DashboardPanel},
+            {name: "Opportunities", cls: prospekt.opportunities.OpportunitiesPanel},
+            {name: "Awards", cls: prospekt.awards.AwardsPanel},
+            {name: "Companies", cls: prospekt.companies.CompanyPanel}
+        ];
+
+        if (user.accessLevel===5){
+            tabs.push({name: "Admin", cls: prospekt.admin.AdminPanel});
+        }
+
+        app.update(user, tabs);
     };
 
 
