@@ -34,7 +34,7 @@ prospekt.admin.UserAdmin = function(parent, config) {
 
 
       //Create stats panel
-        userStats = new prospekt.admin.UserStats(table.addRow().addColumn(), config);
+        userStats = new javaxt.express.ActivityMeter(table.addRow().addColumn(), config);
 
       //Create user list
         userList = new prospekt.admin.UserList(table.addRow().addColumn({
