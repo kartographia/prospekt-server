@@ -531,6 +531,8 @@ body, textarea, input, select, td, th {
     transition:0.4s;
 }
 
+/****************************************************************/
+
 .admin-panel .user-stats {
     height: 250px;
     background-color: #fff;
@@ -545,6 +547,11 @@ body, textarea, input, select, td, th {
     border-radius: 50%;
     border: 1px solid #999;
     margin: 11px 5px 0 0;
+}
+
+.admin-panel .table-col .fas.fa-check {
+    color: var(--green-background);
+    line-height: 35px;
 }
 
 
@@ -890,6 +897,8 @@ body, textarea, input, select, td, th {
 
 .company-profile .company-name {
     font-size: 36px;
+    font-weight: 700;
+    color: #404040;
 }
 
 .company-overview  td {
@@ -901,6 +910,24 @@ body, textarea, input, select, td, th {
     font-weight:normal;
     color:#000;
 }
+
+/* Set padding and other styles for the pen */
+.company-overview td:last-child > div {
+    display: inline-block;
+    padding-right: 12px;
+    min-width: 5px;
+}
+
+.company-overview td:last-child > div.editable:hover:after {
+    content: "\f304"; /* pen */
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    font-size: 12px;
+    padding-left: 4px;
+    cursor: pointer;
+    position: absolute;
+}
+
 
 .company-overview a {
     text-decoration: none;

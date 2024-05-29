@@ -22,6 +22,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
     var loading = false;
     var naiscCodes = {};
+    var listeners = [];
     var lastUpdate;
 
 
@@ -67,7 +68,10 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //**************************************************************************
     this.clear = function(){
         innerDiv.innerHTML = "";
-
+        listeners.forEach((listener)=>{
+            document.body.removeEventListener('click', listener);
+        });
+        listeners = [];
     };
 
 
@@ -195,7 +199,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         table.style.height = "";
         table.className = "company-overview";
         var rows = {};
-        var addRow = function(key, value){
+        var addRow = function(key, value, editable){
             var tr = table.addRow();
             tr.addColumn({
                 whiteSpace: "nowrap",
@@ -208,39 +212,121 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             });
 
 
+          //Create custom setValue function for the column
             col.setValue = function(value){
+                col.innerHTML = "";
+
+                var d = createElement("div", col, editable ? "editable" : "");
                 if (isElement(value)){
-                    col.innerHTML = "";
-                    col.appendChild(value);
+                    d.appendChild(value);
                 }
-                else col.innerText = value;
+                else{
+
+                    if (!value || value=="") value = "-";
+                    var span = createElement("span", d);
+                    span.innerText = value;
+
+                    d.onclick = function(e){
+
+                      //Check if the click event is over the edit icon. The edit
+                      //icon appears to the right of the text. It is defined in
+                      //the main.css
+                        if (e.offsetX>(span.offsetWidth-16)){
+
+
+                          //Click the body to hide other editors
+                            document.body.click();
+
+
+                          //Do not propogate the event any further
+                            e.stopPropagation();
+
+
+                          //Update the style of the div so we can get a 100%
+                          //width on the input
+                            d.className = "";
+                            d.style.display = "block";
+
+
+                          //Get current text and clear the div
+                            var currText = this.innerText;
+                            if (currText==="-") currText = "";
+                            this.innerHTML = "";
+
+
+                          //Create input
+                            var input = createElement("input", this, "form-input");
+                            input.style.width = "100%";
+                            input.type = "text";
+                            input.value = currText;
+                            input.orgValue = currText;
+                            input.onkeydown = function(event){
+                                var k = event.keyCode;
+                                if (k === 9 || k === 13) {
+                                    col.setValue(this.value);
+
+                                    if (this.value!==this.orgValue){
+                                        if (!company.info) company.info = {};
+                                        if (!company.info.edits) company.info.edits = {};
+                                        company.info.edits[key] = this.value;
+                                        //TODO: save changes
+                                    }
+
+                                }
+                            };
+                            input.focus();
+                        }
+                    };
+
+                }
             };
+
+
+          //Set value
             col.setValue(value);
 
+
+          //Update the 'rows' map
             rows[key] = {
                 setValue: col.setValue
             };
 
+
+          //Add listener to watch for click events
+            var listener = function(e) {
+                var inputs = col.getElementsByTagName("input");
+                if (inputs.length==0) return;
+                var input = inputs[0];
+                var className = e.target.className;
+                if (input.nodeType === 1 && className != "form-input") {
+                    col.setValue(input.orgValue);
+                };
+            };
+            document.body.addEventListener('click', listener);
+            listeners.push(listener);
         };
+        
 
         [
-            "Headquarters",
-            "Website",
-            "Annual Revenue",
-            "EBITDA",
-            "Backlog",
-            "% Prime Contracts",
-            "% Full and Open",
-            "# Employees",
-            "Customers",
-            "Prime Contract Vehicles",
-            "Services Concentration",
-            "Total Revenue",
-            "Last Update",
-            "Status"
+            {"Headquarters": false},
+            {"Website": true},
+            {"Annual Revenue": false},
+            {"EBITDA": true},
+            {"Backlog": false},
+            {"% Prime Contracts": true},
+            {"% Full and Open": false},
+            {"# Employees": true},
+            {"Customers": true},
+            {"Prime Contract Vehicles": true},
+            {"Services Concentration": true},
+            {"Total Revenue": false},
+            {"Last Update": false},
+            {"Status": false}
 
-        ].forEach((key)=>{
-            addRow(key, "-");
+        ].forEach((o)=>{
+            var key = Object.keys(o)[0];
+            var editable = o[key];
+            addRow(key, "-", editable);
         });
 
 

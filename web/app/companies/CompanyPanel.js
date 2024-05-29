@@ -57,6 +57,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             }
         }
 
+        companyProfile.companyID = null;
+        companyProfile.clear();
         companyProfile.hide();
         companyList.clear();
         companyList.show();
