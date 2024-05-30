@@ -177,8 +177,11 @@ prospekt.awards.AwardsList = function(parent, config) {
     };
 
 
-
-      //Create function to get records by page
+  //**************************************************************************
+  //** getData
+  //**************************************************************************
+  /** Returns records by page
+   */
     var getData = function(page){
         var limit = 50;
         var offset = 0;
@@ -201,6 +204,7 @@ prospekt.awards.AwardsList = function(parent, config) {
     var merge = javaxt.dhtml.utils.merge;
 
     var isAwardActive = prospekt.utils.isAwardActive;
+    var createWindow = prospekt.utils.createWindow;
     var addCommas = prospekt.utils.addCommas;
 
     init();
