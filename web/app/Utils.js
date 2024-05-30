@@ -490,67 +490,115 @@ prospekt.utils = {
 
 
   //**************************************************************************
-  //** warn
+  //** createOverflowPanel
   //**************************************************************************
-  /** Used to display a warning/error message over a given form field.
-   */
-    warn: function(msg, field){
-        var tr = field.row;
-        var td;
-        if (tr){
-            if (tr.childNodes.length===1){//special case for inputs inserted into forms
-                td = tr.childNodes[0];
+    createOverflowPanel: function(parent, config){
+        var createElement = javaxt.dhtml.utils.createElement;
+
+
+      //Set default config options
+        var defaultConfig = {
+            style: {
+                iscroll: javaxt.dhtml.style.default.table.iscroll
             }
-            else{
-                td = tr.childNodes[2];
+        };
+
+
+        if (!config) config = {};
+        config = javaxt.dhtml.utils.merge(config, defaultConfig);
+
+
+      //Create main div with overflow
+        var outerDiv = createElement("div", parent, {
+            position: "relative",
+            width: "100%",
+            height: "100%"
+        });
+
+
+      //Create content div. Oddly needed 2 divs, one with "inline-flex" to get
+      //padding to work correctly
+        var overflowDiv = createElement("div", outerDiv, {
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+            display: "inline-flex"
+        });
+
+
+        var innerDiv = createElement("div", overflowDiv, {
+            position: "relative",
+            width: "100%",
+            height: "100%"
+        });
+
+
+
+      //Create response
+        var ret = {
+            outerDiv: outerDiv,
+            innerDiv: innerDiv,
+            update: function(){},
+            clear: function(){
+                innerDiv.innerHTML = "";
+                ret.update();
+            },
+            scrollToElement: function(el){
+                el.scrollIntoView(false);
             }
+        };
+
+
+      //Add iScroll if available
+        if (typeof IScroll !== 'undefined'){
+
+            javaxt.dhtml.utils.onRender(overflowDiv, function(){
+                overflowDiv.style.overflowY = 'hidden';
+                var iscroll = new IScroll(overflowDiv, {
+                    scrollbars: config.style.iscroll ? "custom" : true,
+                    mouseWheel: true,
+                    fadeScrollbars: false,
+                    hideScrollbars: false
+                });
+                if (config.style.iscroll) {
+                    javaxt.dhtml.utils.setStyle(iscroll, config.style.iscroll);
+                }
+
+
+              //Create custom update function to return to the client so they
+              //can update iscroll as needed (e.g. after adding/removing elements)
+                ret.update = function(){
+                    var h = 0;
+                    for (var i=0; i<ret.innerDiv.childNodes.length; i++){
+                        var el = ret.innerDiv.childNodes[i];
+                        if (el.resizeElement) continue; //ignore resizer
+                        h = Math.max(javaxt.dhtml.utils.getRect(el).bottom, h);
+                    }
+                    h = h - (javaxt.dhtml.utils.getRect(ret.innerDiv).top);
+                    ret.innerDiv.style.height = h + "px";
+                    iscroll.refresh();
+                };
+                ret.update();
+
+
+              //Create custom scrollToElement function
+                ret.scrollToElement = function(el){
+                    overflowDiv.scrollTop = 0;
+                    iscroll.scrollToElement(el);
+                };
+
+
+                ret.iscroll = iscroll;
+                if (config.onRender) config.onRender.apply(this, [ret]);
+            });
+
         }
         else{
-            td = field.el.parentNode;
+            overflowDiv.style.overflowY = 'scroll';
         }
 
-        if (td == null){
-            td = field.el.parentNode;
-        }
-
-        var getRect = javaxt.dhtml.utils.getRect;
-        var rect = getRect(td);
-
-        var inputs = td.getElementsByTagName("input");
-        if (inputs.length==0) inputs = td.getElementsByTagName("textarea");
-        if (inputs.length>0){
-            inputs[0].blur();
-            var cls = "form-input-error";
-            if (inputs[0].className){
-                if (inputs[0].className.indexOf(cls)==-1) inputs[0].className += " " + cls;
-            }
-            else{
-                inputs[0].className = cls;
-            }
-            rect = getRect(inputs[0]);
-            field.resetColor = function(){
-                if (inputs[0].className){
-                    inputs[0].className = inputs[0].className.replace(cls,"");
-                }
-            };
-        }
-
-        var callout = prospekt.utils.formError;
-        if (!callout){
-            callout = new javaxt.dhtml.Callout(document.body,{
-                style:{
-                    panel: "error-callout-panel",
-                    arrow: "error-callout-arrow"
-                }
-            });
-            prospekt.utils.formError = callout;
-        }
-
-        callout.getInnerDiv().innerHTML = msg;
-
-        var x = rect.x + (rect.width/2);
-        var y = rect.y;
-        callout.showAt(x, y, "above", "center");
+        return ret;
     },
 
 
