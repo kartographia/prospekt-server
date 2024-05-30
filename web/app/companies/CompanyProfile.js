@@ -154,7 +154,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
       //Add awards table
-        createAwardsList(company, createElement("div", innerDiv));
+        createCurrentContractList(company, createElement("div", innerDiv));
 
 
       //Add Officers
@@ -167,6 +167,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
       //Update panel scroll
         panel.update();
+        panel.scrollToElement(row);
     };
 
 
@@ -749,136 +750,54 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
   //**************************************************************************
-  //** createAwardsList
+  //** createCurrentContractList
   //**************************************************************************
-    var createAwardsList = function(company, parent){
+    var createCurrentContractList = function(company, parent){
 
-        createElement("h2", parent).innerText = "Awards";
+        createElement("h2", parent).innerText = "Prime Contracts";
+        var p = createElement("p", parent);
+        createElement("span", p).innerText = "Active prime contracts as of " + lastUpdate.format("YYYY-MM-DD") + ". ";
+        var a = createElement("a", p);
+        a.href = "";
+        a.innerText = "Click here";
+        a.onclick = function(e){
+            e.preventDefault();
+            createAwardsList(company);
+        };
+        createElement("span", p).innerText = " to see a full list of current and past awards.";
 
         var div = createElement("div", parent, "small");
         div.style.height = "600px";
 
-        var today = lastUpdate.clone();
 
-        var grid = new javaxt.dhtml.DataGrid(div, {
-            style: config.style.table,
-            columns: [
-                {header: 'Customer', width:'80px'},
-
-                {header: 'Name', width:'100%'},
-
-                {header: 'Contract', width:'75px', align: "left"},
-
-                {header: 'Competed', width:'75px', align: "center"},
-                {header: 'Start Date', width:'75px', align: "right"},
-                {header: 'End Date', width:'75px', align: "right"},
-                {header: 'Funding', width:'100px', align: "right"},
-
-                {header: 'Actions', width:'50px', align: 'center'}
-            ],
-            update: function(row, award){
-                row.set("Customer", award.customer);
-                row.set("Name", award.name);
-                row.set("Contract", award.type);
-
-                if (award.competed==true){}
-                else{
-                    row.set("Competed", "<i class=\"fas fa-times\" style=\"color:#e7a2a2;\"></i>");
-                }
-
-
-                row.set("Start Date", moment(award.date).format("YYYY-MM-DD"));
-
-                if (award.endDate){
-                    row.set("End Date", moment(award.endDate).format("YYYY-MM-DD"));
-                }
-                else{
-                    row.set("End Date", "-");
-                }
-
-
-                var inactive = false;
-                if (award.extendedDate){
-                    if (award.endDate==award.extendedDate){
-                        if (award.endDate){
-                            if (moment(award.endDate).isBefore(today)){
-                                inactive = true;
-                            }
-                        }
-                    }
-                }
-                else{
-                    if (award.endDate){
-                        if (moment(award.endDate).isBefore(today)){
-                            inactive = true;
-                        }
-                    }
-                }
-
-                if (!inactive){
-                    if (award.info && award.info.actions){
-                        var lastEvent = Number.MAX_VALUE;
-                        award.info.actions.forEach((action)=>{
-                            if (action.type==="K") return; //don't look at closeout events
-                            var monthsAgo = Math.ceil(today.diff(new Date(action.date), 'months', true));
-                            lastEvent = Math.min(lastEvent, monthsAgo);
-                        });
-                        if (lastEvent>12) inactive = true;
-                    }
-                    else{
-                        inactive = true;
-                    }
-                }
-
-
-                if (inactive){
-                    var className = row.className;
-                    if (!className) className = "";
-                    row.className+= " inactive";
-                }
-
-
-
-                var val = award.funded;
-                var updateNeg = val<0;
-                val = "$" + addCommas(val, 0);
-                if (updateNeg) val = "-" + val.replace("-","");
-
-                row.set("Funding", val);
-
-                if (award.info){
-                    if (award.info.actions){
-                        row.set("Actions", addCommas(award.info.actions.length));
-                    }
-                }
+        var records = [];
+        company.awards.forEach((award)=>{
+            if (isAwardActive(award, lastUpdate)){
+                records.push(award);
             }
         });
 
-        grid.onRowClick = function(row, e){
-            var award = row.record;
-            if (!awardDetails){
-                var win = createWindow({
-                    style: config.style.window,
-                    title: "Award Details",
-                    width: 1000,
-                    height: 800,
-                    modal: true
-                });
-                awardDetails = new prospekt.awards.AwardDetails(win.getBody(), config);
-                awardDetails.show = function(){
-                    win.show();
-                };
-                awardDetails.hide = function(){
-                    win.hide();
-                };
-                awardDetails.setTitle = function(title){
-                    win.setTitle(title);
-                };
-            }
-            awardDetails.update(award);
-            //awardDetails.setTitle(award.name); //TODO: trim
-            awardDetails.show();
-        };
+        records.sort((a, b)=>{
+            if (isString(a.date)) a.date = new Date(a.date);
+            if (isString(b.date)) b.date = new Date(b.date);
+            return b.date.getTime() - a.date.getTime();
+        });
+
+
+      //Load data
+        var awardsList = new prospekt.awards.AwardsList(div, config);
+        awardsList.update(records, lastUpdate);
+
+    };
+
+
+  //**************************************************************************
+  //** createAwardsList
+  //**************************************************************************
+    var createAwardsList = function(company, parent){
+
+        var div = parent;
+        if (true) return;
 
 
         var records = company.awards.slice(0, company.awards.length);
@@ -889,43 +808,10 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         });
 
 
-      //Create function to get records by page
-        var getData = function(page){
-            var limit = 50;
-            var offset = 0;
-            if (page>1) offset = ((page-1)*limit)+1;
-
-            var data = [];
-            for (var i=offset; i<records.length; i++){
-                data.push(records[i]);
-                if (data.length===limit) break;
-            }
-            return data;
-        };
-
-
-      //Get data
-        var page = 1;
-        var data = getData(page);
-
-
       //Load data
-        grid.load(data, page);
-
-
-      //Watch for scroll events to load more data
-        var pages = {};
-        pages[page+''] = true;
-        grid.onPageChange = function(currPage, prevPage){
-            page = currPage;
-
-            if (!pages[page+'']){
-                grid.load(getData(page), page);
-                pages[page+''] = true;
-            }
-        };
+        var awardsList = new prospekt.awards.AwardsList(div, config);
+        awardsList.update(records, lastUpdate);
     };
-
 
 
   //**************************************************************************
@@ -933,6 +819,21 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //**************************************************************************
     var createTreeMap = function(company, parent){
         //createElement("h2", parent).innerText = "Contract Mix";
+
+
+        var records = company.awards.slice(0, company.awards.length);
+        records.sort((a, b)=>{
+            if (isString(a.date)) a.date = new Date(a.date);
+            if (isString(b.date)) b.date = new Date(b.date);
+            return b.date.getTime() - a.date.getTime();
+        });
+
+
+        records.forEach((award)=>{
+            if (isAwardActive(award, lastUpdate)){
+                //console.log(award);
+            }
+        });
 
         /*
             //Create treemap chart using "demo2" div
@@ -1107,6 +1008,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             });
 
             lineChart.update();
+
+            panel.update();
         });
     };
 
@@ -1350,6 +1253,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var createOverflowPanel = prospekt.utils.createOverflowPanel;
     var parseResponse = prospekt.utils.parseResponse;
     var getNaicsCodes = prospekt.utils.getNaicsCodes;
+    var isAwardActive = prospekt.utils.isAwardActive;
     var createWindow = prospekt.utils.createWindow;
     var addCommas = prospekt.utils.addCommas;
 
