@@ -16,7 +16,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         style: javaxt.dhtml.style.default
     };
 
-    var innerDiv;
+    var panel;
     var companyOverview;
     var awardDetails;
     var linkEditor;
@@ -35,29 +35,10 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         if (!config) config = {};
         config = merge(config, defaultConfig);
 
-
-      //Create main div with overflow
-        var outerDiv = createElement("div", parent, {
-            position: "relative",
-            height: "100%",
-            overflow: "hidden",
-            overflowY: "auto"
-        });
-
-
-      //Create content div. Oddly needed 2 divs, one with "inline-flex" to get
-      //padding to work correctly
-        var div = createElement("div", outerDiv, {
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-            display: "inline-flex"
-        });
-        innerDiv = createElement("div", div, "company-profile");
-        innerDiv.style.width = "100%";
-        innerDiv.style.height = "100%";
-
-
+        panel = createOverflowPanel(parent);
+        var outerDiv = panel.outerDiv;
+        var innerDiv = panel.innerDiv;
+        innerDiv.className = "company-profile";
 
         me.el = outerDiv;
         addShowHide(me);
@@ -68,7 +49,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //** clear
   //**************************************************************************
     this.clear = function(){
-        innerDiv.innerHTML = "";
+        panel.clear();
         listeners.forEach((listener)=>{
             document.body.removeEventListener('click', listener);
         });
@@ -142,6 +123,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //** update
   //**************************************************************************
     var update = function(company){
+        var innerDiv = panel.innerDiv;
 
       //Add company overview
         var row = createElement("div", innerDiv, {
@@ -182,6 +164,9 @@ prospekt.companies.CompanyProfile = function(parent, config) {
       //Add Map
         createMap(company, createElement("div", innerDiv));
 
+
+      //Update panel scroll
+        panel.update();
     };
 
 
@@ -1251,7 +1236,6 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //** editLinks
   //**************************************************************************
     var editLinks = function(company){
-        console.log(company.info);
 
         if (!linkEditor){
 
@@ -1277,7 +1261,6 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                 style: config.style.form,
                 items: items,
                 buttons: [
-
                     {
                         name: "Submit",
                         onclick: function(){
@@ -1290,7 +1273,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                                     var link = links[key].trim();
                                     if (link.length>0){
                                         if (!isValidUrl(link)){
-                                            warn("Invalid URL", form.findField(key));
+                                            form.showError("Invalid URL", form.findField(key));
                                             return;
                                         }
                                         company.info.links[key] = link;
@@ -1310,8 +1293,12 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                         }
                     }
                 ]
-
             });
+
+            form.onChange = function(input, value){
+                form.hideError(input);
+            };
+
 
             linkEditor = {
                 show: win.show,
@@ -1322,7 +1309,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                         for (var key in links) {
                             if (links.hasOwnProperty(key)){
                                 var link = links[key];
-                                form.set(key, link);
+                                form.setValue(key, link);
                             }
                         }
                     }
@@ -1346,7 +1333,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         if (url.length==0) return false;
         return URL.canParse(url) && url.toLowerCase().startsWith('http');
     };
-    
+
 
   //**************************************************************************
   //** Utils
@@ -1360,12 +1347,11 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var round = javaxt.dhtml.utils.round;
     var get = javaxt.dhtml.utils.get;
 
-
+    var createOverflowPanel = prospekt.utils.createOverflowPanel;
     var parseResponse = prospekt.utils.parseResponse;
     var getNaicsCodes = prospekt.utils.getNaicsCodes;
     var createWindow = prospekt.utils.createWindow;
     var addCommas = prospekt.utils.addCommas;
-    var warn = prospekt.utils.warn;
 
     init();
 
