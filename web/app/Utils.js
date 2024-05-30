@@ -490,6 +490,72 @@ prospekt.utils = {
 
 
   //**************************************************************************
+  //** warn
+  //**************************************************************************
+  /** Used to display a warning/error message over a given form field.
+   */
+    warn: function(msg, field){
+        var tr = field.row;
+        var td;
+        if (tr){
+            if (tr.childNodes.length===1){//special case for inputs inserted into forms
+                td = tr.childNodes[0];
+            }
+            else{
+                td = tr.childNodes[2];
+            }
+        }
+        else{
+            td = field.el.parentNode;
+        }
+
+        if (td == null){
+            td = field.el.parentNode;
+        }
+
+        var getRect = javaxt.dhtml.utils.getRect;
+        var rect = getRect(td);
+
+        var inputs = td.getElementsByTagName("input");
+        if (inputs.length==0) inputs = td.getElementsByTagName("textarea");
+        if (inputs.length>0){
+            inputs[0].blur();
+            var cls = "form-input-error";
+            if (inputs[0].className){
+                if (inputs[0].className.indexOf(cls)==-1) inputs[0].className += " " + cls;
+            }
+            else{
+                inputs[0].className = cls;
+            }
+            rect = getRect(inputs[0]);
+            field.resetColor = function(){
+                if (inputs[0].className){
+                    inputs[0].className = inputs[0].className.replace(cls,"");
+                }
+            };
+        }
+
+        var callout = prospekt.utils.formError;
+        if (!callout){
+            callout = new javaxt.dhtml.Callout(document.body,{
+                style:{
+                    panel: "error-callout-panel",
+                    arrow: "error-callout-arrow"
+                }
+            });
+            prospekt.utils.formError = callout;
+        }
+
+        callout.getInnerDiv().innerHTML = msg;
+
+        var x = rect.x + (rect.width/2);
+        var y = rect.y;
+        callout.showAt(x, y, "above", "center");
+    },
+
+
+
+  //**************************************************************************
   //** getNaicsCodes
   //**************************************************************************
     getNaicsCodes: function(callback){
