@@ -19,6 +19,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var innerDiv;
     var companyOverview;
     var awardDetails;
+    var linkEditor;
 
     var loading = false;
     var naiscCodes = {};
@@ -282,6 +283,52 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             };
 
 
+            if (key==="Links"){
+
+                value = {
+                    "Website": "",
+                    "LinkedIn": "",
+                    "Facebook": "",
+                    "Twitter": "",
+                    "Search": ""
+                };
+
+
+                var d = createElement("div", col, "company-links editable");
+                d.onclick = function(e){
+                    if (e.offsetX>(this.offsetWidth-16)){
+                        editLinks(company);
+                    }
+                };
+
+
+                var links = {};
+                links["Website"] = createElement("i", d, "fas fa-globe inactive");
+                links["LinkedIn"] = createElement("i", d, "fab fa-linkedin inactive");
+                links["Facebook"] = createElement("i", d, "fab fa-facebook-square inactive");
+                links["Twitter"] = createElement("i", d, "fab fa-twitter inactive");
+                links["Search"] = createElement("i", d, "fas fa-search inactive");
+
+                col.setValue = function(value){
+
+                    for (var key in links) {
+                        if (links.hasOwnProperty(key)){
+                            if (value[key]){
+                                var i = links[key];
+                                i.className = i.className.replace("inactive", "");
+                                i.url = value[key];
+                                i.onclick = function(){
+                                    window.open(this.url, '_blank').focus();
+                                };
+                            }
+                        }
+                    }
+
+                };
+            };
+
+
+
           //Set value
             col.setValue(value);
 
@@ -305,11 +352,11 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             document.body.addEventListener('click', listener);
             listeners.push(listener);
         };
-        
+
 
         [
             {"Headquarters": false},
-            {"Website": true},
+            {"Links": true},
             {"Annual Revenue": false},
             {"EBITDA": true},
             {"Backlog": false},
@@ -358,6 +405,12 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             companyOverview.set("Services Concentration", Object.values(codes).join("; "));
         }
 
+
+        if (company.info){
+            if (company.info.links){
+                companyOverview.set("Links", company.info.links);
+            }
+        }
 
 
         if (company.recentAwards) companyOverview.set("Status", "Active");
@@ -819,7 +872,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         grid.onRowClick = function(row, e){
             var award = row.record;
             if (!awardDetails){
-                var win = new javaxt.dhtml.Window(document.body, {
+                var win = createWindow({
                     style: config.style.window,
                     title: "Award Details",
                     width: 1000,
@@ -1142,26 +1195,13 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
 
-            var website = company.info.website;
-            var link = createElement("a");
-            link.target = "_blank";
-            if (website){
-                link.href = website;
-                var host = website;
-                link.innerHTML = host;
-            }
-            else{
 
-
-                var searchTerms = "\"" + company.name + "\"";
-                if (headquarters.length>0){
-                    searchTerms += " " + headquarters;
-                }
-                link.href = "https://www.google.com/search?q=" + encodeURIComponent(searchTerms);
-                link.innerHTML = "Search...";
-            }
-
-            companyOverview.set("Website", link);
+          //Update search link
+            var searchTerms = "\"" + company.name + "\"";
+            if (headquarters.length>0) searchTerms += " " + headquarters;
+            companyOverview.set("Links", {
+                "Search": "https://www.google.com/search?q=" + encodeURIComponent(searchTerms)
+            });
 
 
             /*
@@ -1208,6 +1248,107 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
   //**************************************************************************
+  //** editLinks
+  //**************************************************************************
+    var editLinks = function(company){
+        console.log(company.info);
+
+        if (!linkEditor){
+
+            var items = [];
+            ["Website","LinkedIn","Facebook","Twitter"].forEach((item)=>{
+                items.push({
+                    name: item,
+                    label: item,
+                    type: "text",
+                    required: false
+                });
+            });
+
+
+            var win = createWindow({
+                style: config.style.window,
+                title: "Edit Links",
+                width: 600,
+                modal: true
+            });
+
+            var form = new javaxt.dhtml.Form(win.getBody(), {
+                style: config.style.form,
+                items: items,
+                buttons: [
+
+                    {
+                        name: "Submit",
+                        onclick: function(){
+                            if (!company.info) company.info = {};
+                            company.info.links = {};
+
+                            var links = form.getData();
+                            for (var key in links) {
+                                if (links.hasOwnProperty(key)){
+                                    var link = links[key].trim();
+                                    if (link.length>0){
+                                        if (!isValidUrl(link)){
+                                            warn("Invalid URL", form.findField(key));
+                                            return;
+                                        }
+                                        company.info.links[key] = link;
+                                    }
+                                }
+                            }
+
+                            companyOverview.set("Links", company.info.links);
+
+                            win.close();
+                        }
+                    },
+                    {
+                        name: "Cancel",
+                        onclick: function(){
+                            win.close();
+                        }
+                    }
+                ]
+
+            });
+
+            linkEditor = {
+                show: win.show,
+                update: function(company){
+                    form.clear();
+                    if (company.info && company.info.links){
+                        var links = company.info.links;
+                        for (var key in links) {
+                            if (links.hasOwnProperty(key)){
+                                var link = links[key];
+                                form.set(key, link);
+                            }
+                        }
+                    }
+                }
+            };
+
+        }
+
+        linkEditor.update(company);
+        linkEditor.show();
+    };
+
+
+  //**************************************************************************
+  //** isValidUrl
+  //**************************************************************************
+    var isValidUrl = function(url) {
+        if (!url) return false;
+        url += "";
+        url = url.trim();
+        if (url.length==0) return false;
+        return URL.canParse(url) && url.toLowerCase().startsWith('http');
+    };
+    
+
+  //**************************************************************************
   //** Utils
   //**************************************************************************
     var createElement = javaxt.dhtml.utils.createElement;
@@ -1222,7 +1363,9 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
     var parseResponse = prospekt.utils.parseResponse;
     var getNaicsCodes = prospekt.utils.getNaicsCodes;
+    var createWindow = prospekt.utils.createWindow;
     var addCommas = prospekt.utils.addCommas;
+    var warn = prospekt.utils.warn;
 
     init();
 

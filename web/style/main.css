@@ -32,6 +32,19 @@ body, textarea, input, select, td, th {
     --big-button-size: 60px;
 }
 
+.fab.fa-linkedin {
+    color: #0a66c2;
+}
+
+.fab.fa-facebook-square {
+    color: #38529a;
+}
+
+.fab.fa-twitter {
+    color: #1c96e8;
+}
+
+
 
 /**************************************************************************/
 /** App Header
@@ -928,12 +941,39 @@ body, textarea, input, select, td, th {
     position: absolute;
 }
 
+.company-overview .company-links i {
+    padding: 0 6px 0 0;
+    font-size: 17px;
+    opacity: 0.8;
+    cursor: pointer;
+}
 
-.company-overview a {
-    text-decoration: none;
+.company-overview .company-links i:hover{
+    opacity: 1;
+}
+
+.company-overview .company-links i.inactive {
+    color: #acafb6;
+    opacity: 0.4;
+    cursor: default;
+}
+
+.company-overview .company-links i.inactive:hover {
+    opacity: 0.4;
 }
 
 
+
+/*
+.company-overview .company-links i:hover:after {
+    color:#777;
+    font-family: 'Open Sans',helvetica,arial,verdana,sans-serif;
+}
+
+.company-overview .company-links i.inactive:hover:after {
+    content: '';
+}
+*/
 
 /**************************************************************************/
 /** Popover panel
