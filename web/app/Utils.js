@@ -684,6 +684,46 @@ prospekt.utils = {
     },
 
 
+  //**************************************************************************
+  //** isAwardActive
+  //**************************************************************************
+    isAwardActive: function(award, lastUpdate){
+        var inactive = false;
+        if (award.extendedDate){
+            if (award.endDate==award.extendedDate){
+                if (award.endDate){
+                    if (moment(award.endDate).isBefore(lastUpdate)){
+                        inactive = true;
+                    }
+                }
+            }
+        }
+        else{
+            if (award.endDate){
+                if (moment(award.endDate).isBefore(lastUpdate)){
+                    inactive = true;
+                }
+            }
+        }
+
+        if (!inactive){
+            if (award.info && award.info.actions){
+                var lastEvent = Number.MAX_VALUE;
+                award.info.actions.forEach((action)=>{
+                    if (action.type==="K") return; //don't look at closeout events
+                    var monthsAgo = Math.ceil(lastUpdate.diff(new Date(action.date), 'months', true));
+                    lastEvent = Math.min(lastEvent, monthsAgo);
+                });
+                if (lastEvent>12) inactive = true;
+            }
+            else{
+                inactive = true;
+            }
+        }
+
+        return !inactive;
+    },
+
 
   //**************************************************************************
   //** addCommas
