@@ -812,6 +812,30 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         var awardsList = new prospekt.awards.AwardsList(div, config);
         awardsList.update(records, lastUpdate);
 
+
+      //Add logic to enable/disable scrolling (prevent double scrolling)
+        awardsList.disableScroll();
+        awardsList.onScroll = function(){
+            panel.disableScroll();
+        };
+        var listener = function(e) {
+            if (panel.isScrollEnabled()) return;
+
+            var rect = javaxt.dhtml.utils.getRect(div);
+            if (e.clientX>=rect.left && e.clientX<=rect.right){
+                if (e.clientY>=rect.top && e.clientY<=rect.bottom){
+                    return;
+                }
+            }
+
+            awardsList.disableScroll();
+            panel.enableScroll();
+        };
+        document.body.addEventListener('click', listener);
+        listeners.push(listener);
+
+
+        //document.body.addEventListener('wheel', listener);
     };
 
 

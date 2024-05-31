@@ -533,6 +533,7 @@ prospekt.utils = {
             height: "100%"
         });
 
+        var scrollEnabled = true;
 
 
       //Create response
@@ -546,6 +547,15 @@ prospekt.utils = {
             },
             scrollToElement: function(el){
                 el.scrollIntoView(false);
+            },
+            enableScroll: function(){
+                scrollEnabled = true;
+            },
+            disableScroll: function(){
+                scrollEnabled = false;
+            },
+            isScrollEnabled: function(){
+                return scrollEnabled;
             }
         };
 
@@ -589,6 +599,17 @@ prospekt.utils = {
                 };
 
 
+                iscroll.on('scrollStart', function(){
+
+                    if (!scrollEnabled){
+                      //Stop iscroll! Not sure how to do this but throwing an
+                      //error seems to work...
+                        throw new Error('IScroll disabled');
+                        return;
+                    }
+
+                });
+
                 ret.iscroll = iscroll;
                 if (config.onRender) config.onRender.apply(this, [ret]);
             });
@@ -596,6 +617,15 @@ prospekt.utils = {
         }
         else{
             overflowDiv.style.overflowY = 'scroll';
+
+            overflowDiv.onscroll = function(e){
+
+                if (!scrollEnabled){ //not tested...
+                    e.preventDefault();
+                    return;
+                }
+
+            };
         }
 
         return ret;

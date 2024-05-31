@@ -84,6 +84,21 @@ prospekt.awards.AwardsList = function(parent, config) {
     };
 
 
+    this.enableScroll = function(){
+        grid.enableScroll();
+    };
+
+    this.disableScroll = function(){
+        grid.disableScroll();
+    };
+
+    this.isScrollEnabled = function(){
+        return grid.isScrollEnabled();
+    };
+
+    this.onScroll = function(){};
+
+
   //**************************************************************************
   //** createList
   //**************************************************************************
@@ -157,6 +172,12 @@ prospekt.awards.AwardsList = function(parent, config) {
             }
         });
 
+
+        grid.el.onclick = function(){
+            grid.enableScroll();
+        };
+
+
         grid.onRowClick = function(row, e){
             var award = row.record;
             if (!awardDetails){
@@ -181,6 +202,11 @@ prospekt.awards.AwardsList = function(parent, config) {
             awardDetails.update(award);
             //awardDetails.setTitle(award.name); //TODO: trim
             awardDetails.show();
+        };
+
+
+        grid.onScroll = function(){
+            me.onScroll();
         };
 
     };
