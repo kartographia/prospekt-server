@@ -57,7 +57,7 @@ prospekt.awards.AwardDetails = function(parent, config) {
 
 
   //**************************************************************************
-  //** createProfile
+  //** createOverview
   //**************************************************************************
     var createOverview = function(parent){
 
@@ -127,9 +127,6 @@ prospekt.awards.AwardDetails = function(parent, config) {
 
 
 
-
-
-
         overview = {};
 
         overview.clear = function(){
@@ -155,7 +152,12 @@ prospekt.awards.AwardDetails = function(parent, config) {
                     var val = award[key];
 
                     if (key.indexOf("Date")>-1){
-                        val = moment(val).format("YYYY-MM-DD");
+                        if (val){
+                            val = moment(val).format("YYYY-MM-DD");
+                        }
+                        else{
+                            val = "-";
+                        }
                     }
                     else if (key.indexOf("Value")>-1 || key.indexOf("value")>-1 || key.indexOf("funded")>-1){
                         var updateNeg = val<0;
@@ -171,7 +173,7 @@ prospekt.awards.AwardDetails = function(parent, config) {
 
 
   //**************************************************************************
-  //** createList
+  //** createTranactionList
   //**************************************************************************
     var createTranactionList = function(parent){
 

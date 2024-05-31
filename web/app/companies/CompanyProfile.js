@@ -16,15 +16,18 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         style: javaxt.dhtml.style.default
     };
 
+  //Components
     var panel;
     var companyOverview;
     var awardDetails;
     var linkEditor;
+    var waitmask;
 
+  //Variables
     var loading = false;
     var naiscCodes = {};
     var listeners = [];
-    var lastUpdate;
+    var dbDate, lastUpdate;
 
 
   //**************************************************************************
@@ -34,6 +37,11 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
         if (!config) config = {};
         config = merge(config, defaultConfig);
+
+
+        if (!config.waitmask) config.waitmask = new javaxt.express.WaitMask(document.body);
+        waitmask = config.waitmask;
+
 
         panel = createOverflowPanel(parent);
         var outerDiv = panel.outerDiv;
@@ -65,11 +73,16 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         if (loading) return;
         me.clear();
 
+
         loading = true;
+        waitmask.show(500);
         var onFailure = function(request){
             loading = false;
+            waitmask.hide();
             alert(request);
         };
+
+
         getNaicsCodes(function(naics){
             naiscCodes = naics;
 
@@ -91,13 +104,15 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
                                     get("lastUpdate?source=Awards", {
-                                        success: function(dbDate){ //'2024-02-08'
+                                        success: function(d){ //'2024-02-08'
 
-                                            dbDate = moment(new Date(dbDate)).subtract(1, "month").format("YYYY-MM-") + "01";
-                                            lastUpdate = moment(new Date(dbDate)).add(1, "month").subtract(1, "second");
+                                            dbDate = d;
+                                            d = moment(new Date(d)).subtract(1, "month").format("YYYY-MM-") + "01";
+                                            lastUpdate = moment(new Date(d)).add(1, "month").subtract(1, "second");
 
 
                                             loading = false;
+                                            waitmask.hide();
                                             update(company);
                                         },
                                         failure: onFailure
@@ -583,6 +598,10 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //**************************************************************************
     var createPieCharts = function(company, parent){
         createElement("h2", parent).innerText = "Revenue Mix";
+        createElement("p", parent).innerText =
+        "Estimated revenue mix from prime contracts. Revenue is computed using " +
+        "the total value of individual awards. The only exception are IDIQs " +
+        "where we ignore the total value and use the funded value instead.";
 
 
         var revenueByType = {};
@@ -756,7 +775,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
         createElement("h2", parent).innerText = "Prime Contracts";
         var p = createElement("p", parent);
-        createElement("span", p).innerText = "Active prime contracts as of " + lastUpdate.format("YYYY-MM-DD") + ". ";
+        createElement("span", p).innerText = "Active prime contracts as of " + dbDate + ". ";
         var a = createElement("a", p);
         a.href = "";
         a.innerText = "Click here";
@@ -778,9 +797,14 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         });
 
         records.sort((a, b)=>{
-            if (isString(a.date)) a.date = new Date(a.date);
-            if (isString(b.date)) b.date = new Date(b.date);
-            return b.date.getTime() - a.date.getTime();
+            var getVal = function(a){
+                var val = a.extendedValue;
+                if (isNaN(parseFloat(val+""))) val = a.value;
+                if (isNaN(parseFloat(val+""))) val = a.funded;
+                if (isNaN(parseFloat(val+""))) val = 0;
+                return val;
+            };
+            return getVal(b)-getVal(a);
         });
 
 
@@ -794,23 +818,51 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //**************************************************************************
   //** createAwardsList
   //**************************************************************************
-    var createAwardsList = function(company, parent){
+    var createAwardsList = function(company){
 
-        var div = parent;
-        if (true) return;
+        if (!awardDetails){
+
+            var style = config.style.window;
+            //TODO: remove padding
+
+            var win = createWindow({
+                style: style,
+                title: "Awards",
+                width: 1200,
+                height: 800,
+                modal: true
+            });
 
 
-        var records = company.awards.slice(0, company.awards.length);
-        records.sort((a, b)=>{
-            if (isString(a.date)) a.date = new Date(a.date);
-            if (isString(b.date)) b.date = new Date(b.date);
-            return b.date.getTime() - a.date.getTime();
-        });
+            var style = config.style;
+            //TODO: use compact table style
+
+            var awardsList = new prospekt.awards.AwardsList(win.getBody(), {
+                style: style
+            });
 
 
-      //Load data
-        var awardsList = new prospekt.awards.AwardsList(div, config);
-        awardsList.update(records, lastUpdate);
+            awardDetails = {
+                clear: awardsList.clear,
+                update: function(company){
+
+                    var records = company.awards.slice(0, company.awards.length);
+                    records.sort((a, b)=>{
+                        if (isString(a.date)) a.date = new Date(a.date);
+                        if (isString(b.date)) b.date = new Date(b.date);
+                        return b.date.getTime() - a.date.getTime();
+                    });
+
+                    awardsList.update(records, lastUpdate);
+                },
+                show: win.show
+            };
+        }
+
+
+        awardDetails.clear();
+        awardDetails.show();
+        awardDetails.update(company);
     };
 
 

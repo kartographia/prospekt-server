@@ -102,8 +102,8 @@ prospekt.awards.AwardsList = function(parent, config) {
                 {header: 'Start Date', width:'75px', align: "right"},
                 {header: 'End Date', width:'75px', align: "right"},
                 {header: 'Funding', width:'100px', align: "right"},
-
-                {header: 'Actions', width:'50px', align: 'center'}
+                {header: 'Ceiling', width:'100px', align: "right"},
+                {header: 'Actions', width:'24px', align: 'center'}
             ],
             update: function(row, award){
                 row.set("Customer", award.customer);
@@ -137,8 +137,17 @@ prospekt.awards.AwardsList = function(parent, config) {
                 var updateNeg = val<0;
                 val = "$" + addCommas(val, 0);
                 if (updateNeg) val = "-" + val.replace("-","");
-
                 row.set("Funding", val);
+
+
+                var val = award.extendedValue;
+                if (isNaN(parseFloat(val+""))) val = award.value;
+                //if (isNaN(parseFloat(val+""))) val = award.funded;
+                var updateNeg = val<0;
+                val = "$" + addCommas(val, 0);
+                if (updateNeg) val = "-" + val.replace("-","");
+                row.set("Ceiling", val);
+
 
                 if (award.info){
                     if (award.info.actions){
