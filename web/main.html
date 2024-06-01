@@ -31,9 +31,7 @@
     window.onload = function() {
       javaxt.dhtml.utils.updateDOM();
 
-      var app = new prospekt.Application(document.body, {
-          waitmask: document.waitmask
-      });
+      var app = new prospekt.Application(document.body);
       app.update(document.user);
     };
   </script>

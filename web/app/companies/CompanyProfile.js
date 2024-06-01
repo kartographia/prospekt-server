@@ -400,10 +400,12 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
             var codes = {};
             company.recentNaics.forEach((code)=>{
-                code = code.substring(0, 3);
+                code = code.substring(0, 2);
                 codes[code] = naiscCodes[code];
             });
-            companyOverview.set("Services Concentration", Object.values(codes).join("; "));
+            companyOverview.set("Services Concentration",
+                [...new Set(Object.values(codes))].join(", ")
+            );
         }
 
 
@@ -701,15 +703,44 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             createElement("div", parent, "chart-title").innerText = title;
 
             var data = [];
+            var total = 0;
             Object.keys(kvp).forEach((key)=>{
+                var value = kvp[key];
+                total += value;
                 data.push({
                     key: key,
-                    value: Math.round(kvp[key])
+                    value: kvp[key]
                 });
             });
             data.sort((a, b)=>{
                 return b.value-a.value;
             });
+
+
+          //Create a "other" group using values that make up less than 5% of the pie
+            for (var i=0; i<data.length; i++){
+                var value = data[i].value;
+                var p = value/total;
+                if (p<0.05){
+
+                    var numOthers = data.length-i;
+                    if (numOthers>1){
+                        console.log("numOthers", numOthers);
+
+                        var other = 0;
+                        for (var j=i; j<data.length; j++){
+                            other += data[j].value;
+                        }
+
+                        data = data.slice(0, i);
+                        data.push({
+                            key: "Other",
+                            value: other
+                        });
+                    }
+                    break;
+                }
+            }
 
             var div = createElement("div", parent, {
                 width: "400px",
@@ -756,7 +787,14 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             table.className = "chart-data-table";
             data.forEach((d)=>{
                 var tr = table.addRow();
-                tr.addColumn({minWidth: "150px"}).innerText = d.key + (isNaisc ? (": " + naiscCodes[d.key]) : "");
+                var desc = "";
+                if (isNaisc){
+                    if (naiscCodes[d.key]){
+                        desc = ": " + naiscCodes[d.key];
+                    }
+                }
+
+                tr.addColumn({minWidth: "150px"}).innerText = d.key + desc;
                 tr.addColumn({textAlign: "right"}).innerText = "$" + addCommas(Math.round(d.value));
             });
         };

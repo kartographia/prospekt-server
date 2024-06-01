@@ -319,7 +319,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                     if (code.length>2) code = code.substring(0, 2);
                     recentNaics[code] = naiscCodes[code];
                 });
-                services.innerText = "Services Concentration: " + Object.values(recentNaics).join(", ");
+                services.innerText = "Services Concentration: " +
+                [...new Set(Object.values(recentNaics))].join(", ");
 
 
 
