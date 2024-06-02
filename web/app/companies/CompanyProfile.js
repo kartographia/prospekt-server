@@ -542,6 +542,9 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         d.innerText = "$" + addCommas(Math.round(annualRevenue));
 
         var p = ((annualRevenue-previousRevenue)/previousRevenue)*100;
+        if (previousRevenue===0 && annualRevenue>0){
+            p = 100;
+        }
         var d = createElement("div", div, "change " + (p>0 ? "positive" : "negative") );
         d.style.display = "inline-block";
         d.style.float = "left";
@@ -560,7 +563,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         var chartArea = table.addRow().addColumn("chart-area");
         var footerArea = table.addRow().addColumn("chart-disclaimer");
         footerArea.innerText =
-        "*Monthly revenue estimates are based on contract value divided over the period of performance. " +
+        "*Revenue is calculated using the last 12 months of data, ending on " + dbDate + ". " +
+        "Monthly revenue estimates are based on contract value divided over the period of performance. " +
         "In the case of IDIQ awards, total funding is used instead of contract value. " +
         "Actual monthly revenue may vary significantly.";
 
@@ -813,7 +817,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
         createElement("h2", parent).innerText = "Prime Contracts";
         var p = createElement("p", parent);
-        createElement("span", p).innerText = "Active prime contracts as of " + dbDate + ". ";
+        var span = createElement("span", p);
+        span.innerText = "Active prime contracts as of " + dbDate + ". ";
         var a = createElement("a", p);
         a.href = "";
         a.innerText = "Click here";
@@ -833,6 +838,13 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                 records.push(award);
             }
         });
+
+        if (records.length==0){
+            var text = span.innerText.substring(1);
+            span.innerText = "There are no a" + text;
+            companyOverview.set("Status", "Inactive");
+            return;
+        }
 
         records.sort((a, b)=>{
             var getVal = function(a){
@@ -898,8 +910,13 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
             var style = config.style;
             //TODO: use compact table style
+            var div = createElement("div", win.getBody(), {
+                width: "100%",
+                height: "100%"
+            });
+            div.className = "small";
 
-            var awardsList = new prospekt.awards.AwardsList(win.getBody(), {
+            var awardsList = new prospekt.awards.AwardsList(div, {
                 style: style
             });
 
