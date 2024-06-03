@@ -18,18 +18,24 @@ import javaxt.io.Jar;
 import javaxt.encryption.BCrypt;
 import static javaxt.utils.Timer.*;
 
-import javaxt.express.WebService;
-import javaxt.express.ServiceRequest;
-import javaxt.express.ServiceResponse;
-import javaxt.express.services.QueryService.QueryJob;
-import javaxt.express.notification.NotificationService;
+import javaxt.express.*;
+import javaxt.express.notification.*;
 import javaxt.express.utils.DateUtils;
+import javaxt.express.services.QueryService.QueryJob;
 
+import javaxt.http.servlet.ServletException;
 import javaxt.http.servlet.HttpServletRequest;
 import javaxt.http.servlet.HttpServletResponse;
-import javaxt.http.servlet.ServletException;
 import javaxt.http.websocket.WebSocketListener;
 
+
+//******************************************************************************
+//**  WebServices
+//******************************************************************************
+/**
+ *   Used to route HTTP requests to web services
+ *
+ ******************************************************************************/
 
 public class WebServices extends WebService {
 
@@ -55,6 +61,7 @@ public class WebServices extends WebService {
       //Instantiate web services
         webservices = new ConcurrentHashMap<>();
         webservices.put("sql", new SQLService());
+        webservices.put("report", new ReportService());
 
 
       //Create list of active users
@@ -198,7 +205,7 @@ public class WebServices extends WebService {
       //Create timer task to periodically clean up activeUsers
         setInterval(()->{
             long currTime = DateUtils.getCurrentTime();
-            long maxIdle = 2*60*1000; //2 minutes
+            long maxIdle = 5*60*1000; //5 minutes
             ArrayList<Long> inactiveUsers = new ArrayList<>();
             synchronized(activeUsers){
                 Iterator<Long> it = activeUsers.keySet().iterator();
@@ -211,7 +218,6 @@ public class WebServices extends WebService {
                 }
 
                 for (long userID : inactiveUsers){
-                    console.log("removing " + userID);
                     activeUsers.remove(userID);
                     notify("inactive,User,"+userID+","+userID);
                 }
