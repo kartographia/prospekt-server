@@ -587,8 +587,16 @@ body, textarea, input, select, td, th {
 
 .company-panel h2 {
     font-weight: normal;
+    margin: 20px 0 0 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #595959;
 }
 
+.company-panel p {
+    margin: 0 0 10px 0;
+    color: #777;
+}
 
 .company-panel .toolbar {
     height: 55px;
@@ -695,6 +703,7 @@ body, textarea, input, select, td, th {
     height: 44px;
     color: #fff;
     font-size: 16px;
+    font-weight: 700;
     border-radius: 5px;
     margin-top: 28px;
     width: 100%;
@@ -828,34 +837,34 @@ body, textarea, input, select, td, th {
 
 /****************************************************************/
 
-.company-panel .table-col {
+.company-panel .company-list .table-col {
     height: 165px;
 }
 
-.company-panel .table-row{
+.company-panel .company-list .table-row{
     background-color: #fff;
 }
 
-.company-panel .table-row:hover{
+.company-panel .company-list .table-row:hover{
     background-color:#f6fbff;
 }
 
-.company-panel .table-row-selected{
+.company-panel .company-list .table-row-selected{
     background-color:#f0f8ff;
 }
 
-.company-panel .table-row-selected:hover{
+.company-panel .company-list .table-row-selected:hover{
     background-color:#e5f3ff;
 }
 
-.company-panel .table-col .company-name {
+.company-panel .company-list .table-col .company-name {
     font-size: 18px;
     font-weight: 700;
     color: #1e1e1e;
     color: #595959;
 }
 
-.company-panel .table-col .company-info {
+.company-panel .company-list .table-col .company-info {
     line-height: 20px;
     color: #777;
 }
@@ -875,6 +884,20 @@ body, textarea, input, select, td, th {
     height: 21px;
     line-height: 21px;
     font-size: 12px;
+}
+
+.small .table-col .checkbox-box,
+.small .table-header-col .checkbox-box {
+    width: 12px;
+    height: 12px;
+    margin-top: 3px;
+}
+
+
+.small .table-col .checkbox-check {
+    width: 3px;
+    height: 8px;
+    margin: 0px 0px 0px 4px;
 }
 
 .table-row.inactive .table-col {
@@ -912,6 +935,8 @@ body, textarea, input, select, td, th {
     font-size: 36px;
     font-weight: 700;
     color: #404040;
+    padding: 0 20px 5px 0;
+    line-height: 36px;
 }
 
 .company-overview  td {
@@ -1106,6 +1131,23 @@ body, textarea, input, select, td, th {
 .chart-data-table  td:first-child {
     font-weight:normal;
     color:#000;
+}
+
+
+/**************************************************************************/
+/** Customer Picker/Filter
+/**************************************************************************/
+
+.customer-filter {
+    width: 600px;
+    height: 400px;
+    position: relative;
+}
+
+.customer-picker .toolbar {
+    background-color: #f8f8f8;
+    border-bottom: 1px solid #dcdcdc;
+    height: 36px;
 }
 
 
@@ -1320,6 +1362,52 @@ body, textarea, input, select, td, th {
 .chiclet .close:hover {
     color: #b11818; /*red */
 }
+
+
+
+/**************************************************************************/
+/** Chart Legend
+/**************************************************************************/
+
+.chart-legend {
+    position: absolute;
+    right: 10px;
+    top: 15px;
+    z-index: 2;
+    background-color: #fff;
+    padding: 5px 7px;
+    border: 1px solid #dcdcdc;
+    border-radius: 5px;
+    text-align: left;
+    overflow: hidden;
+    max-height: 250px;
+    overflow-y: auto;
+    box-shadow: 0px 2px 7px 0px rgb(0 0 0 / 17%);
+}
+
+.chart-legend > div {
+   position: relative;
+   overflow: hidden;
+}
+
+.chart-legend .dot {
+    content: "";
+    width: 16px;
+    height: 16px;
+    background-color: #dcdcdc;
+    vertical-align:middle;
+    border-radius: 50%;
+    margin: 3px 5px 0 0;
+    float:left;
+    display: inline-block;
+    border: 1px solid #dcdcdc;
+}
+
+.chart-legend span {
+   font-size: 12px;
+}
+
+
 
 
 /**************************************************************************/
