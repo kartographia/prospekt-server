@@ -164,12 +164,12 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         createPieCharts(company, createElement("div", innerDiv));
 
 
-      //Add treemap
-        createTreeMap(company, createElement("div", innerDiv));
-
-
       //Add awards table
         createCurrentContractList(company, createElement("div", innerDiv));
+
+
+      //Add treemap
+        createTreeMap(company, createElement("div", innerDiv));
 
 
       //Add Officers
@@ -709,10 +709,12 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             var data = [];
             var total = 0;
             Object.keys(kvp).forEach((key)=>{
+                var label = key;
+                if (label==null || label=="null") label = "Unknown";
                 var value = kvp[key];
                 total += value;
                 data.push({
-                    key: key,
+                    key: label,
                     value: kvp[key]
                 });
             });
@@ -729,7 +731,6 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
                     var numOthers = data.length-i;
                     if (numOthers>1){
-                        console.log("numOthers", numOthers);
 
                         var other = 0;
                         for (var j=i; j<data.length; j++){
@@ -949,42 +950,106 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //** createTreeMap
   //**************************************************************************
     var createTreeMap = function(company, parent){
-        //createElement("h2", parent).innerText = "Contract Mix";
 
 
-        var records = company.awards.slice(0, company.awards.length);
-        records.sort((a, b)=>{
-            if (isString(a.date)) a.date = new Date(a.date);
-            if (isString(b.date)) b.date = new Date(b.date);
-            return b.date.getTime() - a.date.getTime();
-        });
-
-
-        records.forEach((award)=>{
+      //Create dataset for the treemap
+        var data = [];
+        company.awards.forEach((award)=>{
             if (isAwardActive(award, lastUpdate)){
-                //console.log(award);
+                var val = award.extendedValue;
+                if (isNaN(parseFloat(val+""))) val = award.value;
+                if (isNaN(parseFloat(val+""))) val = award.funded;
+                if (isNaN(parseFloat(val+""))) val = 0;
+
+
+                data.push({
+                    name: award.name,
+                    value: val,
+                    customer: award.customer
+                });
             }
         });
 
-        /*
-            //Create treemap chart using "demo2" div
-            var div = document.getElementById("demo2");
-            var voronoiTreemap = new bluewave.charts.TreeMapChart(div, {});
+
+      //Return early if there's not enough data
+        if (data.length<2) return;
 
 
-            var chartConfig = {
-                key: "username",
-                value: "commits",
-                groupBy: "repo",
-                shape: "circle" //<--vs "square" default
-            };
+      //Create header and description
+        createElement("h2", parent).innerText = "Contract Mix";
+        createElement("p", parent).innerText =
+        "Prime contracts grouped by customer.";
 
 
-            var data = d3.csvParse(csv);
+      //Create container for the treemap
+        var div = createElement("div", parent, {
+            position: "relative",
+            width: "800px",
+            height: "600px"
+        });
 
-            voronoiTreemap.update(chartConfig, data);
-         */
 
+      //Create treemap
+        var treemap = new bluewave.charts.TreeMapChart(div, {
+            key: "name",
+            value: "value",
+            groupBy: "customer",
+            shape: "circle",
+            showTooltip: true
+        });
+
+        treemap.getKeyLabel = function(key, data){
+            if (key.length>15) key = key.substring(0, 15) + "...";
+            return key;
+        };
+
+        treemap.getValueLabel = function(value, data){
+            var suffix = "";
+            if (value>1000){
+                value = value/1000;
+                suffix = "K";
+                if (value>1000){
+                    value = value/1000;
+                    suffix = "M";
+                }
+            }
+            value = "$" + addCommas(Math.round(value)) + suffix;
+            return value;
+        };
+
+
+      //Render treemap and legend
+        treemap.update(data, ()=>{
+            var groups = treemap.getGroups();
+            var groupNames = Object.keys(groups);
+            if (groupNames.length>1){
+                var rows = [];
+                groupNames.forEach((groupName)=>{
+                    var arr = groups[groupName];
+                    var value = 0;
+                    var color = null;
+                    arr.forEach((d)=>{
+                        value += d.data.value;
+                        if (!color){
+                            color = d.rect.style.fill;
+                        }
+                    });
+
+                    rows.push({key: groupName, value: value, color: color});
+                });
+
+                rows.sort(function(a, b){
+                    return b.value - a.value;
+                });
+
+
+
+                var legend = createLegend(div);
+                rows.forEach((row)=>{
+                    legend.addItem(row.key, row.color);
+                });
+            }
+        });
     };
 
 
@@ -1366,6 +1431,28 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         url = url.trim();
         if (url.length==0) return false;
         return URL.canParse(url) && url.toLowerCase().startsWith('http');
+    };
+
+
+  //**************************************************************************
+  //** createLegend
+  //**************************************************************************
+    var createLegend = function(parent){
+
+        var legend = createElement("div", parent, "chart-legend");
+        legend.addItem = function(label, color){
+            var row = createElement("div", legend);
+            if (color){
+                var dot = createElement("div", row, "dot");
+                dot.style.backgroundColor = color;
+            }
+            createElement("span", row).innerHTML = label;
+        };
+        legend.clear = function(){
+            legend.innerHTML = "";
+        };
+        //javaxt.dhtml.utils.addShowHide(legend);
+        return legend;
     };
 
 
