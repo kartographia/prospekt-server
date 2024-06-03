@@ -51,6 +51,7 @@ prospekt.filters.NaicsFilter = function(parent, config) {
   //**************************************************************************
     this.clear = function(){
         naiscPicker.clear();
+        selectedNaisc.clear();
     };
 
 
@@ -58,6 +59,7 @@ prospekt.filters.NaicsFilter = function(parent, config) {
   //** update
   //**************************************************************************
     this.update = function(filter){
+        me.clear();
         getNaicsCodes(function(naics){
             naicsCodes = naics;
 
@@ -135,6 +137,9 @@ prospekt.filters.NaicsFilter = function(parent, config) {
 
 
         selectedNaisc = {
+            clear: function(){
+                innerDiv.innerHTML = "";
+            },
             update: function(d){
 
                 for (var i=0; i<innerDiv.childNodes.length; i++){
