@@ -715,6 +715,46 @@ prospekt.utils = {
 
 
   //**************************************************************************
+  //** getAgencies
+  //**************************************************************************
+    getAgencies: function(callback){
+        if (!callback) return;
+
+        if (prospekt.data){
+            if (prospekt.data.agencies){
+                callback.apply(this, [prospekt.data.agencies]);
+                return;
+            }
+        }
+        else {
+            prospekt.data = {};
+        }
+
+
+        javaxt.dhtml.utils.get("data/agency.tsv", {
+            success: function(text){
+                var agencies = {};
+                text.split("\n").forEach((row)=>{
+                    row = row.trim();
+                    var arr = row.split("\t");
+                    if (arr.length===2){
+                        var code = arr[0].trim();
+                        var desc = arr[1].trim();
+                        if (code.length===0) code = desc;
+                        agencies[code] = desc;
+                    }
+                });
+
+
+                prospekt.data.agencies = agencies;
+                callback.apply(this, [agencies]);
+            }
+        });
+
+    },
+
+
+  //**************************************************************************
   //** isAwardActive
   //**************************************************************************
     isAwardActive: function(award, lastUpdate){
