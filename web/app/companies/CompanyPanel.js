@@ -186,6 +186,15 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 }
                 console.log(filter);
             }
+            else if (field==="Customer"){
+                var customers = values["customers"];
+                if (customers && customers.length>0){
+                    filter.recent_customers = customers.join(",");
+                }
+                else{
+                    delete filter["recent_customers"];
+                }
+            }
 
 
             if (isDirty(filter, orgFilter)){
@@ -209,6 +218,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
       //Add company list
         var body = table.addRow().addColumn({height:"100%"});
+        body.className = "company-list";
         companyList = new javaxt.dhtml.DataGrid(body, {
             style: config.style.table,
             hideHeader: true,
@@ -431,6 +441,11 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                     else if (key==="recent_naics"){
                         toolbarFilter.NAICS = {
                             naics: val
+                        };
+                    }
+                    else if (key==="recent_customers"){
+                        toolbarFilter.Customer = {
+                            customers: val
                         };
                     }
                     else if (
