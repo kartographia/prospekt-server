@@ -139,7 +139,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         toolbar.addButton("More");
 
         toolbar.onChange = function(field, values){
-            console.log(field, values);
+            //console.log(field, values);
             var orgFilter = JSON.parse(JSON.stringify(filter));
 
             if (field==="Search"){
@@ -177,14 +177,12 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             }
             else if (field==="NAICS"){
                 var naics = values["naics"];
-                console.log(naics);
                 if (naics && naics.length>0){
                     filter.recent_naics = naics.join(",");
                 }
                 else{
                     delete filter["recent_naics"];
                 }
-                console.log(filter);
             }
             else if (field==="Customer"){
                 var customers = values["customers"];
@@ -199,8 +197,69 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
             if (isDirty(filter, orgFilter)){
                 document.user.preferences.set("CompanyFilter", filter);
-                companyList.load();
+                companyList.update();
             }
+        };
+
+
+        var updateToolbar = toolbar.update;
+        toolbar.update = function(){
+
+
+          //Create filter for the toolbar
+            var toolbarFilter = {};
+            for (var key in filter) {
+                if (filter.hasOwnProperty(key)){
+                    var val = filter[key];
+
+                    if (key==="name"){
+
+                        if (val.indexOf("'")===0 && val.lastIndexOf("'")===val.length-1){
+                            val = val.substring(1, val.length-1);
+                            if (val.lastIndexOf("%")===val.length-1){
+                                val = val.substring(0, val.length-1);
+                            }
+                        }
+
+                        toolbarFilter.Search = val;
+
+                    }
+                    else if (key==="recent_naics"){
+                        toolbarFilter.NAICS = {
+                            naics: val
+                        };
+                    }
+                    else if (key==="recent_customers"){
+                        toolbarFilter.Customer = {
+                            customers: val
+                        };
+                    }
+                    else if (
+                        key==="recent_award_val" ||
+                        key==="estimated_revenue"){
+
+                        var f = {
+                            type: key==="recent_award_val" ? "Awards" : "Revenue"
+                        };
+
+
+                        if (!isArray(val)) val = [val];
+
+                        val.forEach((v)=>{
+                            if (v.indexOf(">")==0) f.min = parseFloat(v.substring(1));
+                            if (v.indexOf("<")==0) f.max = parseFloat(v.substring(1));
+                        });
+
+                        toolbarFilter.Revenue = f;
+
+                    }
+                }
+            }
+
+
+          //Update toolbar
+            updateToolbar(toolbarFilter);
+
         };
 
 
@@ -419,63 +478,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
         companyList.update = function(){
-
-          //Create filter for the toolbar
-            var toolbarFilter = {};
-            for (var key in filter) {
-                if (filter.hasOwnProperty(key)){
-                    var val = filter[key];
-
-                    if (key==="name"){
-
-                        if (val.indexOf("'")===0 && val.lastIndexOf("'")===val.length-1){
-                            val = val.substring(1, val.length-1);
-                            if (val.lastIndexOf("%")===val.length-1){
-                                val = val.substring(0, val.length-1);
-                            }
-                        }
-
-                        toolbarFilter.Search = val;
-
-                    }
-                    else if (key==="recent_naics"){
-                        toolbarFilter.NAICS = {
-                            naics: val
-                        };
-                    }
-                    else if (key==="recent_customers"){
-                        toolbarFilter.Customer = {
-                            customers: val
-                        };
-                    }
-                    else if (
-                        key==="recent_award_val" ||
-                        key==="estimated_revenue"){
-
-                        var f = {
-                            type: key==="recent_award_val" ? "Awards" : "Revenue"
-                        };
-
-
-                        if (!isArray(val)) val = [val];
-
-                        val.forEach((v)=>{
-                            if (v.indexOf(">")==0) f.min = parseFloat(v.substring(1));
-                            if (v.indexOf("<")==0) f.max = parseFloat(v.substring(1));
-                        });
-
-                        toolbarFilter.Revenue = f;
-
-                    }
-                }
-            }
-
-
-          //Update toolbar
-            toolbar.update(toolbarFilter);
-
-
-          //Update company list
+            toolbar.update();
             companyList.load();
         };
 

@@ -234,6 +234,7 @@ prospekt.utils = {
         var createElement = javaxt.dhtml.utils.createElement;
         var createTable = javaxt.dhtml.utils.createTable;
         var addShowHide = javaxt.dhtml.utils.addShowHide;
+        var isArray = javaxt.dhtml.utils.isArray;
 
 
         var toolbar = {
@@ -269,7 +270,7 @@ prospekt.utils = {
 
 
       //Add buttons to the toolbar
-        var createButton = function(label, className){
+        var createButton = function(label, cls){
 
             var button = createElement("div", toolbar.el, "pulldown noselect");
             button.classList.has = function(className){
@@ -301,10 +302,10 @@ prospekt.utils = {
                     if (!button.menu) button.menu = createMenu(button);
 
 
-                    if (!button.menu.filter && className){
-                        var cls = eval(className);
-                        if (cls){
-                            button.menu.filter = new cls(button.menu.body, config);
+                    if (!button.menu.filter && cls){
+                        var fn = eval(cls);
+                        if (fn){
+                            button.menu.filter = new fn(button.menu.body, config);
                         }
                     }
 
@@ -313,6 +314,25 @@ prospekt.utils = {
                     }
 
                     button.menu.show();
+                }
+            };
+
+
+            button.hasFilter = function(){
+                var button = this;
+                var buttonFilter = toolbar.filter[button.title];
+                if (!buttonFilter || javaxt.dhtml.utils.isEmpty(buttonFilter)){
+                    return false;
+                }
+                else{
+                    var values = Object.values(buttonFilter);
+                    var numValues = 0;
+                    values.forEach((value)=>{
+                        if (value==null || value=="") return;
+                        if (isArray(value) && value.length==0) return;
+                        numValues++;
+                    });
+                    return numValues===values.length;
                 }
             };
 
@@ -388,20 +408,13 @@ prospekt.utils = {
                 else{
                     currFilter = newFilter;
                 }
+
+
+
                 if (true){ //javaxt.dhtml.utils.isDirty()
                     toolbar.onChange(button.title, currFilter);
                 }
 
-
-              //Update style based on filter
-                if (javaxt.dhtml.utils.isEmpty(currFilter)){
-                    button.classList.remove("filter");
-                }
-                else{
-                    if (!button.classList.has("filter")){
-                        button.classList.add("filter");
-                    }
-                }
 
             };
 
@@ -422,7 +435,8 @@ prospekt.utils = {
         toolbar.hideMenus = hideMenus;
         toolbar.update = function(filter){
 
-          //Update filter
+
+          //Update toolbar filter
             for (var key in filter) {
                 if (filter.hasOwnProperty(key)){
                     toolbar.filter[key] = filter[key];
@@ -437,22 +451,19 @@ prospekt.utils = {
             }
 
 
-          //Update buttons
+          //Update button style
             toolbar.buttons.forEach((button)=>{
 
 
               //Check if the button has any active filters associated with it
-                var hasFilter;
-                var buttonFilter = toolbar.filter[button.title];
-                if (!buttonFilter || javaxt.dhtml.utils.isEmpty(buttonFilter)){
-                    hasFilter = false;
-                }
-                else{
-                    hasFilter = true;
+                var hasFilter = button.hasFilter();
 
-                  //Hack for revenue button. Need to figure out a better solution...
-                    if (button.title==="Revenue"){
-                        if (buttonFilter["min"]==1) hasFilter=false;
+
+              //Hack for revenue button. Need to figure out a better solution...
+                if (button.title==="Revenue"){
+                    var buttonFilter = toolbar.filter[button.title];
+                    if (buttonFilter["min"]==1){
+                        hasFilter = buttonFilter["max"] ? true : false;
                     }
                 }
 
@@ -467,10 +478,6 @@ prospekt.utils = {
                     button.classList.remove("filter");
                 }
 
-
-                if (button.menu && button.menu.filter){
-                    if (button.menu.filter.update) button.menu.filter.update(filter);
-                }
             });
         };
 
