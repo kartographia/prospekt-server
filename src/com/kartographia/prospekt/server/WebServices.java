@@ -117,7 +117,7 @@ public class WebServices extends WebService {
         else{
             ServiceRequest serviceRequest = new ServiceRequest(httpRequest);
             serviceRequest.setPath(path);
-            ServiceResponse serviceResponse = getServiceResponse(service, serviceRequest);
+            ServiceResponse serviceResponse = getServiceResponse(service, serviceRequest, Config.getDatabase());
             serviceResponse.send(httpResponse, serviceRequest);
         }
     }
@@ -126,8 +126,34 @@ public class WebServices extends WebService {
   //**************************************************************************
   //** getServiceResponse
   //**************************************************************************
-    private ServiceResponse getServiceResponse(String service, ServiceRequest request)
+  /** Used when this service is hosted in another service
+   */
+    public ServiceResponse getServiceResponse(ServiceRequest request, Database database)
         throws ServletException {
+
+        HttpServletRequest httpRequest = request.getRequest();
+        //if (httpRequest.isWebSocket()){} ??
+
+
+      //Get path from url, excluding servlet path and leading "/" character
+        String path = httpRequest.getPathInfo();
+        if (path!=null) path = path.substring(1);
+
+
+      //Get first "directory" in the path
+        String service = path==null ? "" : path.toLowerCase();
+        if (service.contains("/")) service = service.substring(0, service.indexOf("/"));
+
+
+        return getServiceResponse(service, request, database);
+    }
+
+
+  //**************************************************************************
+  //** getServiceResponse
+  //**************************************************************************
+    private ServiceResponse getServiceResponse(String service,
+        ServiceRequest request, Database database) throws ServletException {
 
 
       //Authenticate request
@@ -152,10 +178,10 @@ public class WebServices extends WebService {
       //Generate response
         if (webservices.containsKey(service)){
             request.setPath(path);
-            return webservices.get(service).getServiceResponse(request);
+            return webservices.get(service).getServiceResponse(request, database);
         }
         else{
-            return getServiceResponse(request, Config.getDatabase());
+            return super.getServiceResponse(request, database);
         }
 
     }
