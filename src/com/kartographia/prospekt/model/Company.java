@@ -25,6 +25,7 @@ public class Company extends javaxt.sql.Model {
     private BigDecimal estimatedRevenue;
     private BigDecimal estimatedBacklog;
     private Date lastUpdate;
+    private Long likes;
     private JSONObject info;
 
 
@@ -33,7 +34,7 @@ public class Company extends javaxt.sql.Model {
   //**************************************************************************
     public Company(){
         super("company", java.util.Map.ofEntries(
-
+            
             java.util.Map.entry("name", "name"),
             java.util.Map.entry("description", "description"),
             java.util.Map.entry("uei", "uei"),
@@ -45,10 +46,11 @@ public class Company extends javaxt.sql.Model {
             java.util.Map.entry("estimatedRevenue", "estimated_revenue"),
             java.util.Map.entry("estimatedBacklog", "estimated_backlog"),
             java.util.Map.entry("lastUpdate", "last_update"),
+            java.util.Map.entry("likes", "likes"),
             java.util.Map.entry("info", "info")
 
         ));
-
+        
     }
 
 
@@ -97,6 +99,7 @@ public class Company extends javaxt.sql.Model {
             this.estimatedRevenue = getValue(rs, "estimated_revenue").toBigDecimal();
             this.estimatedBacklog = getValue(rs, "estimated_backlog").toBigDecimal();
             this.lastUpdate = getValue(rs, "last_update").toDate();
+            this.likes = getValue(rs, "likes").toLong();
             this.info = new JSONObject(getValue(rs, "info").toString());
 
 
@@ -130,6 +133,7 @@ public class Company extends javaxt.sql.Model {
         this.estimatedRevenue = json.get("estimatedRevenue").toBigDecimal();
         this.estimatedBacklog = json.get("estimatedBacklog").toBigDecimal();
         this.lastUpdate = json.get("lastUpdate").toDate();
+        this.likes = json.get("likes").toLong();
         this.info = json.get("info").toJSONObject();
     }
 
@@ -222,6 +226,14 @@ public class Company extends javaxt.sql.Model {
         this.lastUpdate = lastUpdate;
     }
 
+    public Long getLikes(){
+        return likes;
+    }
+
+    public void setLikes(Long likes){
+        this.likes = likes;
+    }
+
     public JSONObject getInfo(){
         return info;
     }
@@ -229,8 +241,8 @@ public class Company extends javaxt.sql.Model {
     public void setInfo(JSONObject info){
         this.info = info;
     }
-
-
+    
+    
 
 
   //**************************************************************************
