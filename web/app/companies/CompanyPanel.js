@@ -36,11 +36,6 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         createList(div);
         createProfile(div);
 
-
-
-        onRender(div, me.update);
-
-
         me.el = div;
         addShowHide(me);
     };
@@ -72,11 +67,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         me.clear();
 
 
-      //Enable 'popstate' listener and update history
+      //Enable 'popstate' listener
         enablePopstateListener();
-        updateHistory({
-            view: "list"
-        });
 
 
         var companyFilter = document.user.preferences.get("CompanyFilter");
@@ -440,8 +432,14 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
         companyList.onRowClick = function(row, e){
+
+            updateHistory({
+                view: "list"
+            });
+
             var company = row.record;
             companyList.showProfile(company.id);
+
             addHistory({
                 view: "profile",
                 companyID: company.id
@@ -518,7 +516,41 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             icon: "fas fa-arrow-left"
         });
         backButton.onClick = function(){
-            history.back();
+
+            var state = window.history.state;
+            if (state){
+
+              //Get last update for this component
+                var lastUpdate = state[me.className] ? state[me.className].lastUpdate.date : 0;
+
+
+              //Check if there are any updates from any other components
+                var otherUpdates = 0;
+                for (var key in state) {
+                    if (state.hasOwnProperty(key)){
+                        if (key===me.className) continue;
+                        var appState = state[key];
+                        if (appState.lastUpdate){
+                            otherUpdates = Math.max(appState.lastUpdate.date, otherUpdates);
+                        }
+                    }
+                }
+
+
+              //Show companyList
+                if (otherUpdates<lastUpdate){
+                    history.back();
+                }
+                else{
+                  //Simulate a "back" event as best we can. Unfortunately,
+                  //with this approach, we lose the forward button...
+                    companyProfile.hide();
+                    companyList.show();
+                    updateHistory({
+                        view: "list"
+                    });
+                }
+            }
         };
 
 
@@ -561,9 +593,15 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
         var title = document.title;
         var url = "";
+
         var state = window.history.state;
         if (!state) state = {};
+
         state[me.className] = params;
+        state[me.className].lastUpdate = {
+            date: new Date().getTime(),
+            event: replace ? "replaceState" : "pushState"
+        };
 
         if (replace) history.replaceState(state, title, url);
         else history.pushState(state, title, url);
@@ -603,11 +641,13 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         if (rect.width===0) return;
 
         var state = e.state[me.className];
-        if (state.view==="profile"){
-            companyList.showProfile(state.companyID);
-        }
-        else if (state.view==="list"){
-            companyList.show();
+        if (state){
+            if (state.view==="profile"){
+                companyList.showProfile(state.companyID);
+            }
+            else if (state.view==="list"){
+                companyList.show();
+            }
         }
     };
 
