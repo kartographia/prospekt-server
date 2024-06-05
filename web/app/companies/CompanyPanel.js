@@ -108,6 +108,15 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
   //**************************************************************************
+  //** notify
+  //**************************************************************************
+    this.notify = function(op, model, id, userID){
+        companyList.notify(op, model, id, userID);
+        companyProfile.notify(op, model, id, userID);
+    };
+
+
+  //**************************************************************************
   //** createList
   //**************************************************************************
     var createList = function(parent){
@@ -480,6 +489,11 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             companyList.load();
         };
 
+
+
+        companyList.notify = function(op, model, id, userID){
+
+        };
     };
 
 
@@ -496,6 +510,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         var body = table.addRow().addColumn({height:"100%"});
 
 
+      //Create profile
         companyProfile = new prospekt.companies.CompanyProfile(body, config);
         companyProfile.show = function(){
             div.style.left = 0;
@@ -507,10 +522,15 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         };
 
 
+      //Create toolbar
+        toolbar.className = "toolbar";
+        toolbar.style.paddingLeft = "5px";
         var t = createTable(toolbar);
         t.style.width = "";
         var tr = t.addRow();
 
+
+      //Add back button
         var backButton = createButton(tr.addColumn(), {
             label: "Back",
             icon: "fas fa-arrow-left"
@@ -567,6 +587,88 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             disabled: true
         });
 
+
+
+        var editable = document.user.accessLevel>=3;
+
+        var likeButton = createButton(tr.addColumn("like-button-container"), {
+            label: "",
+            icon: "far fa-thumbs-up",
+            disabled: !editable
+        });
+        likeButton.onClick = function(){
+            if (!editable) return;
+            updateLikes(+1);
+        };
+
+
+        var dislikeButton = createButton(tr.addColumn("dislike-button-container"), {
+            label: "",
+            icon: "far fa-thumbs-down",
+            disabled: true
+        });
+        dislikeButton.onClick = function(){
+            if (!editable) return;
+            updateLikes(-1);
+        };
+
+
+
+        var updateLikes = function(currLikes, silent){
+
+
+            var updateButtons = function(currLikes){
+                if (currLikes===0){
+                    likeButton.setLabel("");
+                    dislikeButton.disable();
+                }
+                else{
+                    likeButton.setLabel(addCommas(currLikes));
+                    dislikeButton.enable();
+                }
+            };
+
+
+            if (silent===true){
+                updateButtons(currLikes);
+            }
+            else{
+                var payload = {
+                    id: companyProfile.companyID,
+                    likes: currLikes //server only cares about positive vs negative values
+                };
+
+                post("UpdateCompanyInfo", JSON.stringify(payload), {
+                    success:function(str){
+                        var company = JSON.parse(str);
+                        var currLikes = parseFloat(company.likes);
+                        if (isNaN(currLikes)) currLikes = 0;
+                        updateButtons(currLikes);
+                    },
+                    failure:function(){}
+                });
+            }
+
+        };
+
+
+
+        var updateCompanyProfile = companyProfile.update;
+        companyProfile.update = function(company){
+            updateCompanyProfile(company);
+            if (!isNaN(parseInt(company.likes+""))){
+                updateLikes(company.likes, true);
+            }
+        };
+
+
+        var notifyCompany = companyProfile.notify;
+        companyProfile.notify = function(op, model, id, userID){
+            notifyCompany(op, model, id, userID);
+            if (model==="Company"){
+                //
+            }
+        };
     };
 
 
@@ -663,6 +765,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
     var isDirty = javaxt.dhtml.utils.isDirty;
     var isArray = javaxt.dhtml.utils.isArray;
     var merge = javaxt.dhtml.utils.merge;
+    var post = javaxt.dhtml.utils.post;
     var get = javaxt.dhtml.utils.get;
 
     var getNaicsCodes = prospekt.utils.getNaicsCodes;
