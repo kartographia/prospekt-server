@@ -1,6 +1,7 @@
 package com.kartographia.prospekt.server;
 import com.kartographia.prospekt.model.User;
 import com.kartographia.prospekt.model.Person;
+import com.kartographia.prospekt.model.Company;
 import com.kartographia.prospekt.service.*;
 import com.kartographia.prospekt.source.*;
 
@@ -199,6 +200,62 @@ public class WebServices extends WebService {
             return new ServiceResponse(USASpending.getDate());
         }
         return new ServiceResponse(400);
+    }
+
+
+  //**************************************************************************
+  //** updateCompanyInfo
+  //**************************************************************************
+  /** Used to update the "info" attribute for a company. Unlike the default
+   *  "save" method, the caller doesn't need to provide the full json
+   *  representation of a company. Instead, the caller can simply provide the
+   *  company ID with json info.
+   */
+    public ServiceResponse updateCompanyInfo(ServiceRequest request) throws ServletException {
+        try{
+            User user = (User) request.getUser();
+            if (user.getAccessLevel()<3) return new ServiceResponse(403, "Not Authorized");
+            long userID = user.getID();
+
+            Company company = new Company(request.getID());
+            JSONObject info = company.getInfo();
+            if (info==null) info = new JSONObject();
+
+
+            JSONObject json = request.getJson();
+            for (String key : json.keySet()){
+                if (key.equals("id")) continue;
+
+                if (key.equals("likes")){
+                    JSONObject likes = json.get("likes").toJSONObject();
+                    if (likes==null) likes = new JSONObject();
+
+                    Integer val = json.get(key).toInteger();
+                    if (val==null || val<0){
+                        likes.remove(userID+"");
+                    }
+                    else{
+                        likes.set(userID+"", new javaxt.utils.Date().toISOString());
+                    }
+                    
+                    company.setLikes((long) likes.length());
+                    info.set("likes", likes);
+                }
+                else{
+                    info.set(key, json.get(key));
+                }
+            }
+
+            company.setInfo(info);
+            company.save();
+
+            notify("update", company, user);
+
+            return new ServiceResponse(company.toJson());
+        }
+        catch(Exception e){
+            return new ServiceResponse(e);
+        }
     }
 
 
