@@ -830,6 +830,22 @@ body, textarea, input, select, td, th {
     font-weight: normal;
 }
 
+
+.company-panel .toolbar .menu .tab-bar li .count {
+    position: absolute;
+    top: -7px;
+    left: -7px;
+    border-radius: 50%;
+    background-color: #ff5a52;
+    line-height: 15px;
+    min-width: 11px;
+    text-align: center;
+    font-size: 10px;
+    padding: 0 3px;
+    color: #fff;
+}
+
+
 /****************************************************************/
 
 .company-panel .toolbar .search-bar {
@@ -1326,6 +1342,32 @@ body, textarea, input, select, td, th {
     width: 190px !important;
     margin-top: 10px !important;
     margin: 10px 12px 10px 0;
+}
+
+
+
+
+/**************************************************************************/
+/** More Filter
+/**************************************************************************/
+
+.more-filter {
+    width: 100%;
+    height: 145px;
+    position: relative;
+    text-align: left;
+}
+
+.more-filter h3 {
+    line-height: 1.5;
+    font-size: 14px;
+    font-weight: 700;
+    margin: 20px 0 0 0;
+    color: #2a2a33;
+}
+
+.more-filter .checkbox-label {
+    font-weight: normal;
 }
 
 

@@ -151,7 +151,10 @@ prospekt.filters.CustomerFilter = function(parent, config) {
                 chiclet.onClose = function(){
                     var info = this.el.info;
                     customerPicker.deselect(info.key, info.value);
+                    updateCounter();
                 };
+
+                updateCounter();
             },
             remove: function(key, value){
 
@@ -163,6 +166,8 @@ prospekt.filters.CustomerFilter = function(parent, config) {
                     }
                 }
 
+                updateCounter();
+
             },
             getCustomers: function(){
                 var customers = [];
@@ -171,6 +176,25 @@ prospekt.filters.CustomerFilter = function(parent, config) {
                     customers.push(info.key);
                 }
                 return customers;
+            }
+        };
+
+
+        var updateCounter = function(){
+            var selectedTab = tabs.getTabs()[0];
+            var counter = selectedTab.header.getElementsByTagName("div");
+            if (counter.length>0) counter = counter[0];
+            else{
+                counter = createElement("div", selectedTab.header, "count");
+                addShowHide(counter);
+            }
+
+            counter.innerText = addCommas(innerDiv.childNodes.length);
+            if (innerDiv.childNodes.length>0){
+                counter.show();
+            }
+            else{
+                counter.hide();
             }
         };
 
@@ -379,6 +403,7 @@ prospekt.filters.CustomerFilter = function(parent, config) {
 
     var getAgencies = prospekt.utils.getAgencies;
     var createChiclet = prospekt.utils.createChiclet;
+    var addCommas = prospekt.utils.addCommas;
 
 
     init();

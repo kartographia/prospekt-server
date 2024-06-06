@@ -142,13 +142,24 @@ prospekt.filters.NaicsFilter = function(parent, config) {
             },
             update: function(d){
 
+
+              //Check if item exists
                 for (var i=0; i<innerDiv.childNodes.length; i++){
                     var div = innerDiv.childNodes[i];
                     if (div.info===d) return;
                 }
 
+
+              //Create chiclet
                 var chiclet = createChiclet(innerDiv, d.sector);
+                chiclet.onClose = updateCounter;
                 chiclet.el.info = d;
+
+
+              //Update counter in the "selected" tab
+                updateCounter();
+
+
             },
             getCodes: function(){
 
@@ -172,6 +183,25 @@ prospekt.filters.NaicsFilter = function(parent, config) {
 
                 }
                 return codes;
+            }
+        };
+
+
+        var updateCounter = function(){
+            var selectedTab = tabs.getTabs()[0];
+            var counter = selectedTab.header.getElementsByTagName("div");
+            if (counter.length>0) counter = counter[0];
+            else{
+                counter = createElement("div", selectedTab.header, "count");
+                addShowHide(counter);
+            }
+
+            counter.innerText = addCommas(innerDiv.childNodes.length);
+            if (innerDiv.childNodes.length>0){
+                counter.show();
+            }
+            else{
+                counter.hide();
             }
         };
 
@@ -315,11 +345,13 @@ prospekt.filters.NaicsFilter = function(parent, config) {
   //**************************************************************************
     var createElement = javaxt.dhtml.utils.createElement;
     var createTable = javaxt.dhtml.utils.createTable;
+    var addShowHide = javaxt.dhtml.utils.addShowHide;
     var isString = javaxt.dhtml.utils.isString;
     var merge = javaxt.dhtml.utils.merge;
 
     var getNaicsCodes = prospekt.utils.getNaicsCodes;
     var createChiclet = prospekt.utils.createChiclet;
+    var addCommas = prospekt.utils.addCommas;
 
     init();
 };
