@@ -1175,6 +1175,33 @@ body, textarea, input, select, td, th {
     color:#000;
 }
 
+/**************************************************************************/
+/** Revenue Sliders
+/**************************************************************************/
+
+.revenue-sliders {
+    margin: 20px 0 0;
+}
+
+.revenue-sliders .form-label{
+    font-size: 11px;
+    padding: 0 15px 0 0;
+    line-height: 20px;
+}
+
+.revenue-sliders .form-input{
+    margin-left: 20px;
+    font-size: 11px;
+    height: 20px;
+    line-height: 20px;
+    width: 50px;
+}
+
+
+.revenue-estimate {
+    font-size: 20px;
+    margin-bottom: 12px;
+}
 
 /**************************************************************************/
 /** Customer Picker/Filter

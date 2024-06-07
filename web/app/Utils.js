@@ -762,6 +762,75 @@ prospekt.utils = {
 
 
   //**************************************************************************
+  //** getMonthRevenue
+  //**************************************************************************
+  /** Used to generate data for monthly revenue charts. Returns an array with
+   *  two custom properties ("totalRevenue" and "previousRevenue").
+   */
+    getMonthRevenue: function(company, lastUpdate){
+
+        var data = [];
+        var totalRevenue = 0;
+        var previousRevenue = 0;
+        var monthlyRevenue = company.info.monthlyRevenue;
+        var today = parseInt(lastUpdate.format("YYYYMMDD"));
+        var lastYear = parseInt(lastUpdate.clone().subtract(1, "year").format("YYYYMMDD"));
+        var prevYear = parseInt(lastUpdate.clone().subtract(2, "year").format("YYYYMMDD"));
+        Object.keys(monthlyRevenue).sort().forEach((date)=>{
+            var d = parseInt(date.replaceAll("-",""));
+
+            /*
+            if (d>today){
+                totalBacklog+=monthlyRevenue[date];
+                return;
+            }
+            else{
+                if (d>=lastYear){
+                    annualRevenue+=monthlyRevenue[date];
+                }
+            }
+            */
+
+            if (d>=prevYear && d<lastYear) previousRevenue+= monthlyRevenue[date];
+
+
+            if (d<=today){
+
+                data.push({
+                    date: date,
+                    amount: monthlyRevenue[date]
+                });
+
+
+                totalRevenue += monthlyRevenue[date];
+            }
+        });
+
+
+
+      //Add zeros to the end of the dataset as needed
+        var d = new Date(data[data.length-1].date);
+        var monthsAgo = lastUpdate.diff(d, 'months', true);
+        if (monthsAgo>1){
+            monthsAgo = Math.ceil(monthsAgo);
+            var m = moment(d);
+            for (var i=0; i<monthsAgo; i++){
+                m.add(1, "month");
+                data.push({
+                    date: m.format("YYYY-MM-DD"),
+                    amount: 0
+                });
+            }
+        }
+
+
+        data.totalRevenue = totalRevenue;
+        data.previousRevenue = previousRevenue;
+        return data;
+    },
+
+
+  //**************************************************************************
   //** isAwardActive
   //**************************************************************************
     isAwardActive: function(award, lastUpdate){

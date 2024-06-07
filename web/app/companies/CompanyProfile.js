@@ -19,8 +19,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //Components
     var panel;
     var companyOverview;
-    var awardDetails;
-    var linkEditor;
+    var awardDetails, linkEditor, revenueEditor; //custom popups
     var waitmask;
 
   //Variables
@@ -135,6 +134,14 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
   //**************************************************************************
+  //** notify
+  //**************************************************************************
+    this.notify = function(op, model, id, userID){
+
+    };
+
+
+  //**************************************************************************
   //** update
   //**************************************************************************
     var update = function(company){
@@ -229,6 +236,12 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                     span.innerText = value;
 
                     d.onclick = function(e){
+
+                        if (key==="% Prime Contracts"){
+                            editRevenue(company);
+                            return;
+                        }
+
 
                       //Check if the click event is over the edit icon. The edit
                       //icon appears to the right of the text. It is defined in
@@ -330,6 +343,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
 
+
           //Set value
             col.setValue(value);
 
@@ -374,6 +388,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         ].forEach((o)=>{
             var key = Object.keys(o)[0];
             var editable = o[key];
+            if (document.user.accessLevel<3) editable = false;
             addRow(key, "-", editable);
         });
 
@@ -458,63 +473,11 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
       //Create dataset for the line graph
-        var data = [];
         var annualRevenue = company.estimatedRevenue;
         var totalBacklog = company.estimatedBacklog;
-        var totalRevenue = 0;
-        var previousRevenue = 0;
-        var monthlyRevenue = company.info.monthlyRevenue;
-        var today = parseInt(lastUpdate.format("YYYYMMDD"));
-        var lastYear = parseInt(lastUpdate.clone().subtract(1, "year").format("YYYYMMDD"));
-        var prevYear = parseInt(lastUpdate.clone().subtract(2, "year").format("YYYYMMDD"));
-        Object.keys(monthlyRevenue).sort().forEach((date)=>{
-            var d = parseInt(date.replaceAll("-",""));
-
-            /*
-            if (d>today){
-                totalBacklog+=monthlyRevenue[date];
-                return;
-            }
-            else{
-                if (d>=lastYear){
-                    annualRevenue+=monthlyRevenue[date];
-                }
-            }
-            */
-
-            if (d>=prevYear && d<lastYear) previousRevenue+= monthlyRevenue[date];
-
-
-            if (d<=today){
-
-                data.push({
-                    date: date,
-                    amount: monthlyRevenue[date]
-                });
-
-
-                totalRevenue += monthlyRevenue[date];
-            }
-        });
-
-
-
-      //Add zeros to the end of the dataset as needed
-        var d = new Date(data[data.length-1].date);
-        var monthsAgo = lastUpdate.diff(d, 'months', true);
-        if (monthsAgo>1){
-            monthsAgo = Math.ceil(monthsAgo);
-            var m = moment(d);
-            for (var i=0; i<monthsAgo; i++){
-                m.add(1, "month");
-                data.push({
-                    date: m.format("YYYY-MM-DD"),
-                    amount: 0
-                });
-            }
-        }
-
-
+        var data = getMonthRevenue(company, lastUpdate);
+        var totalRevenue = data.totalRevenue;
+        var previousRevenue = data.previousRevenue;
 
 
         companyOverview.set("Annual Revenue", "$" + addCommas(Math.round(annualRevenue)));
@@ -1423,6 +1386,204 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
   //**************************************************************************
+  //** editRevenue
+  //**************************************************************************
+    var editRevenue = function(company){
+
+        if (!revenueEditor){
+
+
+            var win = createWindow({
+                style: config.style.window,
+                title: "Edit Revenue",
+                modal: true,
+                buttons: [
+                    {
+                        name: "Submit",
+                        onclick: function(){
+                            if (!company.info) company.info = {};
+                            if (!company.info.edits) company.info.edits = {};
+
+                            var edits = revenueEditor.getValue();
+                            var percentPrime = edits.percentPrime;
+                            company.info.edits.percentPrime = {
+                                value: percentPrime
+                            };
+
+                            if (percentPrime<100) percentPrime+="%";
+                            else percentPrime = "-";
+                            companyOverview.set("% Prime Contracts", percentPrime);
+
+                            win.close();
+                        }
+                    },
+                    {
+                        name: "Cancel",
+                        onclick: function(){
+                            win.close();
+                        }
+                    }
+                ]
+
+            });
+
+            var parent = win.getBody();
+
+
+
+          //Create header
+            createElement("div", parent, "").innerText = "Estimated Annual Revenue";
+            var annualRevenue = createElement("div", parent, "revenue-estimate");
+
+
+
+          //Create line chart
+            var div = createElement("div", parent, {
+                width: "600px",
+                height: "300px",
+                padding: "0 0 20px 0"
+            });
+            div.className = "chart-area";
+            var lineChart = new bluewave.charts.LineChart(div, {
+                animationSteps: 0,
+                xGrid: false,
+                yGrid: true
+            });
+
+
+          //Create sliders
+            var div = createElement("div", parent, "revenue-sliders");
+            var table = createTable(div);
+            var tr = table.addRow();
+            tr.addColumn("form-label").innerText = "% Prime";
+            var primeSlider = new javaxt.dhtml.Slider(tr.addColumn({width: "100%"}), {
+                units: "percent"
+            });
+            var primeVal = createElement("input", tr.addColumn(), "form-input");
+            var tr = table.addRow();
+            tr.addColumn("form-label").innerText = "Multiplier";
+            var mSlider = new javaxt.dhtml.Slider(tr.addColumn({width: "100%"}), {
+                units: "percent"
+            });
+            var mVal = createElement("input", tr.addColumn(), "form-input");
+
+
+
+            revenueEditor = {
+                show: win.show,
+                update: function(company){
+                    lineChart.clear();
+
+                    var data = getMonthRevenue(company, lastUpdate);
+                    var today = parseInt(lastUpdate.format("YYYYMMDD"));
+                    var lastYear = parseInt(lastUpdate.clone().subtract(1, "year").format("YYYYMMDD"));
+
+
+                  //Add revenue line to the chart
+                    var line = new bluewave.chart.Line();
+                    lineChart.addLine(line, data, "date", "amount");
+
+
+                  //Add moving average to the chart
+                    var lineAvg = new bluewave.chart.Line({
+                        smoothing: "movingAverage",
+                        smoothingValue: 90, //in months
+                        width: 3
+                    });
+                    lineChart.addLine(lineAvg, data, "date", "amount");
+
+
+                  //Create otherRevenue dataset with all zeros
+                    var otherRevenue = JSON.parse(JSON.stringify(data));
+                    otherRevenue.forEach((record)=>{
+                        record.amount = 0;
+                    });
+
+
+                  //Create line for the otherRevenue
+                    var otherLine = new bluewave.chart.Line({
+                        smoothing: "movingAverage",
+                        smoothingValue: 90, //in months
+                        width: 3,
+                        style: "solid",
+                        color: "#EE9549"
+                    });
+                    lineChart.addLine(otherLine, otherRevenue, "date", "amount");
+
+
+
+                  //Update the chart to render the data
+                    lineChart.update();
+
+
+                    var percentPrime = 100;
+                    if (company.info && company.info.edits){
+                        if (company.info.edits.percentPrime){
+                            var obj = company.info.edits.percentPrime;
+                            var val = parseFloat(obj.value+"");
+                            if (!isNaN(val)) percentPrime = val;
+                        }
+                    }
+
+                    var timer;
+                    primeSlider.onChange = function(val){
+
+                        primeVal.value = round(val, 1) + "%";
+                        if (timer) clearTimeout(timer);
+                        timer = setTimeout(function(){
+
+                            var totalRevenue = 0;
+
+                            var percentPrime = round(primeSlider.getValue(), 1);
+                            for (var i=0; i<data.length; i++){
+                                var primeRev = data[i].amount;
+                                var otherRev = 0;
+                                if (primeRev>0) otherRev = primeRev/(percentPrime/100.0);
+                                otherRevenue[i].amount = otherRev;
+
+
+                                var d = parseInt(otherRevenue[i].date.replaceAll("-",""));
+                                if (d>=lastYear && d<=today){
+                                    if (percentPrime<100){
+                                        totalRevenue += otherRev;
+                                    }
+                                    else{
+                                        totalRevenue += primeRev;
+                                    }
+                                }
+                            }
+                            lineChart.update();
+
+                            annualRevenue.innerText = "$" + addCommas(Math.round(totalRevenue));
+
+                        }, 500);
+                    };
+                    primeSlider.setValue(percentPrime, true);
+                    primeSlider.onChange(percentPrime);
+
+
+                    mSlider.onChange = function(val){
+                        mVal.value = round(val/100, 1);
+                    };
+                    mSlider.setValue(10, true);
+                    mSlider.onChange(10);
+                },
+                getValue: function(){
+                    return {
+                        percentPrime: round(primeSlider.getValue(), 1)
+                    };
+                }
+            };
+
+        }
+
+        revenueEditor.update(company);
+        revenueEditor.show();
+    };
+
+
+
+  //**************************************************************************
   //** isValidUrl
   //**************************************************************************
     var isValidUrl = function(url) {
@@ -1468,7 +1629,9 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var round = javaxt.dhtml.utils.round;
     var get = javaxt.dhtml.utils.get;
 
+
     var createOverflowPanel = prospekt.utils.createOverflowPanel;
+    var getMonthRevenue = prospekt.utils.getMonthRevenue;
     var parseResponse = prospekt.utils.parseResponse;
     var getNaicsCodes = prospekt.utils.getNaicsCodes;
     var isAwardActive = prospekt.utils.isAwardActive;

@@ -137,7 +137,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         toolbar.addButton("Customer", prospekt.filters.CustomerFilter);
         toolbar.addButton("NAICS", prospekt.filters.NaicsFilter);
         toolbar.addButton("Revenue", prospekt.filters.RevenueFilter);
-        toolbar.addButton("More");
+        toolbar.addButton("More", prospekt.filters.CompanyFilter);
 
         toolbar.onChange = function(field, values){
             //console.log(field, values);
@@ -192,6 +192,15 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 }
                 else{
                     delete filter["recent_customers"];
+                }
+            }
+            else if (field==="More"){
+                var likes = values["likes"];
+                if (likes){
+                    filter.likes = likes;
+                }
+                else{
+                    delete filter["likes"];
                 }
             }
 
@@ -254,6 +263,16 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                         toolbarFilter.Revenue = f;
 
                     }
+                    else {
+                        if (!toolbarFilter.More) toolbarFilter.More = {};
+
+                        if (key==="likes"){
+                            if (val) toolbarFilter.More.likes = val;
+                            else delete toolbarFilter.More["likes"];
+                        }
+
+
+                    }
                 }
             }
 
@@ -284,8 +303,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             hideHeader: true,
             url: "companies",
             post: true,
-            filter: filter,
-            //fields: ["id","firstName","lastName","fullName","accessLevel","status"],
+            payload: filter,
             parseResponse: function(request){
                 return parseResponse(request.responseText);
             },
@@ -330,41 +348,43 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
 
-                var data = [];
-                var previousRevenue = 0;
-                var monthlyRevenue = company.info.monthlyRevenue;
-                var today = parseInt(lastUpdate.format("YYYYMMDD"));
-                var lastYear = parseInt(lastUpdate.clone().subtract(1, "year").format("YYYYMMDD"));
-                var prevYear = parseInt(lastUpdate.clone().subtract(2, "year").format("YYYYMMDD"));
-                Object.keys(monthlyRevenue).sort().forEach((date)=>{
-                    var d = parseInt(date.replaceAll("-",""));
+//                var data = [];
+//                var previousRevenue = 0;
+//                var monthlyRevenue = company.info.monthlyRevenue;
+//                var today = parseInt(lastUpdate.format("YYYYMMDD"));
+//                var lastYear = parseInt(lastUpdate.clone().subtract(1, "year").format("YYYYMMDD"));
+//                var prevYear = parseInt(lastUpdate.clone().subtract(2, "year").format("YYYYMMDD"));
+//                Object.keys(monthlyRevenue).sort().forEach((date)=>{
+//                    var d = parseInt(date.replaceAll("-",""));
+//
+//                    if (d>=prevYear && d<lastYear) previousRevenue+= monthlyRevenue[date];
+//
+//                    if (d<=today){
+//                        data.push({
+//                            date: date,
+//                            amount: monthlyRevenue[date]
+//                        });
+//                    }
+//                });
+//
+//
+//              //Add zeros to the end of the dataset as needed
+//                var d = data.length>0 ? new Date(data[data.length-1].date) : lastUpdate.clone().subtract(1, "year").toDate();
+//                var monthsAgo = lastUpdate.diff(d, 'months', true);
+//                if (monthsAgo>1){
+//                    monthsAgo = Math.ceil(monthsAgo);
+//                    var m = moment(d);
+//                    for (var i=0; i<monthsAgo; i++){
+//                        m.add(1, "month");
+//                        data.push({
+//                            date: m.format("YYYY-MM-DD"),
+//                            amount: 0
+//                        });
+//                    }
+//                }
 
-                    if (d>=prevYear && d<lastYear) previousRevenue+= monthlyRevenue[date];
 
-                    if (d<=today){
-                        data.push({
-                            date: date,
-                            amount: monthlyRevenue[date]
-                        });
-                    }
-                });
-
-
-              //Add zeros to the end of the dataset as needed
-                var d = data.length>0 ? new Date(data[data.length-1].date) : lastUpdate.clone().subtract(1, "year").toDate();
-                var monthsAgo = lastUpdate.diff(d, 'months', true);
-                if (monthsAgo>1){
-                    monthsAgo = Math.ceil(monthsAgo);
-                    var m = moment(d);
-                    for (var i=0; i<monthsAgo; i++){
-                        m.add(1, "month");
-                        data.push({
-                            date: m.format("YYYY-MM-DD"),
-                            amount: 0
-                        });
-                    }
-                }
-
+                var data = getMonthRevenue(company, lastUpdate);
 
 
                 var companyName = createElement("div", companyInfo, "company-name");
@@ -768,6 +788,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
     var post = javaxt.dhtml.utils.post;
     var get = javaxt.dhtml.utils.get;
 
+
+    var getMonthRevenue = prospekt.utils.getMonthRevenue;
     var getNaicsCodes = prospekt.utils.getNaicsCodes;
     var parseResponse = prospekt.utils.parseResponse;
     var createToolBar = prospekt.utils.createToolBar;
