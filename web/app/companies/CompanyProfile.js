@@ -19,6 +19,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //Components
     var panel;
     var companyOverview;
+    var revenueChart;
     var awardDetails, linkEditor, revenueEditor; //custom popups
     var waitmask;
 
@@ -137,7 +138,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //** notify
   //**************************************************************************
     this.notify = function(op, model, id, userID){
-
+        //console.log(op, model, id, userID);
     };
 
 
@@ -237,6 +238,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
                     d.onclick = function(e){
 
+                      //Special case for "Prime Contracts" field: Open revenue editor
                         if (key==="% Prime Contracts"){
                             editRevenue(company);
                             return;
@@ -283,8 +285,28 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                                     if (this.value!==this.orgValue){
                                         if (!company.info) company.info = {};
                                         if (!company.info.edits) company.info.edits = {};
-                                        company.info.edits[key] = this.value;
-                                        //TODO: save changes
+
+
+                                      //Convert jey to camel case
+                                        var fieldName = key;
+                                        if (fieldName.indexOf("%")===0) fieldName = fieldName.substring(1).trim();
+                                        if (fieldName.indexOf("#")===0) fieldName = fieldName.substring(1).trim();
+                                        fieldName = fieldName.replaceAll(" ", "");
+                                        if (fieldName.toUpperCase()===fieldName){ //all caps (e.g. EBITDA)
+                                            fieldName = fieldName.toLowerCase();
+                                        }
+                                        else{
+                                            fieldName = fieldName.substring(0, 1).toLowerCase() + fieldName.substring(1);
+                                        }
+
+                                        company.info.edits[fieldName] = {
+                                            value: this.value,
+                                            userID: document.user.id,
+                                            date: new Date().getTime()
+                                        };
+
+
+                                        updateCompanyInfo(company);
                                     }
 
                                 }
@@ -378,9 +400,9 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             {"% Prime Contracts": true},
             {"% Full and Open": false},
             {"# Employees": true},
-            {"Customers": true},
-            {"Prime Contract Vehicles": true},
-            {"Services Concentration": true},
+            {"Customers": false},
+            {"Prime Contract Vehicles": false},
+            {"Services Concentration": false},
             {"Total Revenue": false},
             {"Last Update": false},
             {"Status": false}
@@ -423,10 +445,32 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             );
         }
 
+        companyOverview.set("Annual Revenue", "$" + addCommas(Math.round(company.estimatedRevenue)));
+        companyOverview.set("Backlog", "$" + addCommas(Math.round(company.estimatedBacklog)));
+
 
         if (company.info){
             if (company.info.links){
                 companyOverview.set("Links", company.info.links);
+            }
+            if (company.info.edits){
+                var edits = company.info.edits;
+                for (var key in edits) {
+                    if (edits.hasOwnProperty(key)){
+                        if (key==="ebitda"){
+                            var val = parseFloat(edits[key].value);
+                            if (!isNaN(val)){
+                                companyOverview.set("EBITDA", "$" + addCommas(Math.round(val)));
+                            }
+                        }
+                        else if (key==="employees"){
+                            var val = parseFloat(edits[key].value);
+                            if (!isNaN(val)){
+                                companyOverview.set("# Employees", addCommas(Math.round(val)));
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -473,15 +517,9 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
       //Create dataset for the line graph
-        var annualRevenue = company.estimatedRevenue;
-        var totalBacklog = company.estimatedBacklog;
         var data = getMonthRevenue(company, lastUpdate);
         var totalRevenue = data.totalRevenue;
         var previousRevenue = data.previousRevenue;
-
-
-        companyOverview.set("Annual Revenue", "$" + addCommas(Math.round(annualRevenue)));
-        companyOverview.set("Backlog", "$" + addCommas(Math.round(totalBacklog)));
 
 
 
@@ -499,27 +537,30 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             width: "100%",
             display: "inline-block"
         });
-        var d = createElement("div", div, "emphasis");
-        d.style.display = "inline-block";
-        d.style.float = "left";
-        d.innerText = "$" + addCommas(Math.round(annualRevenue));
+        var annualRevenue = createElement("div", div, "emphasis");
+        annualRevenue.style.display = "inline-block";
+        annualRevenue.style.float = "left";
+        annualRevenue.innerText = "$" + addCommas(Math.round(company.estimatedRevenue));
 
-        var p = ((annualRevenue-previousRevenue)/previousRevenue)*100;
-        if (previousRevenue===0 && annualRevenue>0){
+
+        var p = ((company.estimatedRevenue-previousRevenue)/previousRevenue)*100;
+        if (previousRevenue===0 && company.estimatedRevenue>0){
             p = 100;
         }
-        var d = createElement("div", div, "change " + (p>0 ? "positive" : "negative") );
-        d.style.display = "inline-block";
-        d.style.float = "left";
-        d.style.margin = "6px 0 0 10px";
-        d.innerText = round(p<0 ? -p : p, 1) + "%";
+        var change = createElement("div", div, "change " + (p>0 ? "positive" : "negative") );
+        change.style.display = "inline-block";
+        change.style.float = "left";
+        change.style.margin = "6px 0 0 10px";
+        change.innerText = round(p<0 ? -p : p, 1) + "%";
+        addShowHide(change);
 
 
-        createElement("div", titleArea, "footer").innerText =
-        "$" + addCommas(Math.round(annualRevenue/12)) + " monthly revenue";
+        var monthlyRevenue = createElement("div", titleArea, "footer");
+        monthlyRevenue.innerText =
+        "$" + addCommas(Math.round(company.estimatedRevenue/12)) + " monthly revenue";
 
         companyOverview.set("Total Revenue",
-        "$" + addCommas(Math.round(totalRevenue-totalBacklog)) +
+        "$" + addCommas(Math.round(totalRevenue-company.estimatedBacklog)) +
         " total revenue since " + (firstDate.substring(0, firstDate.indexOf("-"))));
 
 
@@ -556,9 +597,51 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         lineChart.addLine(lineAvg, data, "date", "amount");
 
 
-      //Update the chart to render the data
-        lineChart.update();
+      //Create otherRevenue dataset
+        var otherRevenue = JSON.parse(JSON.stringify(data));
+        otherRevenue.forEach((record)=>{
+            record.amount = 0;
+        });
 
+
+      //Create line for the otherRevenue
+        var otherLine = new bluewave.chart.Line({
+            smoothing: "movingAverage",
+            smoothingValue: 90, //in months
+            width: 3,
+            style: "solid",
+            color: "#EE9549",
+            opacity: 0
+        });
+        lineChart.addLine(otherLine, otherRevenue, "date", "amount");
+
+
+        revenueChart = {
+            update: function(company){
+                var percentPrime = getPercentPrime(company);
+                var revenue = updateRevenue(data, otherRevenue, percentPrime);
+                otherLine.setOpacity(percentPrime<100 ? 1 : 0);
+                lineChart.update();
+
+
+                if (percentPrime<100){
+                    companyOverview.set("% Prime Contracts", percentPrime + "%");
+                    change.hide();
+                }
+                else{
+                    companyOverview.set("% Prime Contracts", "-");
+                    change.show();
+                }
+
+                annualRevenue.innerText = "$" + addCommas(Math.round(revenue.annualRevenue));
+                monthlyRevenue.innerText =
+                "$" + addCommas(Math.round(revenue.annualRevenue/12)) + " monthly revenue";
+            }
+        };
+
+
+      //Update the chart to render the data
+        revenueChart.update(company);
     };
 
 
@@ -1326,9 +1409,10 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                     {
                         name: "Submit",
                         onclick: function(){
+
+                          //Update company info
                             if (!company.info) company.info = {};
                             company.info.links = {};
-
                             var links = form.getData();
                             for (var key in links) {
                                 if (links.hasOwnProperty(key)){
@@ -1342,8 +1426,12 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                                     }
                                 }
                             }
+                            updateCompanyInfo(company);
 
+
+                          //Update company profile
                             companyOverview.set("Links", company.info.links);
+
 
                             win.close();
                         }
@@ -1392,7 +1480,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
         if (!revenueEditor){
 
-
+          //Create popup window
             var win = createWindow({
                 style: config.style.window,
                 title: "Edit Revenue",
@@ -1401,18 +1489,26 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                     {
                         name: "Submit",
                         onclick: function(){
-                            if (!company.info) company.info = {};
-                            if (!company.info.edits) company.info.edits = {};
-
                             var edits = revenueEditor.getValue();
                             var percentPrime = edits.percentPrime;
-                            company.info.edits.percentPrime = {
-                                value: percentPrime
-                            };
 
+
+                          //Update company info
+                            if (!company.info) company.info = {};
+                            if (!company.info.edits) company.info.edits = {};
+                            company.info.edits.percentPrime = {
+                                value: percentPrime,
+                                userID: document.user.id,
+                                date: new Date().getTime()
+                            };
+                            updateCompanyInfo(company);
+
+
+                          //Update company profile
                             if (percentPrime<100) percentPrime+="%";
                             else percentPrime = "-";
                             companyOverview.set("% Prime Contracts", percentPrime);
+                            revenueChart.update(company);
 
                             win.close();
                         }
@@ -1475,8 +1571,6 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                     lineChart.clear();
 
                     var data = getMonthRevenue(company, lastUpdate);
-                    var today = parseInt(lastUpdate.format("YYYYMMDD"));
-                    var lastYear = parseInt(lastUpdate.clone().subtract(1, "year").format("YYYYMMDD"));
 
 
                   //Add revenue line to the chart
@@ -1506,7 +1600,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                         smoothingValue: 90, //in months
                         width: 3,
                         style: "solid",
-                        color: "#EE9549"
+                        color: "#EE9549",
+                        opacity: 0
                     });
                     lineChart.addLine(otherLine, otherRevenue, "date", "amount");
 
@@ -1516,48 +1611,27 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                     lineChart.update();
 
 
-                    var percentPrime = 100;
-                    if (company.info && company.info.edits){
-                        if (company.info.edits.percentPrime){
-                            var obj = company.info.edits.percentPrime;
-                            var val = parseFloat(obj.value+"");
-                            if (!isNaN(val)) percentPrime = val;
-                        }
-                    }
-
                     var timer;
                     primeSlider.onChange = function(val){
 
+                      //Update input
                         primeVal.value = round(val, 1) + "%";
+
+                      //Update chart
                         if (timer) clearTimeout(timer);
                         timer = setTimeout(function(){
 
-                            var totalRevenue = 0;
-
                             var percentPrime = round(primeSlider.getValue(), 1);
-                            for (var i=0; i<data.length; i++){
-                                var primeRev = data[i].amount;
-                                var otherRev = 0;
-                                if (primeRev>0) otherRev = primeRev/(percentPrime/100.0);
-                                otherRevenue[i].amount = otherRev;
-
-
-                                var d = parseInt(otherRevenue[i].date.replaceAll("-",""));
-                                if (d>=lastYear && d<=today){
-                                    if (percentPrime<100){
-                                        totalRevenue += otherRev;
-                                    }
-                                    else{
-                                        totalRevenue += primeRev;
-                                    }
-                                }
-                            }
+                            var revenue = updateRevenue(data, otherRevenue, percentPrime);
+                            otherLine.setOpacity(percentPrime<100 ? 1 : 0);
                             lineChart.update();
 
-                            annualRevenue.innerText = "$" + addCommas(Math.round(totalRevenue));
+                            annualRevenue.innerText = "$" + addCommas(Math.round(revenue.annualRevenue));
 
                         }, 500);
                     };
+
+                    var percentPrime = getPercentPrime(company);
                     primeSlider.setValue(percentPrime, true);
                     primeSlider.onChange(percentPrime);
 
@@ -1582,10 +1656,84 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     };
 
 
+  //**************************************************************************
+  //** getPercentPrime
+  //**************************************************************************
+  /** Returns a user-defined percent prime contract value from the company
+   *  info
+   */
+    var getPercentPrime = function(company){
+        var percentPrime = 100;
+        if (company.info && company.info.edits){
+            if (company.info.edits.percentPrime){
+                var obj = company.info.edits.percentPrime;
+                var val = parseFloat(obj.value+"");
+                if (!isNaN(val)) percentPrime = val;
+            }
+        }
+        return percentPrime;
+    };
+
+
+  //**************************************************************************
+  //** updateRevenue
+  //**************************************************************************
+  /** Used to update the "otherRevenue" using a given "percentPrime" value
+   */
+    var updateRevenue = function(data, otherRevenue, percentPrime){
+
+        var annualRevenue = 0;
+        var today = parseInt(lastUpdate.format("YYYYMMDD"));
+        var lastYear = parseInt(lastUpdate.clone().subtract(1, "year").format("YYYYMMDD"));
+        for (var i=0; i<data.length; i++){
+            var primeRev = data[i].amount;
+            var otherRev = 0;
+            if (primeRev>0) otherRev = primeRev/(percentPrime/100.0);
+            otherRevenue[i].amount = otherRev;
+
+
+            var d = parseInt(otherRevenue[i].date.replaceAll("-",""));
+            if (d>=lastYear && d<=today){
+                if (percentPrime<100){
+                    annualRevenue += otherRev;
+                }
+                else{
+                    annualRevenue += primeRev;
+                }
+            }
+        }
+
+        return {
+            annualRevenue: annualRevenue
+        };
+    };
+
+
+  //**************************************************************************
+  //** updateCompanyInfo
+  //**************************************************************************
+  /** Used to save edits and other properties stored in the "info" object for
+   *  a company.
+   */
+    var updateCompanyInfo = function(company){
+        if (company && company.info){
+            post("UpdateCompanyInfo?id=" + company.id, company.info, {
+                success: function(str){
+                    //TODO: show message
+                },
+                failure: function(){
+                    //TODO: show failure
+                }
+            });
+        }
+    };
+
 
   //**************************************************************************
   //** isValidUrl
   //**************************************************************************
+  /** Returns true if the given string is a valid URL
+   */
     var isValidUrl = function(url) {
         if (!url) return false;
         url += "";
@@ -1627,6 +1775,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var isString = javaxt.dhtml.utils.isString;
     var merge = javaxt.dhtml.utils.merge;
     var round = javaxt.dhtml.utils.round;
+    var post = javaxt.dhtml.utils.post;
     var get = javaxt.dhtml.utils.get;
 
 
