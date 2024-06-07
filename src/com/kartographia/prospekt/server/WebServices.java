@@ -213,8 +213,8 @@ public class WebServices extends WebService {
    */
     public ServiceResponse updateCompanyInfo(ServiceRequest request) throws ServletException {
         try{
-            User user = (User) request.getUser();
-            if (user.getAccessLevel()<3) return new ServiceResponse(403, "Not Authorized");
+            javaxt.express.User user = (javaxt.express.User) request.getUser();
+            //if (user.getAccessLevel()<3) return new ServiceResponse(403, "Not Authorized");
             long userID = user.getID();
 
             Company company = new Company(request.getID());
@@ -224,20 +224,23 @@ public class WebServices extends WebService {
 
             JSONObject json = request.getJson();
             for (String key : json.keySet()){
-                if (key.equals("id")) continue;
+                if (key.equals("id") || key.equals("monthlyRevenue")) continue;
 
                 if (key.equals("likes")){
-                    JSONObject likes = json.get("likes").toJSONObject();
+
+                    JSONObject likes = info.get("likes").toJSONObject();
                     if (likes==null) likes = new JSONObject();
 
                     Integer val = json.get(key).toInteger();
-                    if (val==null || val<0){
-                        likes.remove(userID+"");
+                    if (val!=null){
+                        if (val<0){
+                            likes.remove(userID+"");
+                        }
+                        else{
+                            likes.set(userID+"", new javaxt.utils.Date().toISOString());
+                        }
                     }
-                    else{
-                        likes.set(userID+"", new javaxt.utils.Date().toISOString());
-                    }
-                    
+
                     company.setLikes((long) likes.length());
                     info.set("likes", likes);
                 }
@@ -462,7 +465,7 @@ public class WebServices extends WebService {
   //**************************************************************************
   //** notify
   //**************************************************************************
-    private void notify(String action, Model model, User user){
+    private void notify(String action, Model model, javaxt.express.User user){
         Long userID = user==null ? null : user.getID();
         notify(action+","+model.getClass().getSimpleName()+","+model.getID()+","+userID);
     }
