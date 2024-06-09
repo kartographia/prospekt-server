@@ -434,6 +434,22 @@ public class WebServices extends WebService {
                     listeners.remove(id);
                 }
             }
+            public void onText(String str){
+                if (str==null || str.isBlank()) return; //ping messages
+                javaxt.express.User user = (javaxt.express.User) request.getUserPrincipal();
+                //console.log(user.getID(), str);
+
+                if (str.startsWith("userActivity")){
+                    javaxt.utils.Record info = new javaxt.utils.Record();
+                    info.set("method", "websocket");
+                    info.set("path", "");
+                    info.set("userID", user.getID());
+                    javaxt.utils.Value data = new javaxt.utils.Value(info);
+                    String event = "websocket";
+                    String model = "WebRequest";
+                    NotificationService.notify(event, model, data);
+                }
+            }
         };
     }
 

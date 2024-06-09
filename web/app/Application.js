@@ -17,7 +17,8 @@ prospekt.Application = function(parent, config) {
             profileButton: function(user, profileButton){
                 updateProfileButton(user, profileButton);
             }
-        }
+        },
+        autoLogoff: false
     };
 
     var app;
@@ -63,6 +64,20 @@ prospekt.Application = function(parent, config) {
             }
 
         };
+
+
+      //Watch for user interactions and periodically send updates to the server
+        var lastUpdate;
+        app.onUserInteration = function(e){
+            lastUpdate = new Date().getTime();
+        };
+        var lastTransmission;
+        setInterval(()=>{
+          //Only send one update per second (max)
+            if (lastTransmission && lastUpdate-lastTransmission<1000) return;
+            lastTransmission = new Date().getTime();
+            app.sendMessage("userActivity");
+        }, 500);
 
 
       //Watch for logoff events
