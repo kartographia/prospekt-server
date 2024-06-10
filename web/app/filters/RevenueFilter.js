@@ -66,10 +66,27 @@ prospekt.filters.RevenueFilter = function(parent, config) {
                 var input = inputs[key];
                 if (input.getValue){
                     var val = input.getValue();
-                    if (!val && input.getInput){ //special case for comboboxes
-                        var v = parseFloat(input.getInput().value+"");
+
+
+                  //Special case for comboboxes
+                    if (!val && input.getInput){
+                        var v = (input.getInput().value+"").toLowerCase();
+                        v = v.replaceAll(",","").replaceAll("$","").trim();
+                        if (v.lastIndexOf("k")===v.length-1){
+                            v = v.substring(0, v.length-1).trim();
+                            v = parseFloat(v)*1000;
+                        }
+                        else if (v.lastIndexOf("m")===v.length-1){
+                            v = v.substring(0, v.length-1).trim();
+                            v = parseFloat(v)*1000000;
+                        }
+                        else{
+                            v = parseFloat(v);
+                        }
                         if (!isNaN(v)) val = v;
                     }
+
+
                     values[key] = val;
                 }
             }
@@ -185,6 +202,36 @@ prospekt.filters.RevenueFilter = function(parent, config) {
         input.add("$500M", 500000000);
         input.setValue(defaultLabel);
 
+        var setValue = input.setValue;
+        input.setValue = function(val, silent){
+            setValue(val, silent);
+
+            var currValue = input.getValue();
+            if (val != currValue){
+
+                var v = (val+"").replaceAll(",","").trim();
+                v = parseFloat(v);
+                if (!isNaN(v) && v>1){
+
+                    /*
+                    var suffix = "";
+                    if (v>1000){
+                        v = v/1000;
+                        suffix = "K";
+                        if (v>1000){
+                            v = v/1000;
+                            suffix = "M";
+                        }
+                        v = round(v, 1);
+                    }
+                    */
+
+                    input.getInput().value = "$" + addCommas(v);
+                }
+
+            }
+        };
+
         inputs[type] = input;
     };
 
@@ -196,7 +243,9 @@ prospekt.filters.RevenueFilter = function(parent, config) {
     var createTable = javaxt.dhtml.utils.createTable;
     var addShowHide = javaxt.dhtml.utils.addShowHide;
     var merge = javaxt.dhtml.utils.merge;
+    var round = javaxt.dhtml.utils.round;
 
+    var addCommas = prospekt.utils.addCommas;
 
     init();
 };

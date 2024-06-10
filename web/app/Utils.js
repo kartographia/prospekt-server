@@ -374,7 +374,9 @@ prospekt.utils = {
 
           //Add close button
             var closeButton = createElement("div", menu, "close-button");
-            closeButton.onclick = function(){
+            closeButton.onclick = function(e){
+                e.preventDefault();
+                e.stopPropagation();
                 menu.hide();
             };
 

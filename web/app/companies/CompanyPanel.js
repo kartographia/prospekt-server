@@ -248,9 +248,11 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                         key==="recent_award_val" ||
                         key==="estimated_revenue"){
 
-                        var f = {
-                            type: key==="recent_award_val" ? "Awards" : "Revenue"
-                        };
+                        var f = toolbarFilter.Revenue;
+                        if (!f){
+                            f = {};
+                            toolbarFilter.Revenue = f;
+                        }
 
 
                         if (!isArray(val)) val = [val];
@@ -260,7 +262,9 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                             if (v.indexOf("<")==0) f.max = parseFloat(v.substring(1));
                         });
 
-                        toolbarFilter.Revenue = f;
+                        if (!(isNaN(f.min) && isNaN(f.max))){
+                            f.type = key==="recent_award_val" ? "Awards" : "Revenue";
+                        }
 
                     }
                     else {
@@ -343,47 +347,6 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 row.set("Name", table);
 
 
-
-
-
-
-
-//                var data = [];
-//                var previousRevenue = 0;
-//                var monthlyRevenue = company.info.monthlyRevenue;
-//                var today = parseInt(lastUpdate.format("YYYYMMDD"));
-//                var lastYear = parseInt(lastUpdate.clone().subtract(1, "year").format("YYYYMMDD"));
-//                var prevYear = parseInt(lastUpdate.clone().subtract(2, "year").format("YYYYMMDD"));
-//                Object.keys(monthlyRevenue).sort().forEach((date)=>{
-//                    var d = parseInt(date.replaceAll("-",""));
-//
-//                    if (d>=prevYear && d<lastYear) previousRevenue+= monthlyRevenue[date];
-//
-//                    if (d<=today){
-//                        data.push({
-//                            date: date,
-//                            amount: monthlyRevenue[date]
-//                        });
-//                    }
-//                });
-//
-//
-//              //Add zeros to the end of the dataset as needed
-//                var d = data.length>0 ? new Date(data[data.length-1].date) : lastUpdate.clone().subtract(1, "year").toDate();
-//                var monthsAgo = lastUpdate.diff(d, 'months', true);
-//                if (monthsAgo>1){
-//                    monthsAgo = Math.ceil(monthsAgo);
-//                    var m = moment(d);
-//                    for (var i=0; i<monthsAgo; i++){
-//                        m.add(1, "month");
-//                        data.push({
-//                            date: m.format("YYYY-MM-DD"),
-//                            amount: 0
-//                        });
-//                    }
-//                }
-
-
                 var data = getMonthRevenue(company, lastUpdate);
 
 
@@ -393,12 +356,6 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 var annualRevenue = createElement("div", companyInfo, "company-info");
                 annualRevenue.innerText = "Annual Revenue: $" + addCommas(company.estimatedRevenue);
 
-                /*
-                var p = ((company.estimatedRevenue-previousRevenue)/previousRevenue)*100;
-                var d = createElement("div", annualRevenue, "change " + (p>0 ? "positive" : "negative") );
-                d.style.display = "inline-block";
-                d.innerText = round(p<0 ? -p : p, 1) + "%";
-                */
 
                 var customers = createElement("div", companyInfo, "company-info");
                 customers.innerText = "Recent Customers: " + (company.recentCustomers ? company.recentCustomers.join(", ") : "");
@@ -684,9 +641,11 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
         var notifyCompany = companyProfile.notify;
         companyProfile.notify = function(op, model, id, userID){
-            notifyCompany(op, model, id, userID);
+            //notifyCompany(op, model, id, userID);
             if (model==="Company"){
-                //
+                if (id === companyProfile.companyID){
+                    //console.log("update company!");
+                }
             }
         };
     };
