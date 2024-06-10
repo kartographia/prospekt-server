@@ -449,7 +449,11 @@ prospekt.utils = {
           //Update searchbar
             var searchFilter = toolbar.filter["Search"];
             if (searchFilter){
-                searchBar.setValue(searchFilter, true);
+                var currValue = searchBar.getValue();
+                if (!currValue) currValue = "";
+                if (searchFilter.toUpperCase()!=currValue.toUpperCase()){
+                    searchBar.setValue(searchFilter, true);
+                }
             }
 
 

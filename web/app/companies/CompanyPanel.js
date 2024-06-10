@@ -145,7 +145,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
             if (field==="Search"){
                 if (values && values.length>0){
-                    filter.name = "'" + values.toUpperCase() + "%'";
+                    filter.name = "'" + values.toUpperCase() + "%'" +
+                    " OR company.name like " + "'% " + values.toUpperCase() + "%'";
                 }
                 else{
                     delete filter.name;
@@ -225,10 +226,19 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                     if (key==="name"){
 
                         if (val.indexOf("'")===0 && val.lastIndexOf("'")===val.length-1){
-                            val = val.substring(1, val.length-1);
-                            if (val.lastIndexOf("%")===val.length-1){
-                                val = val.substring(0, val.length-1);
-                            }
+                            val = val.substring(1, val.length-1).trim();
+                            val = val.replaceAll("%", " ").trim();
+                            val = val.replace("OR company.name like","");
+                            var v = {};
+                            val.split(" ").forEach((word, i)=>{
+                                word = word.trim();
+                                if (word.length==0) return;
+                                if (i>0 && word=="OR") return;
+                                if (word.indexOf("'")===0) word = word.substring(1).trim();
+                                if (word.lastIndexOf("'")===word.length-1) word = word.substring(0, word.length-1).trim();
+                                if (!v[word]) v[word] = true;
+                            });
+                            val = Object.keys(v).join(" ").trim();
                         }
 
                         toolbarFilter.Search = val;
