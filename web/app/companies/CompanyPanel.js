@@ -94,7 +94,51 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                     dbDate = moment(new Date(dbDate)).subtract(1, "month").format("YYYY-MM-") + "01";
                     lastUpdate = moment(new Date(dbDate)).add(1, "month").subtract(1, "second");
 
-                    companyList.update();
+
+                  //Update list or jump directly into the profile depending on the url
+                    var uei = getParameter("uei");
+                    if (uei && uei.length>0){
+
+                        get("companies?&fields=id&format=json&uei="+uei,{
+                            success: function(str){
+                                var companies = JSON.parse(str);
+                                if (companies.length>0){
+                                    var companyID = companies[0].id;
+                                    companyList.showProfile(companyID);
+
+                                  //Update history
+                                    var url = window.location.href;
+                                    var idx = url.indexOf("?");
+                                    if (idx>-1) url = url.substring(0, idx);
+                                    updateHistory({
+                                        view: "list",
+                                        url: url
+                                    });
+                                    addHistory({
+                                        view: "profile",
+                                        companyID: companyID,
+                                        url: "?tab=companies&uei="+uei
+                                    });
+
+                                  //Update list after short delay
+                                    setTimeout(()=>{
+                                        companyList.update();
+                                    },2000);
+
+                                }
+                                else{
+                                    companyList.update();
+                                }
+                            },
+                            failure: function(){
+                                companyList.update();
+                            }
+                        });
+                    }
+                    else{
+                        companyList.update();
+                    }
+
                 },
                 failure: function(request){
                     alert(request);
@@ -145,8 +189,14 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
             if (field==="Search"){
                 if (values && values.length>0){
-                    filter.name = "'" + values.toUpperCase() + "%'" +
-                    " OR company.name like " + "'% " + values.toUpperCase() + "%'";
+                    values = values.trim();
+                    if (values.indexOf(" ")===-1){
+                        filter.name = "'" + values.toUpperCase() + "%'" +
+                        " OR company.name like " + "'% " + values.toUpperCase() + "%'";
+                    }
+                    else{
+                        filter.name = "'" + values.toUpperCase() + "%'";
+                    }
                 }
                 else{
                     delete filter.name;
@@ -438,7 +488,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
             addHistory({
                 view: "profile",
-                companyID: company.id
+                companyID: company.id,
+                url: "?tab=companies&uei="+company.uei
             });
         };
 
@@ -553,8 +604,12 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                   //with this approach, we lose the forward button...
                     companyProfile.hide();
                     companyList.show();
+                    var url = window.location.href;
+                    var idx = url.indexOf("?");
+                    if (idx>-1) url = url.substring(0, idx);
                     updateHistory({
-                        view: "list"
+                        view: "list",
+                        url: url
                     });
                 }
             }
@@ -684,6 +739,10 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
         var title = document.title;
         var url = "";
+        if (params.url){
+            url = params.url;
+            delete params.url;
+        }
 
         var state = window.history.state;
         if (!state) state = {};
@@ -748,6 +807,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
   //** Utils
   //**************************************************************************
     var createElement = javaxt.dhtml.utils.createElement;
+    var getParameter = javaxt.dhtml.utils.getParameter;
     var createTable = javaxt.dhtml.utils.createTable;
     var addShowHide = javaxt.dhtml.utils.addShowHide;
     var onRender = javaxt.dhtml.utils.onRender;
