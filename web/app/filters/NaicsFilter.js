@@ -210,7 +210,8 @@ prospekt.filters.NaicsFilter = function(parent, config) {
         var td = table.addRow().addColumn();
         var button = createElement("div", td, "button");
         button.innerText = "Apply";
-        button.onclick = function(){
+        button.onclick = function(e){
+            e.stopPropagation();
             me.onApply();
         };
 

@@ -204,6 +204,7 @@ prospekt.filters.RevenueFilter = function(parent, config) {
 
         var setValue = input.setValue;
         input.setValue = function(val, silent){
+            input.getInput().value = defaultLabel;
             setValue(val, silent);
 
             var currValue = input.getValue();

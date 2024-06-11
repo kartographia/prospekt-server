@@ -58,11 +58,24 @@ prospekt.filters.CompanyFilter = function(parent, config) {
 
 
   //**************************************************************************
+  //** clear
+  //**************************************************************************
+    this.clear = function(){
+        for (var key in inputs) {
+            if (inputs.hasOwnProperty(key)){
+                var input = inputs[key];
+                if (input.setValue) input.setValue("", true);
+            }
+        }
+    };
+
+
+  //**************************************************************************
   //** update
   //**************************************************************************
     this.update = function(filter){
-        if (!filter) return;
-        console.log(filter);
+        me.clear();
+        if (!filter) filter = {};
         for (var key in filter) {
             if (filter.hasOwnProperty(key)){
                 var val = filter[key];

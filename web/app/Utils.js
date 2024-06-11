@@ -284,8 +284,15 @@ prospekt.utils = {
             button.onclick = function(e){
 
                 if (button.menu && button.menu.isVisible()){
-                    //TODO: Check if client clicked on button. Only return if
-                    //client clicked outside the button (e.g. menu)
+
+                  //Check if client clicked on button
+                    var rect = javaxt.dhtml.utils.getRect(button);
+                    if ((e.clientX>=rect.left && e.clientX<=rect.right) &&
+                        (e.clientY>=rect.top && e.clientY<=rect.bottom)){
+                        button.menu.hide();
+                        button.classList.remove("active");
+                    }
+
                     return;
                 };
 
@@ -294,8 +301,8 @@ prospekt.utils = {
                 });
 
                 if (button.classList.has("active")){
-                    button.classList.remove("active");
                     button.menu.hide();
+                    //button.classList.remove("active");
                 }
                 else{
                     button.classList.add("active");
@@ -353,7 +360,10 @@ prospekt.utils = {
                 if (menu.isVisible()) return;
 
                 toolbar.buttons.forEach((b)=>{
-                    if (b.menu) b.menu.hide();
+                    if (b.menu){
+                        b.menu.hide();
+                        //b.classList.remove("active");
+                    }
                 });
 
                 var highestElements = getHighestElements();
@@ -378,6 +388,7 @@ prospekt.utils = {
                 e.preventDefault();
                 e.stopPropagation();
                 menu.hide();
+                button.classList.remove("active");
             };
 
 
@@ -395,6 +406,7 @@ prospekt.utils = {
 
               //Hide menu
                 menu.hide();
+                button.classList.remove("active");
 
 
               //Update filter
@@ -425,7 +437,10 @@ prospekt.utils = {
         var hideMenus = function(){
             toolbar.buttons.forEach((b)=>{
                 b.classList.remove("active");
-                if (b.menu) b.menu.hide();
+                if (b.menu){
+                    b.menu.hide();
+                    b.classList.remove("active");
+                }
             });
         };
 
@@ -455,6 +470,9 @@ prospekt.utils = {
                     searchBar.setValue(searchFilter, true);
                 }
             }
+            else{
+                searchBar.setValue("", true);
+            }
 
 
           //Update button style
@@ -482,6 +500,16 @@ prospekt.utils = {
                 }
                 else{
                     button.classList.remove("filter");
+                    button.classList.remove("active");
+
+
+                  //Update the button menu
+                    if (button.menu && button.menu.filter){
+                        if (button.menu.filter.update){
+                            button.menu.filter.update(buttonFilter);
+                        }
+                    }
+
                 }
 
             });
@@ -778,58 +806,63 @@ prospekt.utils = {
         var data = [];
         var totalRevenue = 0;
         var previousRevenue = 0;
-        var monthlyRevenue = company.info.monthlyRevenue;
-        var today = parseInt(lastUpdate.format("YYYYMMDD"));
-        var lastYear = parseInt(lastUpdate.clone().subtract(1, "year").format("YYYYMMDD"));
-        var prevYear = parseInt(lastUpdate.clone().subtract(2, "year").format("YYYYMMDD"));
-        Object.keys(monthlyRevenue).sort().forEach((date)=>{
-            var d = parseInt(date.replaceAll("-",""));
+        if (company.info && company.info.monthlyRevenue){
 
-            /*
-            if (d>today){
-                totalBacklog+=monthlyRevenue[date];
-                return;
-            }
-            else{
-                if (d>=lastYear){
-                    annualRevenue+=monthlyRevenue[date];
+
+            var monthlyRevenue = company.info.monthlyRevenue;
+            var today = parseInt(lastUpdate.format("YYYYMMDD"));
+            var lastYear = parseInt(lastUpdate.clone().subtract(1, "year").format("YYYYMMDD"));
+            var prevYear = parseInt(lastUpdate.clone().subtract(2, "year").format("YYYYMMDD"));
+            Object.keys(monthlyRevenue).sort().forEach((date)=>{
+                var d = parseInt(date.replaceAll("-",""));
+
+                /*
+                if (d>today){
+                    totalBacklog+=monthlyRevenue[date];
+                    return;
+                }
+                else{
+                    if (d>=lastYear){
+                        annualRevenue+=monthlyRevenue[date];
+                    }
+                }
+                */
+
+                if (d>=prevYear && d<lastYear) previousRevenue+= monthlyRevenue[date];
+
+
+                if (d<=today){
+
+                    data.push({
+                        date: date,
+                        amount: monthlyRevenue[date]
+                    });
+
+
+                    totalRevenue += monthlyRevenue[date];
+                }
+            });
+
+
+
+          //Add zeros to the end of the dataset as needed
+            if (data.length>0){
+                var d = new Date(data[data.length-1].date);
+                var monthsAgo = lastUpdate.diff(d, 'months', true);
+                if (monthsAgo>1){
+                    monthsAgo = Math.ceil(monthsAgo);
+                    var m = moment(d);
+                    for (var i=0; i<monthsAgo; i++){
+                        m.add(1, "month");
+                        data.push({
+                            date: m.format("YYYY-MM-DD"),
+                            amount: 0
+                        });
+                    }
                 }
             }
-            */
 
-            if (d>=prevYear && d<lastYear) previousRevenue+= monthlyRevenue[date];
-
-
-            if (d<=today){
-
-                data.push({
-                    date: date,
-                    amount: monthlyRevenue[date]
-                });
-
-
-                totalRevenue += monthlyRevenue[date];
-            }
-        });
-
-
-
-      //Add zeros to the end of the dataset as needed
-        var d = new Date(data[data.length-1].date);
-        var monthsAgo = lastUpdate.diff(d, 'months', true);
-        if (monthsAgo>1){
-            monthsAgo = Math.ceil(monthsAgo);
-            var m = moment(d);
-            for (var i=0; i<monthsAgo; i++){
-                m.add(1, "month");
-                data.push({
-                    date: m.format("YYYY-MM-DD"),
-                    amount: 0
-                });
-            }
         }
-
-
         data.totalRevenue = totalRevenue;
         data.previousRevenue = previousRevenue;
         return data;
@@ -896,6 +929,8 @@ prospekt.utils = {
    *  @returns A number with a trend value. Example -139.5
    */
     getTrend: function(nums){
+        if (nums.length===0) return 0;
+
         var summed_nums = nums.reduce((a, b) => a + b); //sum(nums)
         var multiplied_data = 0;
         var summed_index = 0;

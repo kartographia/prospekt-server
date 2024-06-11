@@ -22,6 +22,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var revenueChart;
     var awardDetails, linkEditor, revenueEditor; //custom popups
     var waitmask;
+    var clipboard;
 
   //Variables
     var loading = false;
@@ -201,7 +202,14 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
       //Create title
         var companyName = createElement("div", parent, "company-name");
-        companyName.innerText = company.name;
+        var span = createElement("span", companyName);
+        span.innerText = company.name;
+        companyName.onclick = function(e){
+            if (e.offsetX>span.offsetWidth){
+                if (!clipboard) clipboard = createClipboard(parent);
+                clipboard.insert(company.name);
+            }
+        };
 
 
       //Create stats
@@ -1768,6 +1776,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //**************************************************************************
   //** Utils
   //**************************************************************************
+    var createClipboard = javaxt.dhtml.utils.createClipboard;
     var createElement = javaxt.dhtml.utils.createElement;
     var createTable = javaxt.dhtml.utils.createTable;
     var addShowHide = javaxt.dhtml.utils.addShowHide;

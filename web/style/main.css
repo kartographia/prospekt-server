@@ -108,6 +108,42 @@ body, textarea, input, select, td, th {
      transition: 0.4s;
  }
 
+
+.app-header-menu.warning {
+    white-space: nowrap;
+    width: 108px;
+    border-radius: 12px;
+    border: 1px solid #a35b5b;
+    margin: 0 10px;
+    background-color: #a14354;
+    position: relative;
+}
+
+.app-header-menu.warning:hover {
+    background-color: #dd8d9b;
+}
+
+.app-header-menu.warning i {
+    padding-left: 18px;
+}
+
+.app-header-menu.noselect.warning:before {
+    content: 'Warning';
+}
+
+.app-header-menu.warning:after {
+    float:left;
+    font-family: "Font Awesome 5 Free";
+    vertical-align: middle;
+    font-weight: 900;
+    font-size: 12px;
+    padding: 0 0 0 6px;
+    content: "\f071"; /* fas fa-exclamation-triangle */
+    top: 0;
+}
+
+
+
  .app-menu {
     padding: 3px 2px;
     min-width: 180px;
@@ -131,6 +167,10 @@ body, textarea, input, select, td, th {
     font-size: 20px;
     vertical-align: middle;
 }
+
+
+
+
 
 
 
@@ -192,58 +232,7 @@ body, textarea, input, select, td, th {
 }
 
 
-/**************************************************************************/
-/** Communications Error Popup
-/**************************************************************************/
 
-.communication-error {
-    width: 450px;
-    min-height: 64px;
-    background-color: #ffeef1;
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 12px 14px 0 rgba(0, 0, 0, 0.2), 0 13px 20px 0 rgba(0, 0, 0, 0.2);
-}
-
-.communication-error .icon,
-.communication-error .title {
-    height: 24px;
-    font-size: 20px;
-    display: inline-block;
-    float:left;
-}
-
-.communication-error .icon {
-    width: 40px;
-    position: relative;
-}
-
-.communication-error .icon:before,
-.communication-error .icon:after {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    position: absolute;
-    color: #9d172e;
-}
-
-
-.communication-error .icon:before{
-    content: "\f12a"; /* exclaimation */
-    left: 11px;
-}
-
-.communication-error .icon:after{
-    content: "\f1eb"; /* wifi */
-    opacity: 0.2;
-    font-size: 24px;
-}
-
-.communication-error .message {
-    font-size: 11px;
-    display: inline-block;
-    color: #777;
-    margin-top: 8px;
-}
 
 
 /**************************************************************************/
@@ -640,6 +629,7 @@ body, textarea, input, select, td, th {
 }
 
 .company-panel .toolbar .pulldown:hover,
+.company-panel .toolbar .toolbar-button:hover,
 .company-panel .toolbar .toolbar-button-hover {
     border-color: #a7a6ab;
     box-shadow: 1px 2px 6px 0 rgba(0, 0, 0, 0.2);
@@ -648,10 +638,21 @@ body, textarea, input, select, td, th {
 
 .company-panel .toolbar .pulldown.active,
 .company-panel .toolbar .pulldown.filter,
+.company-panel .toolbar .toolbar-button.active,
 .company-panel .toolbar .toolbar-button-hover,
 .company-panel .toolbar .toolbar-button-selected {
     border-color: #006aff;
     background-color: aliceblue;
+}
+
+
+.company-panel .toolbar .toolbar-button.reset {
+    background-color: #9E9E9E;
+    border-color: #777;
+    color: #fff;
+    letter-spacing: 0px;
+    font-weight: normal;
+    margin: 9px 8px 0 !important;
 }
 
 
@@ -980,6 +981,18 @@ body, textarea, input, select, td, th {
     padding: 0 20px 5px 0;
     line-height: 36px;
 }
+
+.company-profile .company-name:hover:after {
+    content: "\f24d"; /* clone icon */
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    font-size: 18px;
+    color: #a7a7a7;
+    padding-left: 4px;
+    cursor: pointer;
+    position: absolute;
+}
+
 
 .company-overview  td {
     padding: 2px 8px;

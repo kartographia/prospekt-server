@@ -182,6 +182,23 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         toolbar.addButton("NAICS", prospekt.filters.NaicsFilter);
         toolbar.addButton("Revenue", prospekt.filters.RevenueFilter);
         toolbar.addButton("More", prospekt.filters.CompanyFilter);
+        var resetButton = createElement("div", toolbar.el, "toolbar-button reset noselect");
+        resetButton.innerText = "Reset Filters";
+        resetButton.onclick = function(e){
+            var orgFilter = JSON.parse(JSON.stringify(filter));
+            for (var key in filter) {
+                if (filter.hasOwnProperty(key)){
+                    filter[key] = "";
+                }
+            }
+            filter.recent_award_val = ">1";
+            filter.estimated_revenue = "";
+            toolbar.hideMenus();
+            if (isDirty(filter, orgFilter)){
+                document.user.preferences.set("CompanyFilter", filter);
+                companyList.update();
+            }
+        };
 
         toolbar.onChange = function(field, values){
             //console.log(field, values);
