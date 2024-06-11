@@ -19,6 +19,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
     var companyList, companyProfile;
     var filter = {};
+    var extraParams = {};
     var lastUpdate;
 
     var naiscCodes;
@@ -52,6 +53,12 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             }
         }
 
+        for (var key in extraParams) {
+            if (extraParams.hasOwnProperty(key)){
+                extraParams[key] = "";
+            }
+        }
+
         companyProfile.companyID = null;
         companyProfile.clear();
         companyProfile.hide();
@@ -80,6 +87,16 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             for (var key in companyFilter) {
                 if (companyFilter.hasOwnProperty(key)){
                     filter[key] = companyFilter[key];
+                }
+            }
+        }
+
+
+        var companyParams = document.user.preferences.get("CompanyParams");
+        if (companyParams){
+            for (var key in companyParams) {
+                if (companyParams.hasOwnProperty(key)){
+                    extraParams[key] = companyParams[key];
                 }
             }
         }
@@ -193,9 +210,19 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             }
             filter.recent_award_val = ">1";
             filter.estimated_revenue = "";
+
+
+            var orgParams = JSON.parse(JSON.stringify(extraParams));
+            for (var key in extraParams) {
+                if (extraParams.hasOwnProperty(key)){
+                    extraParams[key] = "";
+                }
+            }
+
             toolbar.hideMenus();
-            if (isDirty(filter, orgFilter)){
+            if (isDirty(filter, orgFilter) || isDirty(extraParams, orgParams)){
                 document.user.preferences.set("CompanyFilter", filter);
+                document.user.preferences.set("CompanyParams", extraParams);
                 companyList.update();
             }
         };
@@ -203,6 +230,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         toolbar.onChange = function(field, values){
             //console.log(field, values);
             var orgFilter = JSON.parse(JSON.stringify(filter));
+            var orgParams = JSON.parse(JSON.stringify(extraParams));
+
 
             if (field==="Search"){
                 if (values && values.length>0){
@@ -270,11 +299,23 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 else{
                     delete filter["likes"];
                 }
+
+
+              //Special case for orderby
+                var orderby = values["orderby"];
+                if (orderby){
+                    if (orderby==="estimated_revenue") orderby += " desc";
+                    extraParams.orderby = orderby + ",id";
+                }
+                else{
+                    delete extraParams.orderby;
+                }
             }
 
 
-            if (isDirty(filter, orgFilter)){
+            if (isDirty(filter, orgFilter) || isDirty(extraParams, orgParams)){
                 document.user.preferences.set("CompanyFilter", filter);
+                document.user.preferences.set("CompanyParams", extraParams);
                 companyList.update();
             }
         };
@@ -358,6 +399,20 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             }
 
 
+          //Special case for orderby
+            for (var key in extraParams) {
+                if (extraParams.hasOwnProperty(key)){
+                    if (key==="orderby"){
+                        var orderby = extraParams[key].replaceAll(",id","").trim();
+                        var idx = orderby.indexOf(" ");
+                        if (idx>-1) orderby = orderby.substring(0, idx).trim();
+                        if (!toolbarFilter.More) toolbarFilter.More = {};
+                        toolbarFilter.More.orderby = orderby;
+                    }
+                }
+            }
+
+
           //Update toolbar
             updateToolbar(toolbarFilter);
 
@@ -385,6 +440,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             url: "companies",
             post: true,
             payload: filter,
+            params: extraParams,
             parseResponse: function(request){
                 return parseResponse(request.responseText);
             },

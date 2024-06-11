@@ -32,6 +32,7 @@ prospekt.filters.CompanyFilter = function(parent, config) {
         var div = createElement("div", parent, "more-filter");
 
 
+      //Add company rating
         createElement("h3", div).innerText = "Company Rating";
         var checkbox = new javaxt.dhtml.Checkbox(div, {
             label: "Has Likes",
@@ -47,6 +48,69 @@ prospekt.filters.CompanyFilter = function(parent, config) {
                 }
                 else{
                     checkbox.deselect(true);
+                }
+            }
+        };
+
+
+      //Add order by
+        createElement("h3", div).innerText = "Order By";
+        var orderByInputs = {
+            "Company Name": "NAME",
+            "Annual Revenue": "ESTIMATED_REVENUE",
+            "None": "null"
+        };
+
+
+        Object.keys(orderByInputs).forEach((str, i)=>{
+
+            var d = createElement("div", div, {
+                width: "100%",
+                height: "24px"
+            });
+
+            var id = "orderby" + (i+1); //needed for label click to work
+
+            var input = createElement("input", d, "form-radio");
+            input.id = id;
+            input.type = "radio";
+            input.name = "orderby";
+            input.value = orderByInputs[str];
+            input.style.float = "left";
+
+            var label = createElement("label", d, "form-label");
+            label.setAttribute("for", id);
+            label.innerText = str;
+            label.style.float = "left";
+
+            orderByInputs[str] = input;
+        });
+
+        inputs["orderby"] = {
+            getValue: function(){
+                for (var key in orderByInputs) {
+                    if (orderByInputs.hasOwnProperty(key)){
+                        var input = orderByInputs[key];
+                        if (input.checked){
+                            return input.value.toLowerCase();
+                        }
+                    }
+                }
+                return "";
+            },
+            setValue: function(orderby){
+                if (!orderby) orderby = "";
+                orderby = orderby.toUpperCase();
+
+                for (var key in orderByInputs) {
+                    if (orderByInputs.hasOwnProperty(key)){
+                        var input = orderByInputs[key];
+                        input.checked = false;
+                        if (input.value.toUpperCase()===orderby ||
+                            key.toUpperCase()===orderby){
+                            input.checked = true;
+                        }
+                    }
                 }
             }
         };
