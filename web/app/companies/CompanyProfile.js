@@ -169,6 +169,10 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         createRevenueChart(company, td);
 
 
+      //Add customer logos
+        createCustomers(company, createElement("div", innerDiv));
+
+
       //Add pie charts
         createPieCharts(company, createElement("div", innerDiv));
 
@@ -650,6 +654,26 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
       //Update the chart to render the data
         revenueChart.update(company);
+    };
+
+
+  //**************************************************************************
+  //** createCustomers
+  //**************************************************************************
+    var createCustomers = function(company, parent){
+        if (!company.recentCustomers || company.recentCustomers.length<2) return;
+
+        createElement("h2", parent).innerText = "Customers";
+        createElement("p", parent).innerText =
+        "Recent customers based on prime contract awards.";
+
+
+        var container = createElement("div", parent, "customer-logos");
+        company.recentCustomers.forEach((customer)=>{
+            var d = createElement("div", container);
+            d.style.backgroundImage = "url(/images/logos/" + customer.toLowerCase() + ".svg)";
+        });
+
     };
 
 

@@ -1055,6 +1055,25 @@ body, textarea, input, select, td, th {
 }
 */
 
+.company-profile .customer-logos {
+    width: 100%;
+    position: relative;
+    display: inline-block;
+}
+
+.company-profile .customer-logos > div {
+    background-repeat: no-repeat;
+    background-size: 110px 110px;
+    width: 110px;
+    height: 110px;
+    margin: 0 0px 0 46px;
+    float: left;
+
+}
+
+
+
+
 /**************************************************************************/
 /** Popover panel
 /**************************************************************************/
@@ -1406,8 +1425,11 @@ body, textarea, input, select, td, th {
     color: #2a2a33;
 }
 
-.more-filter .checkbox-label {
+.more-filter .checkbox-label,
+.more-filter .form-label {
     font-weight: normal;
+    height: 16px;
+    line-height: 16px;
 }
 
 
