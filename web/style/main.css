@@ -1068,10 +1068,21 @@ body, textarea, input, select, td, th {
     height: 110px;
     margin: 0 0px 0 46px;
     float: left;
-
 }
 
 
+/**************************************************************************/
+/** Award Details
+/**************************************************************************/
+
+.award-details .customer-logo {
+    background-repeat: no-repeat;
+    background-size: 135px 135px;
+    width: 135px;
+    height: 135px;
+    margin: 7px 14px 0 0;
+    float: right;
+}
 
 
 /**************************************************************************/

@@ -27,12 +27,16 @@ prospekt.awards.AwardDetails = function(parent, config) {
         if (!config) config = {};
         config = merge(config, defaultConfig);
 
-        var table = createTable(parent);
+        var mainDiv = createElement("div", parent, "award-details");
+        mainDiv.style.height = "100%";
+
+
+        var table = createTable(mainDiv);
         createOverview(table.addRow().addColumn());
         createTranactionList(table.addRow().addColumn({height: "100%" }));
 
 
-        me.el = table;
+        me.el = mainDiv;
         addShowHide(me);
     };
 
@@ -124,6 +128,8 @@ prospekt.awards.AwardDetails = function(parent, config) {
             width: "300px",
             height: "100%"
         });
+        var logo = createElement("div", div, "customer-logo");
+
 
 
 
@@ -168,6 +174,12 @@ prospekt.awards.AwardDetails = function(parent, config) {
                     row.setValue(val);
                 }
             }
+
+
+            logo.style.backgroundImage = "url(/images/logos/" + award.customer.toLowerCase() + ".svg)";
+
+
+
         };
     };
 
