@@ -18,13 +18,14 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
   //Components
     var panel;
-    var companyOverview;
+    var companyOverview, companyDescription;
     var revenueChart;
     var awardDetails, linkEditor, revenueEditor; //custom popups
     var waitmask;
     var clipboard;
 
   //Variables
+    var currID = null;
     var loading = false;
     var naiscCodes = {};
     var listeners = [];
@@ -58,6 +59,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //** clear
   //**************************************************************************
     this.clear = function(){
+        var currID = null;
         panel.clear();
         listeners.forEach((listener)=>{
             document.body.removeEventListener('click', listener);
@@ -139,7 +141,16 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //** notify
   //**************************************************************************
     this.notify = function(op, model, id, userID){
-        //console.log(op, model, id, userID);
+        if (model==="Company" && id===currID){
+            get("Company?id="+id,{
+                success: function(str){
+                    var company = JSON.parse(str);
+                    if (company.description){
+                        companyDescription.innerText = company.description;
+                    }
+                }
+            });
+        }
     };
 
 
@@ -147,6 +158,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //** update
   //**************************************************************************
     var update = function(company){
+        currID = company.id;
         var innerDiv = panel.innerDiv;
 
       //Add company overview
@@ -214,6 +226,10 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                 clipboard.insert(company.name);
             }
         };
+
+
+        companyDescription = createElement("div", parent, "company-description");
+        if (company.description) companyDescription.innerText = company.description;
 
 
       //Create stats

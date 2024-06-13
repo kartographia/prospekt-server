@@ -124,7 +124,7 @@ prospekt.Application = function(parent, config) {
   //** Utils
   //**************************************************************************
     var merge = javaxt.dhtml.utils.merge;
-
+    var get = javaxt.dhtml.utils.get;
 
     init();
 };

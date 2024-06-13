@@ -777,15 +777,6 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         };
 
 
-        var notifyCompany = companyProfile.notify;
-        companyProfile.notify = function(op, model, id, userID){
-            //notifyCompany(op, model, id, userID);
-            if (model==="Company"){
-                if (id === companyProfile.companyID){
-                    //console.log("update company!");
-                }
-            }
-        };
     };
 
 
