@@ -17,7 +17,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         style: javaxt.dhtml.style.default
     };
 
-    var companyList, companyProfile;
+    var companyList, companyFolders, companyProfile;
     var filter = {};
     var extraParams = {};
     var lastUpdate;
@@ -62,6 +62,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         companyProfile.companyID = null;
         companyProfile.clear();
         companyProfile.hide();
+        companyFolders.clear();
+        companyFolders.hide();
         companyList.clear();
         companyList.show();
     };
@@ -180,6 +182,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
   //**************************************************************************
   //** createList
   //**************************************************************************
+  /** Used to create a list view of companies
+   */
     var createList = function(parent){
 
       //Create main div
@@ -189,12 +193,16 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         });
 
 
+
       //Create table
         var table = createTable(div);
 
 
       //Add toolbar
         var toolbar = createToolBar(table.addRow().addColumn(), config);
+
+
+      //Populate toolbar with buttons
         toolbar.addButton("Customer", prospekt.filters.CustomerFilter);
         toolbar.addButton("NAICS", prospekt.filters.NaicsFilter);
         toolbar.addButton("Revenue", prospekt.filters.RevenueFilter);
@@ -202,6 +210,12 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         var resetButton = createElement("div", toolbar.el, "toolbar-button reset noselect");
         resetButton.innerText = "Reset Filters";
         resetButton.onclick = function(e){
+
+            if (toolbar.isDisabled()){
+                e.stopPropagation();
+                return;
+            }
+
             var orgFilter = JSON.parse(JSON.stringify(filter));
             for (var key in filter) {
                 if (filter.hasOwnProperty(key)){
@@ -227,6 +241,36 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             }
         };
 
+        var toggleView = createElement("div", toolbar.el, "button-group");
+        toggleView.style.float = "right";
+        toggleView.style.margin = "0 5px";
+        var folderButton = createButton(toggleView, {
+            label: "",
+            icon: "fas fa-folder",
+            toggle: true,
+            selected: false
+        });
+        folderButton.onClick = function(){
+            listButton.toggle();
+            toolbar.disable();
+            companyList.hide();
+            companyFolders.show();
+        };
+        var listButton = createButton(toggleView, {
+            label: "",
+            icon: "fas fa-list",
+            toggle: true,
+            selected: true
+        });
+        listButton.onClick = function(){
+            folderButton.toggle();
+            toolbar.enable();
+            companyFolders.hide();
+            companyList.show();
+        };
+
+
+      //Watch for toolbar changes (filter updates)
         toolbar.onChange = function(field, values){
             //console.log(field, values);
             var orgFilter = JSON.parse(JSON.stringify(filter));
@@ -321,6 +365,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         };
 
 
+      //Override the update() method in the toolbar
         var updateToolbar = toolbar.update;
         toolbar.update = function(){
 
@@ -543,10 +588,14 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             }
         });
 
+        createFolders(body);
 
+
+        var showList = companyList.show;
         companyList.show = function(){
             companyProfile.hide();
             div.style.opacity = 1;
+            showList();
         };
 
 
@@ -609,8 +658,30 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
   //**************************************************************************
+  //** createFolders
+  //**************************************************************************
+  /** Used to create a folder view of companies
+   */
+    var createFolders = function(parent){
+
+      //Create main div
+        var div = createElement("div", parent, {
+            width: "100%",
+            height: "100%"
+        });
+
+        addShowHide(div);
+
+        companyFolders = div;
+        companyFolders.clear = function(){};
+    };
+
+
+  //**************************************************************************
   //** createProfile
   //**************************************************************************
+  /** Used to create a company profile view
+   */
     var createProfile = function(parent){
 
         var div = createElement("div", parent, "popover-panel");

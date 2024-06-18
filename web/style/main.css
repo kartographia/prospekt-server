@@ -73,13 +73,15 @@ body, textarea, input, select, td, th {
     margin: 0 0 0 14px;
 }
 
+/**************************************************************************/
+
 .app-header-profile,
 .app-header-menu {
     width: 28px;
     height: 28px;
     line-height: 28px;
     margin: 3px;
-    border-radius: 50%;
+    border-radius: 14px; /* don't use 50% */
     color: #fff;
     text-align: center;
     cursor: pointer;
@@ -97,51 +99,70 @@ body, textarea, input, select, td, th {
 
 .app-header-menu {
     margin-left: 0;
+    position: relative;
+    overflow: hidden;
+    transition: all 1000ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition-property: padding, background, margin;
  }
 
- .app-header-menu .fas {
-    margin-top: 7px;
+.app-header-menu:hover {
+     background-color: #3baaff;
+ }
+
+.app-header-menu .label {
+    font-size: 13px;
+    color: #e7e7e7;
+    position: absolute;
+    left: 13px;
+    white-space: nowrap;
+    transition: opacity 1000ms cubic-bezier(0.6, -0.28, 0.735, 0.045);
 }
 
- .app-header-menu:hover {
-     background-color: #3baaff;
-     transition: 0.4s;
- }
+.app-header-menu .icon {
+    width: 4px;
+    height: 4px;
+    background-color: white;
+    border-radius: 50%;
+    position: absolute;
+    right: 12px; /* don't use left */
+    top: 12px;
+}
 
+.app-header-menu .icon:before,
+.app-header-menu .icon:after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    left: 0px;
+    background-color: inherit;
+    border-radius: inherit;
+}
+
+.app-header-menu .icon:before {
+    top: -7px;
+}
+
+.app-header-menu .icon:after {
+    top: 7px;
+}
 
 .app-header-menu.warning {
-    white-space: nowrap;
-    width: 108px;
-    border-radius: 12px;
-    border: 1px solid #a35b5b;
-    margin: 0 10px;
-    background-color: #a14354;
-    position: relative;
+    background-color: #a14354; /*red*/
+    background-color: #812e4a; /*purple*/
+    background-color: #9b1f19;
+    padding-left: 120px;
+    margin-left: 3px;
 }
 
 .app-header-menu.warning:hover {
-    background-color: #dd8d9b;
+    background-color: #dd8d9b; /*pink*/
+    background-color: #a14354; /*red*/
+    transition: 0.2s;
 }
 
-.app-header-menu.warning i {
-    padding-left: 18px;
-}
 
-.app-header-menu.noselect.warning:before {
-    content: 'Warning';
-}
-
-.app-header-menu.warning:after {
-    float:left;
-    font-family: "Font Awesome 5 Free";
-    vertical-align: middle;
-    font-weight: 900;
-    font-size: 12px;
-    padding: 0 0 0 6px;
-    content: "\f071"; /* fas fa-exclamation-triangle */
-    top: 0;
-}
-
+/**************************************************************************/
 
 
  .app-menu {
@@ -653,6 +674,79 @@ body, textarea, input, select, td, th {
     letter-spacing: 0px;
     font-weight: normal;
     margin: 9px 8px 0 !important;
+    box-shadow: 1px 1px 3px 1px rgba(0, 0, 0, 0.2);
+}
+
+.company-panel .toolbar .toolbar-button.reset:hover {
+    box-shadow: 1px 2px 6px 1px rgba(0, 0, 0, 0.2);
+}
+
+/****************************************************************/
+
+.toolbar.disabled .pulldown,
+.toolbar.disabled .toolbar-button.reset,
+.toolbar.disabled .toolbar-button.reset:hover,
+.toolbar.disabled .search-bar{
+    opacity:0.5;
+    box-shadow:none;
+    cursor: default;
+}
+
+.toolbar.disabled .pulldown,
+.toolbar.disabled .pulldown.filter,
+.toolbar.disabled .pulldown:hover {
+    background-color:initial;
+    box-shadow:none;
+    border-color:#bebebe;
+}
+
+.toolbar.disabled .pulldown:before,
+.toolbar.disabled .search-bar:before{
+    content:'';
+    z-index:5;
+    position:absolute;
+    width:100%;
+    height:100%;
+    top:0;
+    left:0;
+}
+
+.toolbar.disabled .pulldown .menu{
+    display:none;
+}
+
+
+
+/****************************************************************/
+
+.company-panel .toolbar div.button-group {
+    display: inline-block;
+    position: relative;
+}
+
+.company-panel .toolbar .button-group > div:first-child  .toolbar-button {
+    border-radius: 4px 0 0 4px !important;
+    margin-right: 0 !important;
+    border-right: 1px solid #e7e7e7;
+}
+
+.company-panel .toolbar .button-group > div:last-child .toolbar-button {
+    border-radius: 0 4px 4px 0 !important;
+    margin-left: 0 !important;
+    border-left: 0 none;
+}
+
+.company-panel .toolbar .button-group .toolbar-button {
+    margin: 0 5px 0 !important;
+}
+
+.company-panel .toolbar .button-group .toolbar-button-selected {
+    background-color: #f7f7f7;
+    border: 1px solid #ccc;
+
+    box-shadow: 1px 1px 2px 0px rgba(0, 0, 0, 0.16) inset, 1px 1px 6px 0px rgba(0, 0, 0, 0.08) inset;
+    border-top: 1px solid #959595;
+    border-left: 1px solid #959595 !important;
 }
 
 
@@ -1640,4 +1734,53 @@ li.tree-node:hover {
 
 .iScrollVerticalScrollbar{
     right: 2px;
+}
+
+
+
+/**************************************************************************/
+/** JavaXT Overrides
+/**************************************************************************/
+
+.window-header {
+    border: 1px solid #81919b;
+    border-bottom: 1px none;
+    background-color: var(--header-color);
+    background-image: linear-gradient(to bottom, var(--header-color), var(--nav-color));
+}
+
+.window-header-button:hover {
+    background-color: #94aab7;
+}
+
+
+/* since we set a background-image in window-header we need to update the alert
+   header too
+*/
+.alert-header {
+    background-image: linear-gradient(to bottom, #e7cb68, #c9af53);
+    border-color: #c9af53;
+}
+.alert-header .window-header-button:hover {
+    background-color: #b59b40;
+}
+
+
+/* override the default style for the javaxt callout
+   prevents overflow issues in the app header
+*/
+.callout-arrow {
+    padding: 10px;
+}
+
+
+
+/** Used in conjunction with table-header-col and table-col to make
+ *  grids/tables a little more compact
+ */
+.compact-table {
+    height: 24px;
+    line-height: 24px;
+    border-left: none;
+    font-size: 11px;
 }
