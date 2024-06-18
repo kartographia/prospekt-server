@@ -51,7 +51,11 @@ var models = {
             {name: 'info',              type: 'json'}
         ],
         constraints: [
-            {name: 'name',  required: true}
+            {name: 'name',  required: true},
+            {name: 'likes', required: true}
+        ],
+        defaults: [
+            {name: 'likes', value: 0}
         ]
     },
 
@@ -114,6 +118,25 @@ var models = {
         ],
         constraints: [
             {name: 'companies',     required: true}
+        ]
+    },
+
+
+  //**************************************************************************
+  //** CompanyGroupAccess
+  //**************************************************************************
+  /** Used to represent permissions to a group of companies
+   */
+    CompanyGroupAccess: {
+        fields: [
+            {name: 'companyGroup',  type: 'CompanyGroup'},
+            {name: 'user',          type: 'User'},
+            {name: 'accessLevel',   type: 'int'}
+        ],
+        constraints: [
+            {name: 'companyGroup',  required: true},
+            {name: 'user',          required: true},
+            {name: 'accessLevel',   required: true}
         ]
     },
 
@@ -359,7 +382,7 @@ var models = {
             {name: 'count',     type: 'int'}
         ],
         constraints: [
-            {name: 'user',      required: true},
+            {name: 'user',      required: true, onDelete: 'no action'},
             {name: 'hour',      required: true},
             {name: 'minute',    required: true},
             {name: 'count',     required: true}
