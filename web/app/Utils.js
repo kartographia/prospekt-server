@@ -242,7 +242,19 @@ prospekt.utils = {
             buttons: [],
             filter: {},
             onChange: function(){},
-            onShowMenu: function(){}
+            onShowMenu: function(){},
+            disable: function(){
+                toolbar.el.classList.add("disabled");
+            },
+            enable: function(){
+                toolbar.el.classList.remove("disabled");
+            },
+            isDisabled: function(){
+                for (var i=0; i<toolbar.el.classList.length; i++){
+                    if (toolbar.el.classList[i]==="disabled") return true;
+                }
+                return false;
+            }
         };
 
 
@@ -282,6 +294,11 @@ prospekt.utils = {
             button.title = label;
             button.innerText = label;
             button.onclick = function(e){
+                
+                if (toolbar.isDisabled()){
+                    e.stopPropagation();
+                    return;
+                }
 
                 if (button.menu && button.menu.isVisible()){
 
