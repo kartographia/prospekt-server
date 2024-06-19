@@ -715,6 +715,14 @@ body, textarea, input, select, td, th {
     display:none;
 }
 
+/****************************************************************/
+
+.company-panel .toolbar .toolbar-button .fas.fa-star {
+    color: #d2c3a4;
+}
+.company-panel .toolbar .toolbar-button-hover .fas.fa-star {
+    color: #d9b56b;
+}
 
 
 /****************************************************************/
@@ -1039,6 +1047,163 @@ body, textarea, input, select, td, th {
 
 .table-row.inactive .table-col {
     color: #ccc7b9;
+}
+
+
+/**************************************************************************/
+/** Company Bookmarks
+/**************************************************************************/
+
+.company-bookmarks {
+    padding: 20px;
+    text-align: center;
+}
+
+.company-bookmarks .bookmark {
+    width: 325px;
+    margin: 20px;
+    position: relative;
+    display: inline-block;
+    text-align: left;
+    cursor: pointer;
+
+}
+
+.company-bookmarks .bookmark .menu-button {
+    position: absolute;
+    right: 7px;
+    top: 7px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    padding: 0;
+    border: 0 none;
+    z-index: 1;
+}
+
+
+.company-bookmarks .bookmark .menu-button:hover {
+    background-color:#dcdcdc;
+}
+
+
+.company-bookmarks .bookmark .menu-icon {
+    width: 3px;
+    height: 3px;
+    background-color: #a7a7a7;
+    border-radius: 50%;
+    position: absolute;
+    left: 10px;
+    top: 10px;
+}
+
+.company-bookmarks .bookmark .menu-icon:before,
+.company-bookmarks .bookmark .menu-icon:after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    left: 0px;
+    background-color: inherit;
+    border-radius: inherit;
+}
+
+.company-bookmarks .bookmark .menu-icon:before {
+    top: -5px;
+}
+
+.company-bookmarks .bookmark .menu-icon:after {
+    top: 5px;
+}
+
+
+.bookmark.menu {
+    padding: 3px 2px;
+    min-width: 107px;
+}
+
+.bookmark.menu-item {
+    line-height: 28px;
+    font-size: 13px;
+    padding: 0 7px 0 0;
+    white-space: nowrap;
+}
+
+.bookmark.menu-item:hover {
+    background-color: #bee3ff;
+}
+
+.bookmark.menu-item .fas {
+    color:#3876ad;
+    text-align:center;
+    width: 28px;
+    font-size: 14px;
+    vertical-align: middle;
+    margin-top: -3px;
+}
+
+
+
+
+
+.company-bookmarks .bookmark .preview {
+    background-color: #f6f6f6;
+    width: 100%;
+    height: 220px;
+    background-repeat: no-repeat;
+    background-position-x: 50px;
+    background-position-y: 35px;
+    background-size: auto 150px;
+    border: 1px solid #f6f6f6;
+    transition: 0.2s;
+}
+
+/* Lazy clipping of the background image */
+.company-bookmarks .bookmark .preview:after {
+    content:'';
+    position:absolute;
+    width: 50px;
+    height: 220px;
+    background-color: #f6f6f6;
+    right: 0;
+}
+
+.bookmark:hover .preview {
+    box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.2);
+    border: 1px solid #dfdfdf;
+}
+
+
+
+
+
+.company-bookmarks .bookmark .title {
+    font-weight: 700;
+    font-size: 15px;
+    margin: 15px 0 2px;
+    color: #2e2e2e;
+}
+
+.company-bookmarks .bookmark .info {
+    color: #8c8c8c;
+    font-size: 13px;
+}
+
+
+.company-bookmarks .bookmark .users {
+    float: right;
+    margin-top: 15px;
+}
+
+.company-bookmarks .bookmark .user {
+    width: 24px;
+    height: 24px;
+    display: inline-block;
+    border-radius: 50%;
+    margin-left: -7px;
+    border: 2px solid #fff;
+    background-repeat: no-repeat;
+    background-size: 24px auto;
 }
 
 
@@ -1758,7 +1923,7 @@ li.tree-node:hover {
    header too
 */
 .alert-header {
-    background-image: linear-gradient(to bottom, #e7cb68, #c9af53);
+    background-image: linear-gradient(to bottom, #e7cb68, #9f8a40);
     border-color: #c9af53;
 }
 .alert-header .window-header-button:hover {

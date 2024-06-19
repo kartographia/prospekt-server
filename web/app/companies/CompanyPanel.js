@@ -177,6 +177,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
     this.notify = function(op, model, id, userID){
         companyList.notify(op, model, id, userID);
         companyProfile.notify(op, model, id, userID);
+        bookmarks.notify(op, model, id, userID);
     };
 
 

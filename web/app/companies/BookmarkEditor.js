@@ -68,7 +68,7 @@ prospekt.companies.BookmarkEditor = function(parent, config) {
         me.clear();
         currID = companyID;
 
-        get("Bookmarks", {
+        get("CompanyGroups", {
             success: function(text){
                 var bookmarks = JSON.parse(text);
                 bookmarks.forEach((bookmark)=>{
@@ -125,7 +125,7 @@ prospekt.companies.BookmarkEditor = function(parent, config) {
 
 
       //If we're still here, create bookmark
-        post("Bookmark", group, {
+        post("CompanyGroup", group, {
             success: function(){
                 if (callback) callback.apply(me, []);
             }
