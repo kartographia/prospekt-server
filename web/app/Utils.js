@@ -294,7 +294,7 @@ prospekt.utils = {
             button.title = label;
             button.innerText = label;
             button.onclick = function(e){
-                
+
                 if (toolbar.isDisabled()){
                     e.stopPropagation();
                     return;
@@ -689,6 +689,35 @@ prospekt.utils = {
         return ret;
     },
 
+
+  //**************************************************************************
+  //** getCallout
+  //**************************************************************************
+    getCallout: function(config){
+        var callout = prospekt.utils.Callout;
+
+        if (callout){
+            var parent = callout.el.parentNode;
+            if (!parent){
+                callout.el.innerHTML = "";
+                callout = null;
+            }
+        }
+        if (!callout){
+
+            var style;
+            if (!config) config = {};
+            if (config.style && config.style.callout) style = config.style.callout;
+            else style = javaxt.dhtml.style.default.callout;
+
+            callout = new javaxt.dhtml.Callout(document.body,{
+                style: style
+            });
+
+            prospekt.utils.Callout = callout;
+        }
+        return callout;
+    },
 
 
   //**************************************************************************
