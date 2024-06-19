@@ -59,7 +59,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //** clear
   //**************************************************************************
     this.clear = function(){
-        var currID = null;
+        currID = null;
         panel.clear();
         listeners.forEach((listener)=>{
             document.body.removeEventListener('click', listener);
@@ -145,9 +145,19 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             get("Company?id="+id,{
                 success: function(str){
                     var company = JSON.parse(str);
+
+                  //Update description
                     if (company.description){
                         companyDescription.innerText = company.description;
                     }
+
+                  //Update links
+                    if (company.info){
+                        if (company.info.links){
+                            companyOverview.set("Links", company.info.links);
+                        }
+                    }
+
                 }
             });
         }
