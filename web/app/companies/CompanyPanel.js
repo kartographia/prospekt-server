@@ -17,7 +17,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         style: javaxt.dhtml.style.default
     };
 
-    var companyList, companyFolders, companyProfile;
+    var companyList, companyProfile, bookmarks; //panels
+    var bookmarkEditor; //popup
     var filter = {};
     var extraParams = {};
     var lastUpdate;
@@ -62,8 +63,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         companyProfile.companyID = null;
         companyProfile.clear();
         companyProfile.hide();
-        companyFolders.clear();
-        companyFolders.hide();
+        bookmarks.clear();
+        bookmarks.hide();
         companyList.clear();
         companyList.show();
     };
@@ -194,12 +195,10 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
 
-      //Create table
+      //Create table with toolbar and body
         var table = createTable(div);
-
-
-      //Add toolbar
         var toolbar = createToolBar(table.addRow().addColumn(), config);
+        var body = table.addRow().addColumn({height:"100%"});
 
 
       //Populate toolbar with buttons
@@ -254,7 +253,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             listButton.toggle();
             toolbar.disable();
             companyList.hide();
-            companyFolders.show();
+            bookmarks.show();
         };
         var listButton = createButton(toggleView, {
             label: "",
@@ -265,7 +264,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         listButton.onClick = function(){
             folderButton.toggle();
             toolbar.enable();
-            companyFolders.hide();
+            bookmarks.hide();
             companyList.show();
         };
 
@@ -476,9 +475,28 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         };
 
 
-      //Add company list
-        var body = table.addRow().addColumn({height:"100%"});
-        body.className = "company-list";
+
+
+
+      //Add bookmarks to the body
+        bookmarks = new prospekt.companies.BookmarkView(body, config);
+        bookmarks.onClick = function(bookmark){
+            if (bookmark.companies && bookmark.companies.length>0){
+                for (var key in filter) {
+                    if (filter.hasOwnProperty(key)){
+                        filter[key] = "";
+                    }
+                }
+                filter.id = bookmark.companies.join(",");
+                companyList.update();
+            }
+            listButton.click();
+        };
+
+
+
+
+      //Add company list to the body
         companyList = new javaxt.dhtml.DataGrid(body, {
             style: config.style.table,
             hideHeader: true,
@@ -588,7 +606,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             }
         });
 
-        createFolders(body);
+        companyList.el.className = "company-list";
 
 
         var showList = companyList.show;
@@ -646,6 +664,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
         companyList.update = function(){
             toolbar.update();
+            bookmarks.update();
             companyList.load();
         };
 
@@ -654,26 +673,6 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         companyList.notify = function(op, model, id, userID){
 
         };
-    };
-
-
-  //**************************************************************************
-  //** createFolders
-  //**************************************************************************
-  /** Used to create a folder view of companies
-   */
-    var createFolders = function(parent){
-
-      //Create main div
-        var div = createElement("div", parent, {
-            width: "100%",
-            height: "100%"
-        });
-
-        addShowHide(div);
-
-        companyFolders = div;
-        companyFolders.clear = function(){};
     };
 
 
@@ -760,13 +759,25 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         };
 
 
+      //Check whether the user can edit the company profile
+        var editable = document.user.accessLevel>=3;
+
+
+
+      //Create bookmark button
         var bookmarkButton = createButton(tr.addColumn(), {
             label: "Bookmark",
             icon: "fas fa-star",
-            disabled: true
+            disabled: !editable
         });
+        bookmarkButton.onClick = function(){
+            if (!editable) return;
+            createBookmark(companyProfile.companyID);
+        };
 
 
+
+      //Create share button
         var shareButton = createButton(tr.addColumn(), {
             label: "Share",
             icon: "fas fa-share-square",
@@ -775,8 +786,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
 
-        var editable = document.user.accessLevel>=3;
-
+      //Create like/dislike buttons
         var likeButton = createButton(tr.addColumn("like-button-container"), {
             label: "",
             icon: "far fa-thumbs-up",
@@ -786,7 +796,6 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             if (!editable) return;
             updateLikes(+1);
         };
-
 
         var dislikeButton = createButton(tr.addColumn("dislike-button-container"), {
             label: "",
@@ -800,8 +809,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
 
+      //Create function to update likes
         var updateLikes = function(currLikes, silent){
-
 
             var updateButtons = function(currLikes){
                 if (currLikes===0){
@@ -839,6 +848,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
 
+      //Override the update() method in the CompanyProfile panel
         var updateCompanyProfile = companyProfile.update;
         companyProfile.update = function(company){
             updateCompanyProfile(company);
@@ -846,8 +856,47 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 updateLikes(company.likes, true);
             }
         };
+    };
 
 
+  //**************************************************************************
+  //** createBookmark
+  //**************************************************************************
+    var createBookmark = function(companyID){
+        if (!bookmarkEditor){
+
+            var win = createWindow({
+                style: config.style.window,
+                title: "Create Bookmark",
+                valign: "top",
+                width: 450,
+                modal: true,
+                buttons: [
+                    {
+                        name: "Save",
+                        onclick: function(){
+                            bookmarkEditor.submit(win.close);
+                        }
+                    },
+                    {
+                        name: "Cancel",
+                        onclick: function(){
+                            win.close();
+                        }
+                    }
+                ]
+            });
+
+
+            var body = win.getBody();
+            body.style.padding = "12px";
+
+            bookmarkEditor = new prospekt.companies.BookmarkEditor(body, config);
+            bookmarkEditor.show = win.show;
+        }
+
+        bookmarkEditor.update(companyID);
+        bookmarkEditor.show();
     };
 
 
@@ -945,7 +994,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
     var getParameter = javaxt.dhtml.utils.getParameter;
     var createTable = javaxt.dhtml.utils.createTable;
     var addShowHide = javaxt.dhtml.utils.addShowHide;
-    var onRender = javaxt.dhtml.utils.onRender;
+    var getRect = javaxt.dhtml.utils.getRect;
     var isDirty = javaxt.dhtml.utils.isDirty;
     var isArray = javaxt.dhtml.utils.isArray;
     var merge = javaxt.dhtml.utils.merge;
@@ -957,6 +1006,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
     var getNaicsCodes = prospekt.utils.getNaicsCodes;
     var parseResponse = prospekt.utils.parseResponse;
     var createToolBar = prospekt.utils.createToolBar;
+    var createWindow = prospekt.utils.createWindow;
     var createButton = prospekt.utils.createButton;
     var addCommas = prospekt.utils.addCommas;
     var getTrend = prospekt.utils.getTrend;
