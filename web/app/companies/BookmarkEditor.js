@@ -68,16 +68,13 @@ prospekt.companies.BookmarkEditor = function(parent, config) {
         me.clear();
         currID = companyID;
 
-        get("Bookmarks?fields=id,name&orderby=name", {
+        get("Bookmarks", {
             success: function(text){
-                var rows = JSON.parse(text).rows;
-                for (var i=0; i<rows.length; i++){
-                    var col = rows[i];
-                    var groupID = col[0];
-                    var groupName = col[1];
-                    existingFolder.add(groupName, groupID);
-                    if (rows.length==1) existingFolder.setValue(groupID);
-                }
+                var bookmarks = JSON.parse(text);
+                bookmarks.forEach((bookmark)=>{
+                    existingFolder.add(bookmark.name, bookmark.id);
+                    if (bookmarks.length==1) existingFolder.setValue(bookmark.id);
+                });
             },
             failure: function(){
 
