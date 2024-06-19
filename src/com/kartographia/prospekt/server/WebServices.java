@@ -9,6 +9,7 @@ import java.util.*;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.stream.Collectors;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -21,7 +22,7 @@ import static javaxt.utils.Timer.*;
 
 import javaxt.express.*;
 import javaxt.express.notification.*;
-import javaxt.express.utils.Python;
+import javaxt.express.utils.DbUtils;
 import javaxt.express.utils.DateUtils;
 import javaxt.express.services.QueryService.QueryJob;
 
@@ -266,9 +267,80 @@ public class WebServices extends WebService {
   //**************************************************************************
   //** getBookmarks
   //**************************************************************************
-    public ServiceResponse getBookmarks(ServiceRequest request, Database database) throws ServletException {
-        request.setPath("/CompanyGroups"); //hack so we can call super
-        return super.getServiceResponse(request, database);
+    public ServiceResponse getBookmarks(ServiceRequest request, Database database) throws Exception {
+
+        javaxt.express.User user = (javaxt.express.User) request.getUser();
+        long userID = user.getID();
+
+
+        LinkedHashMap<Long, JSONObject> groups = new LinkedHashMap<>();
+        try (Connection conn = database.getConnection()){
+
+
+          //Get groups that the user has access to
+            for (Record record : conn.getRecords(
+            "select COMPANY_GROUP.*, ACCESS_LEVEL from COMPANY_GROUP " +
+            "join COMPANY_GROUP_ACCESS on COMPANY_GROUP.ID=COMPANY_GROUP_ACCESS.COMPANY_GROUP_ID " +
+            "where USER_ID="+userID)){
+                long groupID = record.get("id").toLong();
+                JSONObject group = DbUtils.getJson(record);
+                groups.put(groupID, group);
+            }
+
+
+          //Update groups with additional metadata (e.g. companyIDs and users)
+            if (!groups.isEmpty()){
+                String groupIDs = groups.keySet().stream().map(Object::toString).collect(Collectors.joining(","));
+
+
+              //Get companyIDs associated with the group
+                for (Record record : conn.getRecords(
+                "select * from COMPANY_GROUP_COMPANY where COMPANY_GROUP_ID in (" + groupIDs + ")")){
+                    long groupID = record.get("COMPANY_GROUP_ID").toLong();
+                    long companyID = record.get("COMPANY_ID").toLong();
+
+                    JSONObject group = groups.get(groupID);
+
+                    JSONArray companies = group.get("companies").toJSONArray();
+                    if (companies==null){
+                        companies = new JSONArray();
+                        group.set("companies", companies);
+                    }
+                    companies.add(companyID);
+                }
+
+
+              //Get other users associated with the group
+                for (Record record : conn.getRecords(
+                "select * from COMPANY_GROUP_ACCESS where COMPANY_GROUP_ID in (" + groupIDs + ")")){
+                    long groupID = record.get("COMPANY_GROUP_ID").toLong();
+
+                    JSONObject usr = new JSONObject();
+                    usr.set("userID", record.get("USER_ID"));
+                    usr.set("accessLevel", record.get("ACCESS_LEVEL"));
+
+                    JSONObject group = groups.get(groupID);
+                    JSONArray users = group.get("users").toJSONArray();
+                    if (users==null){
+                        users = new JSONArray();
+                        group.set("users", users);
+                    }
+                    users.add(usr);
+
+                }
+            }
+        }
+
+
+      //Generate response
+        JSONArray arr = new JSONArray();
+        Iterator<Long> it = groups.keySet().iterator();
+        while (it.hasNext()){
+            Long groupID = it.next();
+            JSONObject group = groups.get(groupID);
+            arr.add(group);
+        }
+        return new ServiceResponse(arr);
     }
 
 
@@ -339,7 +411,7 @@ public class WebServices extends WebService {
             "where COMPANY_GROUP_ID=" + groupID + " AND USER_ID=" + userID);
             if (record==null) return new ServiceResponse(403, "Access Denied");
 
-            
+
           //Add company to group
             try (Recordset rs = conn.getRecordset("select * from COMPANY_GROUP_COMPANY " +
                 "where COMPANY_GROUP_ID=" + groupID + " AND COMPANY_ID=" + companyID, false)){
