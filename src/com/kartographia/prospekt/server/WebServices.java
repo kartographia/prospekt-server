@@ -21,6 +21,7 @@ import static javaxt.utils.Timer.*;
 
 import javaxt.express.*;
 import javaxt.express.notification.*;
+import javaxt.express.utils.Python;
 import javaxt.express.utils.DateUtils;
 import javaxt.express.services.QueryService.QueryJob;
 
@@ -259,6 +260,100 @@ public class WebServices extends WebService {
         catch(Exception e){
             return new ServiceResponse(e);
         }
+    }
+
+
+  //**************************************************************************
+  //** getBookmarks
+  //**************************************************************************
+    public ServiceResponse getBookmarks(ServiceRequest request, Database database) throws ServletException {
+        request.setPath("/CompanyGroups"); //hack so we can call super
+        return super.getServiceResponse(request, database);
+    }
+
+
+  //**************************************************************************
+  //** saveBookmark
+  //**************************************************************************
+    public ServiceResponse saveBookmark(ServiceRequest request, Database database)
+        throws Exception {
+
+        javaxt.express.User user = (javaxt.express.User) request.getUser();
+        //if (user.getAccessLevel()<3) return new ServiceResponse(403, "Not Authorized");
+        long userID = user.getID();
+
+
+      //Get companyID
+        Long companyID = request.getParameter("companyID").toLong();
+        if (companyID==null) return new ServiceResponse(400, "companyID is required");
+
+
+      //Get or create groupID
+        Long groupID = request.getParameter("groupID").toLong();
+        if (groupID==null){
+            String name = request.getParameter("name").toString();
+            if (name==null || name.isBlank()) return new ServiceResponse(400, "name or groupID is required");
+
+            try (Connection conn = database.getConnection()){
+                boolean updatePermissions = false;
+
+
+              //Get or create groupID
+                try (Recordset rs = conn.getRecordset("select * from COMPANY_GROUP where UPPER(name)='" +
+                    name.replace("'", "''").toUpperCase() + "'", false)){
+                    if (rs.EOF){
+                        rs.addNew();
+                        rs.setValue("name", name);
+                        rs.update();
+                        groupID = rs.getGeneratedKey().toLong();
+                        updatePermissions = true;
+                    }
+                    else{
+                        groupID = rs.getValue("id").toLong();
+                    }
+                }
+
+
+                if (updatePermissions){
+                    try (Recordset rs = conn.getRecordset("select * from COMPANY_GROUP_ACCESS " +
+                        "where COMPANY_GROUP_ID=" + groupID + " AND USER_ID=" + userID, false)){
+                        if (rs.EOF){
+                            rs.addNew();
+                            rs.setValue("COMPANY_GROUP_ID", groupID);
+                            rs.setValue("USER_ID", userID);
+                            rs.setValue("ACCESS_LEVEL", 3);
+                            rs.update();
+                        }
+                    }
+                }
+            }
+        }
+
+
+      //Add companyID to group
+        try (Connection conn = database.getConnection()){
+
+
+          //Check permissions
+            Record record = conn.getRecord("select * from COMPANY_GROUP_ACCESS " +
+            "where COMPANY_GROUP_ID=" + groupID + " AND USER_ID=" + userID);
+            if (record==null) return new ServiceResponse(403, "Access Denied");
+
+            
+          //Add company to group
+            try (Recordset rs = conn.getRecordset("select * from COMPANY_GROUP_COMPANY " +
+                "where COMPANY_GROUP_ID=" + groupID + " AND COMPANY_ID=" + companyID, false)){
+                if (rs.EOF){
+                    rs.addNew();
+                    rs.setValue("COMPANY_GROUP_ID", groupID);
+                    rs.setValue("COMPANY_ID", companyID);
+                    rs.update();
+                }
+            }
+        }
+
+
+        return new ServiceResponse(200);
     }
 
 
