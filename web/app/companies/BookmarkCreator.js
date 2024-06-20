@@ -2,15 +2,15 @@ if(!prospekt) var prospekt={};
 if(!prospekt.companies) prospekt.companies={};
 
 //******************************************************************************
-//**  Company Bookmarks
+//**  BookmarkCreator
 //*****************************************************************************/
 /**
- *   Form used to bookmark a company
+ *   Form used to create a company bookmark (see CompanyGroup model).
  *
  ******************************************************************************/
 
-prospekt.companies.BookmarkEditor = function(parent, config) {
-    this.className = "prospekt.companies.BookmarkEditor";
+prospekt.companies.BookmarkCreator = function(parent, config) {
+    this.className = "prospekt.companies.BookmarkCreator";
 
     var me = this;
     var defaultConfig = {

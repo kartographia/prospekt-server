@@ -213,7 +213,7 @@ prospekt.companies.BookmarkEditor = function(parent, config) {
             thumbnailHeight: 255,
             mask: false,
             style: {
-                uploadArea: "thumnail-upload-area",
+                uploadArea: "thumbnail-upload-area",
                 slider: config.style.slider
             }
         });

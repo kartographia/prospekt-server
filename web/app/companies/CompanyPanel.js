@@ -18,7 +18,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
     };
 
     var companyList, companyProfile, bookmarks; //panels
-    var bookmarkEditor; //popup
+    var bookmarkCreator; //popup
     var filter = {};
     var extraParams = {};
     var lastUpdate;
@@ -864,7 +864,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
   //** createBookmark
   //**************************************************************************
     var createBookmark = function(companyID){
-        if (!bookmarkEditor){
+        if (!bookmarkCreator){
 
             var win = createWindow({
                 style: config.style.window,
@@ -876,7 +876,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                     {
                         name: "Save",
                         onclick: function(){
-                            bookmarkEditor.submit(win.close);
+                            bookmarkCreator.submit(win.close);
                         }
                     },
                     {
@@ -892,12 +892,12 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             var body = win.getBody();
             body.style.padding = "12px";
 
-            bookmarkEditor = new prospekt.companies.BookmarkEditor(body, config);
-            bookmarkEditor.show = win.show;
+            bookmarkCreator = new prospekt.companies.BookmarkCreator(body, config);
+            bookmarkCreator.show = win.show;
         }
 
-        bookmarkEditor.update(companyID);
-        bookmarkEditor.show();
+        bookmarkCreator.update(companyID);
+        bookmarkCreator.show();
     };
 
 

@@ -1165,7 +1165,8 @@ body, textarea, input, select, td, th {
     width: 50px;
     height: 220px;
     background-color: #f6f6f6;
-    right: 0;
+    right: -1px; /* -1 for the border in the preview */
+    border-right: 1px solid #f6f6f6; /* add border to match preview */
 }
 
 .bookmark:hover .preview {
@@ -1771,6 +1772,45 @@ body, textarea, input, select, td, th {
 
 
 /**************************************************************************/
+/** Thumbnail editor
+/**************************************************************************/
+
+.thumbnail-upload-area {
+    border: 2px dashed #7e93a0;
+    background-color: #f2f5f7;
+    transition: 0.2s;
+}
+
+.thumbnail-upload-area::before {
+    font-family: "Font Awesome 5 Free";
+    content: "\f382"; /*cloud-upload-alt*/
+    display: block;
+    vertical-align: middle;
+    font-weight: 900;
+    font-size: 42px;
+    color: #9fb1bd;
+}
+
+.thumbnail-upload-area::after {
+    content: "Drag and drop image here";
+    font-size: 16px;
+    color: #8e9da7;
+    font-weight: bold;
+}
+
+.thumbnail-upload-area::before,
+.thumbnail-upload-area::after {
+    position: relative;
+    top: 50%;
+    -webkit-transform: translateY(-50%);
+    -ms-transform: translateY(-50%);
+    transform: translateY(-50%);
+}
+
+
+
+
+/**************************************************************************/
 /** Chart Legend
 /**************************************************************************/
 
@@ -1831,16 +1871,6 @@ body, textarea, input, select, td, th {
 }
 
 
-
-
-/**************************************************************************/
-/** DBView
-/**************************************************************************/
-
-li.tree-node:hover {
-    background: #5a606d !important;
-    cursor: pointer;
-}
 
 
 /**************************************************************************/
@@ -1939,6 +1969,29 @@ li.tree-node:hover {
 }
 
 
+/** Override the styles for tabs and forms that appear in a popup window
+*/
+.window-body table:first-child .tab-active,
+.window-body table:first-child .tab-inactive {
+    line-height: 34px;
+}
+
+.window-body table:first-child .tab-bar {
+    background-color: #6e8695;
+    border: 1px solid #85959f;
+    border-width: 0 1px;
+}
+
+.window-body table:first-child .tab-active {
+    background-color: #629ab9;
+}
+
+.window-body table:first-child .tab-inactive:hover {
+    background-color: #5fabd5;
+}
+
+
+
 
 /** Used in conjunction with table-header-col and table-col to make
  *  grids/tables a little more compact
@@ -1948,4 +2001,11 @@ li.tree-node:hover {
     line-height: 24px;
     border-left: none;
     font-size: 11px;
+}
+
+
+/** DBView */
+li.tree-node:hover {
+    background: #5a606d !important;
+    cursor: pointer;
 }

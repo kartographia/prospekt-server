@@ -20,6 +20,7 @@ prospekt.companies.BookmarkView = function(parent, config) {
 
     var panel;
     var callout;
+    var bookmarkEditor;
     var bookmarks = {};
 
 
@@ -212,7 +213,53 @@ prospekt.companies.BookmarkView = function(parent, config) {
   //** editBookmark
   //**************************************************************************
     var editBookmark = function(bookmark, menu){
-        console.log("Edit Bookmark");
+        if (!bookmarkEditor){
+
+            var win = createWindow({
+                style: config.style.window,
+                title: "Edit Bookmark",
+                valign: "top",
+                width: 450,
+                height: 685,
+                modal: true,
+                buttons: [
+                    {
+                        name: "Save",
+                        onclick: function(){
+                            bookmarkEditor.validateFields((bookmark)=>{
+
+                                console.log(bookmark);
+
+
+                                post("CompanyGroup", bookmark, {
+                                    success: function(){
+                                        win.close();
+                                    }
+                                });
+
+
+                            });
+                        }
+                    },
+                    {
+                        name: "Cancel",
+                        onclick: function(){
+                            win.close();
+                        }
+                    }
+                ]
+            });
+
+
+            var body = win.getBody();
+            body.style.padding = "0px";
+
+            bookmarkEditor = new prospekt.companies.BookmarkEditor(body, config);
+            bookmarkEditor.show = win.show;
+        }
+
+        bookmarkEditor.update(bookmark);
+        bookmarkEditor.show();
     };
 
 
@@ -320,10 +367,12 @@ prospekt.companies.BookmarkView = function(parent, config) {
     var addShowHide = javaxt.dhtml.utils.addShowHide;
     var isDirty = javaxt.dhtml.utils.isDirty;
     var merge = javaxt.dhtml.utils.merge;
+    var post = javaxt.dhtml.utils.post;
     var del = javaxt.dhtml.utils.delete;
     var get = javaxt.dhtml.utils.get;
 
     var createOverflowPanel = prospekt.utils.createOverflowPanel;
+    var createWindow = prospekt.utils.createWindow;
     var getCallout = prospekt.utils.getCallout;
     var addCommas = prospekt.utils.addCommas;
 
