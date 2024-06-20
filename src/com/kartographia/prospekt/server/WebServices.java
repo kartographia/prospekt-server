@@ -265,9 +265,77 @@ public class WebServices extends WebService {
 
 
   //**************************************************************************
-  //** getBookmarks
+  //** getCompanyGroup
   //**************************************************************************
-    public ServiceResponse getBookmarks(ServiceRequest request, Database database) throws Exception {
+  /** Overrides the native getCompanyGroup method by checking permissions and
+   *  customizing the JSON response.
+   */
+    public ServiceResponse getCompanyGroup(ServiceRequest request, Database database)
+        throws Exception {
+
+        javaxt.express.User user = (javaxt.express.User) request.getUser();
+        //if (user.getAccessLevel()<3) return new ServiceResponse(403, "Not Authorized");
+        long userID = user.getID();
+
+        Long groupID = request.getID();
+        if (groupID==null) groupID = request.getParameter("groupID").toLong();
+        if (groupID==null) return new ServiceResponse(400, "id or groupID is required");
+
+
+        try (Connection conn = database.getConnection()){
+
+          //Check permissions
+            Record record = conn.getRecord("select * from COMPANY_GROUP_ACCESS " +
+            "where COMPANY_GROUP_ID=" + groupID + " AND USER_ID=" + userID);
+            if (record==null) return new ServiceResponse(403, "Access Denied");
+            int accessLevel = record.get("access_level").toInteger();
+
+            record = conn.getRecord("select * from COMPANY_GROUP where id="+groupID);
+            if (record==null) return new ServiceResponse(404);
+            JSONObject group = DbUtils.getJson(record);
+            group.set("accessLevel", accessLevel);
+
+          //Get companyIDs associated with the group
+            for (Record r : conn.getRecords(
+            "select * from COMPANY_GROUP_COMPANY where COMPANY_GROUP_ID="+groupID)){
+                long companyID = r.get("COMPANY_ID").toLong();
+                JSONArray companies = group.get("companies").toJSONArray();
+                if (companies==null){
+                    companies = new JSONArray();
+                    group.set("companies", companies);
+                }
+                companies.add(companyID);
+            }
+
+
+          //Get users associated with the group
+            for (Record r : conn.getRecords(
+            "select * from COMPANY_GROUP_ACCESS where COMPANY_GROUP_ID=" + groupID)){
+                JSONObject usr = new JSONObject();
+                usr.set("userID", r.get("USER_ID"));
+                usr.set("accessLevel", r.get("ACCESS_LEVEL"));
+
+                JSONArray users = group.get("users").toJSONArray();
+                if (users==null){
+                    users = new JSONArray();
+                    group.set("users", users);
+                }
+                users.add(usr);
+            }
+
+
+            return new ServiceResponse(group);
+        }
+    }
+
+
+  //**************************************************************************
+  //** getCompanyGroups
+  //**************************************************************************
+  /** Overrides the native getCompanyGroups method by checking permissions and
+   *  customizing the JSON response.
+   */
+    public ServiceResponse getCompanyGroups(ServiceRequest request, Database database) throws Exception {
 
         javaxt.express.User user = (javaxt.express.User) request.getUser();
         long userID = user.getID();
@@ -310,7 +378,7 @@ public class WebServices extends WebService {
                 }
 
 
-              //Get other users associated with the group
+              //Get users associated with the group
                 for (Record record : conn.getRecords(
                 "select * from COMPANY_GROUP_ACCESS where COMPANY_GROUP_ID in (" + groupIDs + ")")){
                     long groupID = record.get("COMPANY_GROUP_ID").toLong();
@@ -345,32 +413,68 @@ public class WebServices extends WebService {
 
 
   //**************************************************************************
-  //** saveBookmark
+  //** saveCompanyGroup
   //**************************************************************************
-    public ServiceResponse saveBookmark(ServiceRequest request, Database database)
+  /** Overrides the native saveCompanyGroup method by ensuring all the group
+   *  tables are accessed and updated correctly.
+   */
+    public ServiceResponse saveCompanyGroup(ServiceRequest request, Database database)
         throws Exception {
 
+      //Get user
         javaxt.express.User user = (javaxt.express.User) request.getUser();
         //if (user.getAccessLevel()<3) return new ServiceResponse(403, "Not Authorized");
         long userID = user.getID();
 
 
-      //Get companyID
-        Long companyID = request.getParameter("companyID").toLong();
-        if (companyID==null) return new ServiceResponse(400, "companyID is required");
+      //Get payload
+        JSONObject group = request.getJson();
+        if (group==null) group = new JSONObject();
 
 
-      //Get or create groupID
-        Long groupID = request.getParameter("groupID").toLong();
+      //Get groupID
+        Long groupID = group.get("id").toLong();
+        if (groupID==null) groupID = request.getParameter("groupID").toLong();
+        String action = groupID==null ? "create" : "update";
+
+
+      //Get companies
+        HashSet<Long> companyIDs = new HashSet<>();
+        JSONArray companies = group.get("companies").toJSONArray();
+        if (companies==null) companies = new JSONArray();
+        for (JSONValue v : companies){
+            Long companyID = v.toLong();
+            companyIDs.add(companyID);
+        }
+        if (groupID==null && companyIDs.isEmpty()){
+            return new ServiceResponse(400, "companies required");
+        }
+
+
+      //Get users
+        HashMap<Long, Integer> permissions = new HashMap<>();
+        JSONArray users = group.get("users").toJSONArray();
+        if (users==null) users = new JSONArray();
+        if (users.isEmpty()){
+            permissions.put(userID, 3);
+        }
+        else{
+            for (JSONValue u : users){
+                Long uid = u.get("userID").toLong();
+                if (uid==null) continue;
+                Integer accessLevel = u.get("accessLevel").toInteger();
+                if (accessLevel==null) accessLevel = 1;
+                permissions.put(uid, accessLevel);
+            }
+        }
+
+
+
+      //Create new group as needed
         if (groupID==null){
             String name = request.getParameter("name").toString();
             if (name==null || name.isBlank()) return new ServiceResponse(400, "name or groupID is required");
-
             try (Connection conn = database.getConnection()){
-                boolean updatePermissions = false;
-
-
-              //Get or create groupID
                 try (Recordset rs = conn.getRecordset("select * from COMPANY_GROUP where UPPER(name)='" +
                     name.replace("'", "''").toUpperCase() + "'", false)){
                     if (rs.EOF){
@@ -378,54 +482,182 @@ public class WebServices extends WebService {
                         rs.setValue("name", name);
                         rs.update();
                         groupID = rs.getGeneratedKey().toLong();
-                        updatePermissions = true;
                     }
                     else{
                         groupID = rs.getValue("id").toLong();
-                    }
-                }
-
-
-                if (updatePermissions){
-                    try (Recordset rs = conn.getRecordset("select * from COMPANY_GROUP_ACCESS " +
-                        "where COMPANY_GROUP_ID=" + groupID + " AND USER_ID=" + userID, false)){
-                        if (rs.EOF){
-                            rs.addNew();
-                            rs.setValue("COMPANY_GROUP_ID", groupID);
-                            rs.setValue("USER_ID", userID);
-                            rs.setValue("ACCESS_LEVEL", 3);
-                            rs.update();
-                        }
+                        action = "update";
                     }
                 }
             }
         }
 
 
-      //Add companyID to group
+
+      //Update group
         try (Connection conn = database.getConnection()){
 
+
+          //Check permissions
+            if (action.equals("update")){
+                Record r = conn.getRecord("select id from COMPANY_GROUP_ACCESS " +
+                "where COMPANY_GROUP_ID=" + groupID + " AND USER_ID=" + userID +
+                " AND ACCESS_LEVEL>1");
+                if (r==null) return new ServiceResponse(403, "Access Denied");
+            }
+
+
+
+          //Update group properties
+            try (Recordset rs = conn.getRecordset(
+                "select * from COMPANY_GROUP where id="+groupID, false)){
+
+                String name = request.getParameter("name").toString();
+                if (!(name==null || name.isBlank())) rs.setValue("name", name);
+
+                JSONObject info = group.get("info").toJSONObject();
+                if (info==null) info = new JSONObject();
+
+                JSONObject currInfo = new JSONObject();
+                String str = rs.getValue("info").toString();
+                if (str!=null) currInfo = new JSONObject(str);
+
+                if (!currInfo.equals(info)){
+                    rs.setValue("info", new javaxt.sql.Function(
+                        "?::jsonb", info.toString()
+                    ));
+                }
+
+                rs.update();
+            }
+
+
+
+
+          //Create/update lists of companyIDs to add or remove
+            HashSet<Long> deletions = new HashSet<>();
+            for (Record record : conn.getRecords(
+            "select COMPANY_ID from COMPANY_GROUP_COMPANY where COMPANY_GROUP_ID=" + groupID)){
+                Long companyID = record.get("COMPANY_ID").toLong();
+                if (companyIDs.contains(companyID)){
+                    companyIDs.remove(companyID);
+                }
+                else{
+                    deletions.add(companyID);
+                }
+            }
+
+
+          //Add company IDs to group
+            if (!companyIDs.isEmpty()){
+                try (Recordset rs = conn.getRecordset(
+                    "select * from COMPANY_GROUP_COMPANY where COMPANY_GROUP_ID=-1", false)){
+                    for (Long companyID : companyIDs){
+                        rs.addNew();
+                        rs.setValue("COMPANY_GROUP_ID", groupID);
+                        rs.setValue("COMPANY_ID", companyID);
+                        rs.update();
+                    }
+                }
+            }
+
+
+          //Remove company IDs from group
+            for (Long companyID : deletions){
+                conn.execute(
+                "delete from COMPANY_GROUP_COMPANY " +
+                "where COMPANY_GROUP_ID=" + groupID +
+                " and COMPANY_ID=" + companyID);
+            }
+
+
+
+
+          //Create/update lists of users to add or remove
+            for (Record record : conn.getRecords(
+            "select USER_ID, ACCESS_LEVEL from COMPANY_GROUP_ACCESS " +
+            "where COMPANY_GROUP_ID=" + groupID)){
+                Long uid = record.get("USER_ID").toLong();
+                Integer accessLevel = record.get("ACCESS_LEVEL").toInteger();
+
+                if (permissions.containsKey(uid)){
+                    if (accessLevel.equals(permissions.get(uid))){
+                        permissions.remove(uid);
+                    }
+                }
+                else{
+                    deletions.add(uid);
+                }
+            }
+
+
+          //Add or update users to the group
+            Iterator<Long> it = permissions.keySet().iterator();
+            while (it.hasNext()){
+                Long uid = it.next();
+                Integer accessLevel = permissions.get(uid);
+                try (Recordset rs = conn.getRecordset(
+                    "select * from COMPANY_GROUP_ACCESS " +
+                    "where COMPANY_GROUP_ID=" + groupID +
+                    " AND USER_ID=" + uid, false)){
+                    if (rs.EOF){
+                        rs.addNew();
+                        rs.setValue("COMPANY_GROUP_ID", groupID);
+                        rs.setValue("USER_ID", uid);
+                    }
+                    rs.setValue("ACCESS_LEVEL", accessLevel);
+                    rs.update();
+                }
+            }
+
+
+          //Remove users from the group
+            for (Long uid : deletions){
+                conn.execute(
+                "delete from COMPANY_GROUP_ACCESS " +
+                "where COMPANY_GROUP_ID=" + groupID +
+                " and USER_ID=" + uid);
+            }
+
+        }
+
+
+      //Return response
+        notify(action+",CompanyGroup,"+groupID+","+userID);
+        return new ServiceResponse(200);
+    }
+
+
+  //**************************************************************************
+  //** deleteCompanyGroup
+  //**************************************************************************
+    public ServiceResponse deleteCompanyGroup(ServiceRequest request, Database database)
+        throws Exception {
+
+        javaxt.express.User user = (javaxt.express.User) request.getUser();
+        long userID = user.getID();
+
+        Long groupID = request.getID();
+        if (groupID==null) groupID = request.getParameter("groupID").toLong();
+        if (groupID==null) return new ServiceResponse(400, "id or groupID is required");
+
+
+        try (Connection conn = database.getConnection()){
 
           //Check permissions
             Record record = conn.getRecord("select * from COMPANY_GROUP_ACCESS " +
             "where COMPANY_GROUP_ID=" + groupID + " AND USER_ID=" + userID);
             if (record==null) return new ServiceResponse(403, "Access Denied");
+            int accessLevel = record.get("access_level").toInteger();
+            if (accessLevel<3) return new ServiceResponse(403, "Access Denied");
 
-
-          //Add company to group
-            try (Recordset rs = conn.getRecordset("select * from COMPANY_GROUP_COMPANY " +
-                "where COMPANY_GROUP_ID=" + groupID + " AND COMPANY_ID=" + companyID, false)){
-                if (rs.EOF){
-                    rs.addNew();
-                    rs.setValue("COMPANY_GROUP_ID", groupID);
-                    rs.setValue("COMPANY_ID", companyID);
-                    rs.update();
-                }
-            }
+          //If we're still here, delete the group
+            conn.execute("delete from COMPANY_GROUP where ID="+groupID);
         }
 
 
-        return new ServiceResponse(200);
+      //Return response
+        notify("delete,CompanyGroup,"+groupID+","+userID);
+        return new ServiceResponse(200,groupID+"");
     }
 
 
