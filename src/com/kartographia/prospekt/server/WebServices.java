@@ -568,6 +568,7 @@ public class WebServices extends WebService {
                 "where COMPANY_GROUP_ID=" + groupID +
                 " and COMPANY_ID=" + companyID);
             }
+            deletions.clear();
 
 
 
@@ -617,6 +618,7 @@ public class WebServices extends WebService {
                 "where COMPANY_GROUP_ID=" + groupID +
                 " and USER_ID=" + uid);
             }
+            deletions.clear();
 
         }
 
@@ -630,6 +632,9 @@ public class WebServices extends WebService {
   //**************************************************************************
   //** deleteCompanyGroup
   //**************************************************************************
+  /** Overrides the native deleteCompanyGroup method by checking user
+   *  permissions before deleting the group.
+   */
     public ServiceResponse deleteCompanyGroup(ServiceRequest request, Database database)
         throws Exception {
 
