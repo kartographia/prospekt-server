@@ -70,10 +70,10 @@ prospekt.companies.BookmarkEditor = function(parent, config) {
 
         get("CompanyGroups", {
             success: function(text){
-                var bookmarks = JSON.parse(text);
-                bookmarks.forEach((bookmark)=>{
-                    existingFolder.add(bookmark.name, bookmark.id);
-                    if (bookmarks.length==1) existingFolder.setValue(bookmark.id);
+                var companyGroups = JSON.parse(text);
+                companyGroups.forEach((group)=>{
+                    existingFolder.add(group.name, group);
+                    if (companyGroups.length==1) existingFolder.setValue(group.name);
                 });
             },
             failure: function(){
@@ -88,34 +88,32 @@ prospekt.companies.BookmarkEditor = function(parent, config) {
   //**************************************************************************
     this.submit = function(callback){
 
-
-        var value, input, group;
+        var input, group;
         if (newFolder.isSelected()){
             input = newFolder;
-            value = newFolder.value.trim();
-            if (value.length==0){
-                value = null;
+            var name = newFolder.value.trim();
+            if (name.length==0){
                 showError(input, "Please provide a folder name");
                 return false;
             }
 
             group = {
-                name: value,
-                companyID: currID
+                name: name,
+                companies: [currID]
             };
         }
         else if (existingFolder.isSelected()){
             input = existingFolder.getInput();
-            value = existingFolder.getValue();
-            if (!value){
+            group = existingFolder.getValue();
+            if (!group){
                 showError(input, "Please select a folder");
                 return false;
             }
 
-            group = {
-                groupID: value,
-                companyID: currID
-            };
+            if (!group.companies){
+                group.companies = [];
+            }
+            group.companies.push(currID);
         }
         else{
             input = newFolder.radio;
@@ -131,7 +129,6 @@ prospekt.companies.BookmarkEditor = function(parent, config) {
             }
         });
     };
-
 
 
   //**************************************************************************
