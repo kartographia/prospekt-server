@@ -324,22 +324,15 @@ prospekt.admin.UserList = function(parent, config) {
     var getUser = function(config){
         var userID = config.userID;
 
-        get("UserAuthentication?service=database&userID="+userID, {
+        get("User?id="+userID, {
             success: function(text){
-                var userAuth = parseResponse(text);
-
-              //Create user with userAuth
-                var user = userAuth.user;
-                user.username = userAuth.key;
-                user.password = userAuth.value;
+                var user = parseResponse(text);
 
 
-              //Update user with accessLevel
-                get("UserAccesses?fields=level&userID="+userID, {
+              //Update user with authentication info
+                get("UserAuthentications?fields=service,key,value&service=database&userID="+userID, {
                     success: function(text){
-                        var userAccess = parseResponse(text)[0];
-                        user.accessLevel = userAccess.level;
-                        console.log(user);
+                        user.authentication = parseResponse(text);
                         config.success.apply(me, [user]);
                     },
                     failure: config.failure
@@ -356,35 +349,30 @@ prospekt.admin.UserList = function(parent, config) {
   //**************************************************************************
     var saveUser = function(config){
         var user = config.user;
-        post("User", JSON.stringify(user), {
+        var userAuth = user.authentication;
+        delete user['authentication'];
+
+        var dbAuth;
+        if (userAuth) userAuth.forEach((auth)=>{
+            if (auth.service==='database'){
+                dbAuth = auth;
+            }
+        });
+
+        post("User", user, {
             success: function(userID){
-
-              //Save authentication
-                post("UserAuthentication", JSON.stringify({
-                    userID: userID,
-                    service: "database",
-                    key: user.username,
-                    value: user.password
-                }),
-                {
-                    success: function(){
-
-                      //Save user access
-                        post("UserAccess", JSON.stringify({
-                            userID: userID,
-                            level: user.accessLevel
-                        }),
-                        {
-                            success: function(){
-                                config.success.apply(me, []);
-                            },
-                            failure: config.failure
-                        });
-
-                    },
-                    failure: config.failure
-                });
-
+                if (dbAuth){
+                    dbAuth.userID = userID;
+                    post("UserAuthentication", dbAuth, {
+                        success: function(){
+                            config.success.apply(me, []);
+                        },
+                        failure: config.failure
+                    });
+                }
+                else{
+                    config.success.apply(me, []);
+                }
             },
             failure: config.failure
         });
