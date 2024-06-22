@@ -161,35 +161,13 @@ prospekt.admin.UserList = function(parent, config) {
             ],
             update: function(row, user){
 
-              //Get name
-                var name;
-                if (user.fullName){
-                    name = user.fullName;
-                }
-                else{
-                    var firstName = user.firstName;
-                    var lastName = user.firstName;
-                    if (firstName){
-                        name = firstName;
-                        if (lastName) name += " " + lastName;
-                    }
-                    else{
-                        name = lastName;
-                    }
-                }
-                if (!name) name = user.username;
-
-
-
               //Render name with status icon
                 var div = createElement("div");
                 div.style.height = "100%";
                 var statusIcon = createElement("div", div, "user-status");
                 statusIcon.style.float = "left";
-                createElement("span", div).innerHTML = name;
+                createElement("span", div).innerHTML = getName(user);
                 row.set('Name', div);
-
-
 
 
               //Render role
@@ -202,7 +180,7 @@ prospekt.admin.UserList = function(parent, config) {
                 row.set('Role', role);
 
 
-              //Senter status
+              //Render status
                 var status = user.status;
                 if (status===1){
                     row.set('Enabled', createElement("i", "fas fa-check"));
@@ -454,7 +432,7 @@ prospekt.admin.UserList = function(parent, config) {
 
 
     var parseResponse = prospekt.utils.parseResponse;
-
+    var getName = prospekt.utils.getName;
 
     init();
 };

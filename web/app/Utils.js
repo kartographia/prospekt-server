@@ -721,6 +721,29 @@ prospekt.utils = {
 
 
   //**************************************************************************
+  //** getName
+  //**************************************************************************
+    getName: function(user){
+        var name;
+        if (user.fullName){
+            name = user.fullName;
+        }
+        else{
+            var firstName = user.firstName;
+            var lastName = user.lastName;
+            if (firstName){
+                name = firstName;
+                if (lastName) name += " " + lastName;
+            }
+            else{
+                name = lastName;
+            }
+        }
+        return name;
+    },
+
+
+  //**************************************************************************
   //** getNaicsCodes
   //**************************************************************************
     getNaicsCodes: function(callback){
