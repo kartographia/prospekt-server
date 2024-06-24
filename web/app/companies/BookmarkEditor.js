@@ -18,7 +18,8 @@ prospekt.companies.BookmarkEditor = function(parent, config) {
     };
 
     var tabs, form; //javaxt components
-    var companyList; //custom components
+    var companyList, userList; //custom components
+    var userEditor; //popup
     var bookmark = {};
 
 
@@ -36,6 +37,7 @@ prospekt.companies.BookmarkEditor = function(parent, config) {
         });
         tabs.addTab("Bookmark", createForm());
         tabs.addTab("Companies", createCompanyList());
+        tabs.addTab("Users", createUserList());
         tabs.raiseTab(0);
 
 
@@ -50,6 +52,7 @@ prospekt.companies.BookmarkEditor = function(parent, config) {
         bookmark = {};
         form.clear();
         companyList.clear();
+        userList.clear();
     };
 
 
@@ -68,6 +71,7 @@ prospekt.companies.BookmarkEditor = function(parent, config) {
 
         form.update();
         companyList.update();
+        userList.update();
     };
 
 
@@ -247,9 +251,8 @@ prospekt.companies.BookmarkEditor = function(parent, config) {
     };
 
 
-
   //**************************************************************************
-  //** createForm
+  //** createCompanyList
   //**************************************************************************
     var createCompanyList = function(){
 
@@ -298,7 +301,9 @@ prospekt.companies.BookmarkEditor = function(parent, config) {
             url: "companies",
             post: true,
             payload: companyFilter,
-            //params: extraParams,
+            params: {
+                orderBy: "name"
+            },
             parseResponse: function(request){
                 return parseResponse(request.responseText);
             },
@@ -350,6 +355,339 @@ prospekt.companies.BookmarkEditor = function(parent, config) {
 
 
   //**************************************************************************
+  //** createUserList
+  //**************************************************************************
+    var createUserList = function(){
+        var userFilter = {};
+
+
+      //Create container
+        var parent = createElement("div", {
+            width: "100%",
+            height: "100%"
+        });
+
+
+        var table = createTable(parent);
+        var toolbar = table.addRow().addColumn("panel-toolbar");
+        var body = table.addRow().addColumn({height: "100%"});
+
+
+      //Add button
+        var addButton = createButton(toolbar, {
+            label: "Add",
+            icon: "fas fa-plus-circle"
+        });
+        addButton.onClick = function(){
+            editUser(null, addButton);
+        };
+
+
+      //Edit button
+        var editButton = createButton(toolbar, {
+            label: "Edit",
+            icon: "fas fa-edit",
+            disabled: true
+        });
+        editButton.onClick = function(){
+            var records = userList.getSelectedRecords();
+            if (records.length>0){
+                var userID = records[0].id;
+                bookmark.users.forEach((user)=>{
+                    if (user.userID==userID){
+                        user = JSON.parse(JSON.stringify(user));
+                        user.user = records[0];
+                        editUser(user, editButton);
+                    }
+                });
+
+            }
+        };
+
+
+      //Delete button
+        var deleteButton = createButton(toolbar, {
+            label: "Delete",
+            icon: "fas fa-trash",
+            disabled: true
+        });
+        deleteButton.onClick = function(){
+            var records = userList.getSelectedRecords();
+            if (records.length>0){
+                var userID = records[0].id;
+                var users = [];
+                bookmark.users.forEach((user)=>{
+                    if (user.userID!=userID) users.push(user);
+                });
+
+            }
+            bookmark.users = users;
+
+            form.onChange({name:"users"}, users);
+
+            userList.update();
+        };
+
+
+
+      //Create userList
+        userList = new javaxt.dhtml.DataGrid(body, {
+            style: config.style.table,
+            url: "users",
+            post: true,
+            payload: userFilter,
+            params: {
+                orderBy: "firstName,lastName"
+            },
+            parseResponse: function(request){
+                return parseResponse(request.responseText);
+            },
+            columns: [
+                {header: 'Name', width:'100%'},
+                {header: 'Role', width:'150'}
+            ],
+            update: function(row, user){
+
+              //Render name
+                row.set("Name", getName(user));
+
+
+              //Render role
+                var accessLevel;
+                for (var i=0; i<bookmark.users.length; i++){
+                    if (bookmark.users[i].userID===user.id){
+                        accessLevel = bookmark.users[i].accessLevel;
+                        break;
+                    }
+                }
+                var role = '';
+                if (accessLevel==3) role = "Administrator";
+                if (accessLevel==2) role = "Contributor";
+                if (accessLevel==1) role = "Read Only";
+                row.set("Role", role);
+            }
+        });
+
+
+      //Add custom update method to the userList
+        userList.update = function(){
+            deleteButton.disable();
+            userList.clear();
+
+            var userIDs = bookmark.users.map(a => a.userID);
+            if (userIDs.length==0) userFilter.id = -1;
+            else userFilter.id = userIDs.join(",");
+
+            userList.load();
+        };
+
+
+      //Watch for selection changes in the grid and update buttons accordingly
+        userList.onSelectionChange = function(){
+            var records = userList.getSelectedRecords();
+            if (records.length>0){
+                var userID = records[0].id;
+                if (userID==document.user.id){
+                    editButton.disable();
+                    deleteButton.disable();
+                }
+                else{
+                    editButton.enable();
+                    deleteButton.enable();
+                }
+            }
+            else{
+                editButton.disable();
+                deleteButton.disable();
+            }
+        };
+
+
+        return parent;
+    };
+
+
+  //**************************************************************************
+  //** editUser
+  //**************************************************************************
+    var editUser = function(user, button){
+        if (!userEditor){
+
+            var win = createWindow({
+                title: "Edit User",
+                width: 450,
+                valign: "top",
+                modal: true,
+                style: config.style.window
+            });
+
+            var userInput = new javaxt.dhtml.ComboBox(createElement("div"), {
+                style: config.style.combobox,
+                scrollbar: true
+            });
+
+
+            var form = new javaxt.dhtml.Form(win.getBody(), {
+                style: config.style.form,
+                items: [
+                    {
+                        name: "userID",
+                        label: "User",
+                        type: userInput
+                    },
+                    {
+                        name: "accessLevel",
+                        label: "Permissions",
+                        type: "radio",
+                        alignment: "vertical",
+                        options: [
+                            {
+                                label: "Administrator",
+                                value: 3
+                            },
+                            {
+                                label: "Contributor",
+                                value: 2
+                            },
+                            {
+                                label: "Read Only",
+                                value: 1
+                            }
+                        ]
+                    }
+                ],
+                buttons: [
+                    {
+                        name: "Submit",
+                        onclick: function(){
+
+                            var values = form.getData();
+                            var userID = parseInt(values.userID);
+                            var accessLevel = parseInt(values.accessLevel);
+                            if (isNaN(userID)) {
+                                form.showError("User is required", form.findField("userID"));
+                                return;
+                            }
+
+                            var addUser = true;
+                            if (!bookmark.users) bookmark.users = [];
+                            bookmark.users.forEach((user)=>{
+                                if (user.userID==userID){
+                                    user.accessLevel = accessLevel;
+                                    addUser = false;
+                                }
+                            });
+                            if (addUser){
+                                bookmark.users.push({
+                                    userID: userID,
+                                    accessLevel: accessLevel
+                                });
+                            }
+
+
+                            win.close();
+                            userList.update();
+                        }
+                    },
+                    {
+                        name: "Cancel",
+                        onclick: function(){
+                            form.clear();
+                            win.close();
+                        }
+                    }
+                ]
+            });
+
+
+            var lastSearch = 0;
+            form.onChange = function(field){
+                if (field.name==="userID"){
+                    var name = field.getText();
+                    var userID = field.getValue();
+
+                    if (userID){ //user either selected an item in the list or typed in an exact match
+
+                    }
+                    else{
+
+                        if (name.trim().length>0){
+                            (function (name) {
+
+                                get("users?lower(firstName)="+encodeURIComponent("'"+name.toLowerCase()+"%'")+
+                                    "&active=true&fields=id,firstName,lastName&limit=50", {
+                                    success: function(str){
+                                        var arr = parseResponse(str);
+
+                                        var currTime = new Date().getTime();
+                                        if (currTime<lastSearch) return;
+                                        lastSearch = currTime;
+
+                                        userInput.removeAll();
+                                        userInput.hideMenu();
+                                        var numItems = 0;
+
+                                        for (var i=0; i<arr.length; i++){
+                                            var user = arr[i];
+                                            if (user.id!==document.user.id){
+                                                userInput.add(getName(user), user.id);
+                                                numItems++;
+                                            }
+                                        }
+
+                                        if (numItems>0) userInput.showMenu();
+                                    }
+                                });
+                            })(name);
+                        }
+                    }
+                }
+            };
+
+
+            userEditor = {
+                showAt: function(x,y){
+                    win.showAt(x,y);
+                },
+                hide: function(){
+                    win.hide();
+                }
+            };
+
+
+            userEditor.update = function(user){
+                form.clear();
+                if (userInput.resetColor) userInput.resetColor();
+                userInput.enable();
+
+                if (user){
+                    win.setTitle("Edit User");
+
+                    var userID = user.userID;
+                    var name = user.user? getName(user.user) : "";
+
+                    userInput.add(name, userID);
+                    userInput.setValue(userID);
+                    userInput.disable();
+
+                    form.setValue("accessLevel", user.accessLevel);
+                }
+                else{
+                    win.setTitle("Add User");
+                    form.setValue("accessLevel", 1);
+                }
+            };
+        }
+
+
+        userEditor.update(user);
+
+        var rect = javaxt.dhtml.utils.getRect(button.el);
+        userEditor.showAt(rect.x+(rect.width/2), rect.bottom);
+    };
+
+
+  //**************************************************************************
   //** Utils
   //**************************************************************************
     var createElement = javaxt.dhtml.utils.createElement;
@@ -360,7 +698,9 @@ prospekt.companies.BookmarkEditor = function(parent, config) {
 
 
     var parseResponse = prospekt.utils.parseResponse;
+    var createWindow = prospekt.utils.createWindow;
     var createButton = prospekt.utils.createButton;
+    var getName = prospekt.utils.getName;
 
     init();
 };
