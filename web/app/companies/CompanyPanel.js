@@ -553,6 +553,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 var annualRevenue = createElement("div", companyInfo, "company-info");
                 annualRevenue.innerText = "Annual Revenue: $" + addCommas(company.estimatedRevenue);
 
+                var recentAwards = createElement("div", companyInfo, "company-info");
+                recentAwards.innerText = "Recent Awards: $" + addCommas(company.recentAwardVal);
 
                 var customers = createElement("div", companyInfo, "company-info");
                 customers.innerText = "Recent Customers: " + (company.recentCustomers ? company.recentCustomers.join(", ") : "");

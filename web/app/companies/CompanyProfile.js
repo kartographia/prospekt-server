@@ -325,7 +325,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                                         if (!company.info.edits) company.info.edits = {};
 
 
-                                      //Convert jey to camel case
+                                      //Convert key to camel case
                                         var fieldName = key;
                                         if (fieldName.indexOf("%")===0) fieldName = fieldName.substring(1).trim();
                                         if (fieldName.indexOf("#")===0) fieldName = fieldName.substring(1).trim();
@@ -433,7 +433,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             {"Headquarters": false},
             {"Links": true},
             {"Annual Revenue": false},
-            {"EBITDA": true},
+            //{"EBITDA": true},
+            {"Prime Revenue": false},
             {"Backlog": false},
             {"% Prime Contracts": true},
             {"% Full and Open": false},
@@ -441,7 +442,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             {"Customers": false},
             {"Prime Contract Vehicles": false},
             {"Services Concentration": false},
-            {"Total Revenue": false},
+            {"Total Contract Revenue": false},
             {"Last Update": false},
             {"Status": false}
 
@@ -483,14 +484,20 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             );
         }
 
-        companyOverview.set("Annual Revenue", "$" + addCommas(Math.round(company.estimatedRevenue)));
+        companyOverview.set("Prime Revenue", "$" + addCommas(Math.round(company.estimatedRevenue)));
         companyOverview.set("Backlog", "$" + addCommas(Math.round(company.estimatedBacklog)));
 
 
         if (company.info){
-            if (company.info.links){
-                companyOverview.set("Links", company.info.links);
+
+            for (var key in company.info) {
+                if (company.info.hasOwnProperty(key)){
+                    if (key==="links") companyOverview.set("Links", company.info.links);
+                    if (key==="employees") companyOverview.set("# Employees", company.info.employees);
+                }
             }
+
+
             if (company.info.edits){
                 var edits = company.info.edits;
                 for (var key in edits) {
@@ -498,7 +505,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                         if (key==="ebitda"){
                             var val = parseFloat(edits[key].value);
                             if (!isNaN(val)){
-                                companyOverview.set("EBITDA", "$" + addCommas(Math.round(val)));
+                                //companyOverview.set("EBITDA", "$" + addCommas(Math.round(val)));
                             }
                         }
                         else if (key==="employees"){
@@ -597,18 +604,17 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         monthlyRevenue.innerText =
         "$" + addCommas(Math.round(company.estimatedRevenue/12)) + " monthly revenue";
 
-        companyOverview.set("Total Revenue",
+        companyOverview.set("Total Contract Revenue",
         "$" + addCommas(Math.round(totalRevenue-company.estimatedBacklog)) +
-        " total revenue since " + (firstDate.substring(0, firstDate.indexOf("-"))));
+        " total revenue from prime contracts since " + (firstDate.substring(0, firstDate.indexOf("-"))));
 
 
         var chartArea = table.addRow().addColumn("chart-area");
         var footerArea = table.addRow().addColumn("chart-disclaimer");
         footerArea.innerText =
-        "*Revenue is calculated using the last 12 months of data, ending on " + dbDate + ". " +
+        "*Revenue is based on prime contracts the last 12 months of data, ending on " + dbDate + ". " +
         "Monthly revenue estimates are based on contract value divided over the period of performance. " +
-        "In the case of IDIQ awards, total funding is used instead of contract value. " +
-        "Actual monthly revenue may vary significantly.";
+        "In the case of IDIQ awards, total funding is used instead of contract value. ";
 
 
         var div = createElement("div", chartArea, {
@@ -654,14 +660,44 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         lineChart.addLine(otherLine, otherRevenue, "date", "amount");
 
 
+      //Generate data and lines to render estimated revenue
+        var chartEstimates = {};
+        ["lower range","lower average","midpoint","upper average","upper range"].forEach((key)=>{
+
+            var d = JSON.parse(JSON.stringify(data));
+            d.forEach((record)=>{
+                record.amount = 0;
+            });
+
+            var l = new bluewave.chart.Line({
+                smoothing: "movingAverage",
+                smoothingValue: 90, //in months
+                width: l,
+                style: "dashed",
+                color: "#EE9549",
+                opacity: 0
+            });
+            lineChart.addLine(l, d, "date", "amount");
+
+            chartEstimates[key] = {
+                data: d,
+                line: l
+            };
+        });
+
+
+      //Create chart object with a single update() method
         revenueChart = {
             update: function(company){
+
+
+              //Update otherLine with user-defined revenue estimate
                 var percentPrime = getPercentPrime(company);
                 var revenue = updateRevenue(data, otherRevenue, percentPrime);
                 otherLine.setOpacity(percentPrime<100 ? 1 : 0);
-                lineChart.update();
 
 
+              //Update percent change label
                 if (percentPrime<100){
                     companyOverview.set("% Prime Contracts", percentPrime + "%");
                     change.hide();
@@ -671,9 +707,56 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                     change.show();
                 }
 
-                annualRevenue.innerText = "$" + addCommas(Math.round(revenue.annualRevenue));
-                monthlyRevenue.innerText =
-                "$" + addCommas(Math.round(revenue.annualRevenue/12)) + " monthly revenue";
+
+              //Get employee count
+                var employees;
+                if (company.info){
+                    if (company.info.linkedInProfile){
+                        employees = company.info.linkedInProfile.staffCount;
+                    }
+                    if (!employees) employees = company.info.employees;
+                }
+
+
+              //Get estimated revenue
+                get("/RevenueEstimate?annualRevenue=" + company.estimatedRevenue +
+                    (employees ? "&employees=" + employees : ""),{
+                    success: function(str){
+
+                      //Update data and lines used to render estimated revenue
+                        var estimates = JSON.parse(str);
+                        var estimate = estimates['alex estimate'];
+                        if (estimates['combined estimate']) estimate = estimates['combined estimate'];
+                        updateEstimates(data, estimate, chartEstimates, company.estimatedRevenue);
+
+
+                      //Update the annual revenue property
+                        revenue.annualRevenue = estimate["midpoint"];
+
+
+                      //Update disclaimer below the chart
+                        if (percentPrime<100){
+                            footerArea.innerText += " Monthly revenue estimates are further weighted using % prime estimate.";
+                        }
+                        else{
+                            footerArea.innerText += " Monthly revenue estimates are further weighted using midpoint estimation.";
+                        }
+                    },
+                    failure: function(request){
+                        if (request.status!=501) alert(request);
+                    },
+                    finally: function(){
+
+                      //Update the chart
+                        lineChart.update();
+
+                      //Update labels for the annual and monthly revenu estimates
+                        annualRevenue.innerText = "$" + addCommas(Math.round(revenue.annualRevenue));
+                        monthlyRevenue.innerText =
+                        "$" + addCommas(Math.round(revenue.annualRevenue/12)) + " monthly revenue";
+                        companyOverview.set("Annual Revenue", annualRevenue.innerText + "*");
+                    }
+                });
             }
         };
 
@@ -1764,6 +1847,52 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         return {
             annualRevenue: annualRevenue
         };
+    };
+
+
+  //**************************************************************************
+  //** updateEstimates
+  //**************************************************************************
+  /** Used to update revenue estimates for the revenue chart
+   *  @param data Monthly revenue from prime contracts
+   *  @param estimate JSON object with annual revenue estimates
+   *  @param chartElements JSON object with lines and data (array of
+   *  monthly revenue estimates for each line).
+   *  @param estimatedRevenue Annual revenue from prime contracts
+   */
+    var updateEstimates = function(data, estimate, chartElements, estimatedRevenue){
+
+        for (var i=0; i<data.length; i++){
+            var primeRev = data[i].amount;
+
+
+            Object.keys(estimate).forEach((key)=>{
+                var annualRevenue = estimate[key];
+                var p = annualRevenue/estimatedRevenue;
+                var d = chartElements[key].data;
+                var line = chartElements[key].line;
+
+                if (key=="lower average" || key=="upper average" || key=="midpoint"){
+                    line.setOpacity(0.8);
+                }
+                else{
+                    line.setOpacity(0);
+                    p = 0;
+                }
+
+
+                if (p>1){
+
+                    d[i].amount = primeRev*p;
+                    line.setOpacity(0.8);
+                }
+                else{
+                    d[i].amount = 0;
+                    line.setOpacity(0);
+                }
+
+            });
+        }
     };
 
 

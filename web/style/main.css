@@ -1205,8 +1205,17 @@ body, textarea, input, select, td, th {
     border: 2px solid #fff;
     background-repeat: no-repeat;
     background-size: 24px auto;
+    background-color: #faebd7;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 25px;
+    color: #5a5a5a;
 }
 
+.company-bookmarks .bookmark .user.overflow {
+    background-color: #eee;
+}
 
 
 /**************************************************************************/
@@ -1919,7 +1928,7 @@ body, textarea, input, select, td, th {
 
 .toolbar-button-icon.fas.fa-times {
     color: #b11818; /*red - same color as search-bar-cancel*/
-    font-size: 21px;
+    margin-top: 3px;
 }
 
 
@@ -1969,6 +1978,7 @@ body, textarea, input, select, td, th {
 }
 
 
+
 /** Override the styles for tabs and forms that appear in a popup window
 */
 .window-body table:first-child .tab-active,
@@ -1990,6 +2000,11 @@ body, textarea, input, select, td, th {
     background-color: #5fabd5;
 }
 
+.window-body table:first-child .tab-inactive {
+    border: 1px solid;
+    border-width: 0 1px 0 0;
+    border-color: #809eb1;
+}
 
 
 

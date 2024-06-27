@@ -57,7 +57,12 @@ prospekt.companies.BookmarkCreator = function(parent, config) {
             r.checked = false;
             r.hideInput();
         });
+
+        newFolder.value = "";
+        if (newFolder.resetColor) newFolder.resetColor();
+
         existingFolder.clear();
+        if (existingFolder.resetColor) existingFolder.resetColor();
     };
 
 
@@ -84,7 +89,7 @@ prospekt.companies.BookmarkCreator = function(parent, config) {
 
 
   //**************************************************************************
-  //** getValue
+  //** submit
   //**************************************************************************
     this.submit = function(callback){
 
@@ -94,7 +99,7 @@ prospekt.companies.BookmarkCreator = function(parent, config) {
             var name = newFolder.value.trim();
             if (name.length==0){
                 showError(input, "Please provide a folder name");
-                return false;
+                return;
             }
 
             group = {
@@ -107,7 +112,7 @@ prospekt.companies.BookmarkCreator = function(parent, config) {
             group = existingFolder.getValue();
             if (!group){
                 showError(input, "Please select a folder");
-                return false;
+                return;
             }
 
             if (!group.companies){
@@ -118,14 +123,27 @@ prospekt.companies.BookmarkCreator = function(parent, config) {
         else{
             input = newFolder.radio;
             showError(input, "Please select an option");
-            return false;
+            return;
         }
 
 
-      //If we're still here, create bookmark
+      //If we're still here, try to create the bookmark
         post("CompanyGroup", group, {
             success: function(){
                 if (callback) callback.apply(me, []);
+            },
+            failure: function(request){
+                if (request.status===403){
+                    if (newFolder.isSelected()){
+                        showError(newFolder, "Please provide a different folder name");
+                    }
+                    else if (existingFolder.isSelected()){
+                        showError(existingFolder.getInput(), "Please select a different folder");
+                    }
+                }
+                else{
+                    alert(request);
+                }
             }
         });
     };
@@ -208,6 +226,8 @@ prospekt.companies.BookmarkCreator = function(parent, config) {
   //**************************************************************************
   //** showError
   //**************************************************************************
+  /** Used to mimic the showError() method in the Form class
+   */
     var showError = function(input, errorMessage){
 
         var rect = javaxt.dhtml.utils.getRect(input);
@@ -221,6 +241,13 @@ prospekt.companies.BookmarkCreator = function(parent, config) {
         }
         else{
             input.className = cls;
+        }
+
+
+        if (!input.resetColor){
+            input.resetColor = function(){
+                input.classList.remove(cls);
+            };
         }
 
 
