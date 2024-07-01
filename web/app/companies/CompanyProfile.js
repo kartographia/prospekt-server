@@ -145,19 +145,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             get("Company?id="+id,{
                 success: function(str){
                     var company = JSON.parse(str);
-
-                  //Update description
-                    if (company.description){
-                        companyDescription.innerText = company.description;
-                    }
-
-                  //Update links
-                    if (company.info){
-                        if (company.info.links){
-                            companyOverview.set("Links", company.info.links);
-                        }
-                    }
-
+                    updateCompanyOverview(company);
                 }
             });
         }
@@ -217,7 +205,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
       //Update panel scroll
         panel.update();
-        panel.scrollToElement(row);
+        panel.scrollTo(0,0);
     };
 
 
@@ -226,8 +214,18 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //**************************************************************************
     var createCompanyOverview = function(company, parent){
 
+      //Create container for the title and logo
+        var companyHeader = createElement("div", parent, "company-header");
+
+
+      //Create logo
+        var companyLogo = createElement("div", companyHeader, "company-logo");
+        addShowHide(companyLogo);
+        companyLogo.hide();
+
+
       //Create title
-        var companyName = createElement("div", parent, "company-name");
+        var companyName = createElement("div", companyHeader, "company-name");
         var span = createElement("span", companyName);
         span.innerText = company.name;
         companyName.onclick = function(e){
@@ -399,7 +397,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                     }
 
                 };
-            };
+            }
 
 
 
@@ -457,7 +455,19 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
         companyOverview = {
             set: function(key, value){
-                rows[key].setValue(value);
+
+                if (key==="logo"){
+                    if (value){
+                        companyLogo.style.backgroundImage = "url('" + value + "')";
+                        companyLogo.show();
+                    }
+                    else{
+                        companyLogo.hide();
+                    }
+                }
+                else{
+                    rows[key].setValue(value);
+                }
             }
         };
 
@@ -488,12 +498,35 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         companyOverview.set("Backlog", "$" + addCommas(Math.round(company.estimatedBacklog)));
 
 
+        if (company.recentAwards) companyOverview.set("Status", "Active");
+        else companyOverview.set("Status", "Inactive");
+
+
+        updateCompanyOverview(company);
+    };
+
+
+    var updateCompanyOverview = function(company){
+
+      //Update description
+        if (company.description){
+            companyDescription.innerText = company.description;
+        }
+
+
         if (company.info){
 
             for (var key in company.info) {
                 if (company.info.hasOwnProperty(key)){
-                    if (key==="links") companyOverview.set("Links", company.info.links);
-                    if (key==="employees") companyOverview.set("# Employees", company.info.employees);
+                    var val = company.info[key];
+                    if (key==="links"){
+                        companyOverview.set("Links", val);
+                    }
+                    else if (key==="employees"){
+                        val = parseFloat(val+"");
+                        if (isNaN(val)) val = null;
+                        companyOverview.set("# Employees", val);
+                    }
                 }
             }
 
@@ -509,20 +542,43 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                             }
                         }
                         else if (key==="employees"){
-                            var val = parseFloat(edits[key].value);
-                            if (!isNaN(val)){
-                                companyOverview.set("# Employees", addCommas(Math.round(val)));
-                            }
+                            var val = parseFloat(edits[key].value+"");
+                            if (isNaN(val)) val = null;
+                            companyOverview.set("# Employees", addCommas(Math.round(val)));
                         }
                     }
                 }
             }
+
+            if (company.info.logo){
+
+            }
+
+            if (company.info.linkedInProfile){
+                try{
+
+                    var image = company.info.linkedInProfile.logo.image["com.linkedin.common.VectorImage"];
+                    var url = image.rootUrl;
+
+                    var smallestImage;
+                    var images = {};
+                    image.artifacts.forEach((img)=>{
+                        var sz = img.height;
+                        if (smallestImage){
+                            smallestImage = Math.min(sz, smallestImage);
+                        }
+                        else{
+                            smallestImage = sz;
+                        }
+                        images[sz+""] = url+img.fileIdentifyingUrlPathSegment;
+                    });
+                    companyOverview.set("logo", images[smallestImage+""]);
+                }
+                catch(e){
+                    //console.log(e);
+                }
+            }
         }
-
-
-        if (company.recentAwards) companyOverview.set("Status", "Active");
-        else companyOverview.set("Status", "Inactive");
-
     };
 
 
@@ -1393,6 +1449,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             lineChart.update();
 
             panel.update();
+            panel.scrollTo(0,0);
         });
     };
 
