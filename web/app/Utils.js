@@ -603,6 +603,9 @@ prospekt.utils = {
                 innerDiv.innerHTML = "";
                 ret.update();
             },
+            scrollTo: function(x, y){
+                outerDiv.scrollTo(x, y); //not tested...
+            },
             scrollToElement: function(el){
                 el.scrollIntoView(false);
             },
@@ -654,6 +657,13 @@ prospekt.utils = {
                 ret.scrollToElement = function(el){
                     overflowDiv.scrollTop = 0;
                     iscroll.scrollToElement(el);
+                };
+
+
+              //Create custom scrollTo
+                ret.scrollTo = function(x, y){
+                    overflowDiv.scrollTop = 0;
+                    iscroll.scrollTo(x, y, 0);
                 };
 
 
