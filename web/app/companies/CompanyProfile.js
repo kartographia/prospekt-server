@@ -20,7 +20,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var panel;
     var companyOverview, companyDescription;
     var revenueChart;
-    var awardDetails, linkEditor, revenueEditor; //custom popups
+    var awardDetails, linkEditor, employeeEditor, revenueEditor; //custom popups
     var waitmask;
     var clipboard;
 
@@ -281,6 +281,18 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                         }
 
 
+                      //Special case for "# Employees" field
+                        if (key==="# Employees"){
+                            if (company.info && company.info.linkedInProfile){
+                                var staffCount = parseInt(company.info.linkedInProfile.staffCount+"");
+                                if (!isNaN(staffCount)){
+                                    editEmployees(company);
+                                    return;
+                                }
+                            }
+                        }
+
+
                       //Check if the click event is over the edit icon. The edit
                       //icon appears to the right of the text. It is defined in
                       //the main.css
@@ -506,6 +518,9 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     };
 
 
+  //**************************************************************************
+  //** updateCompanyOverview
+  //**************************************************************************
     var updateCompanyOverview = function(company){
 
       //Update description
@@ -515,6 +530,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
         if (company.info){
+            var employees = parseInt("");
 
             for (var key in company.info) {
                 if (company.info.hasOwnProperty(key)){
@@ -522,11 +538,13 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                     if (key==="links"){
                         companyOverview.set("Links", val);
                     }
+                    /*
                     else if (key==="employees"){
                         val = parseFloat(val+"");
                         if (isNaN(val)) val = null;
                         companyOverview.set("# Employees", val);
                     }
+                    */
                 }
             }
 
@@ -542,9 +560,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                             }
                         }
                         else if (key==="employees"){
-                            var val = parseFloat(edits[key].value+"");
-                            if (isNaN(val)) val = null;
-                            companyOverview.set("# Employees", addCommas(Math.round(val)));
+                            employees = parseFloat(edits[key].value+"");
                         }
                     }
                 }
@@ -554,7 +570,12 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
             }
 
+
+          //Special case for LinkedIn data
             if (company.info.linkedInProfile){
+
+
+              //Get logos
                 try{
 
                     var image = company.info.linkedInProfile.logo.image["com.linkedin.common.VectorImage"];
@@ -577,7 +598,18 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                 catch(e){
                     //console.log(e);
                 }
+
+
+              //Get employees
+                if (isNaN(employees)){
+                    employees = parseInt(company.info.linkedInProfile.staffCount+"");
+                }
+
             }
+
+
+          //Update employees
+            companyOverview.set("# Employees", isNaN(employees) ? null : addCommas(employees));
         }
     };
 
@@ -765,24 +797,28 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
               //Get employee count
-                var employees;
+                var employees = parseInt("");
+                var linkedIn = parseInt("");
                 if (company.info){
-                    if (company.info.linkedInProfile){
-                        employees = company.info.linkedInProfile.staffCount;
+
+                    if (company.info.edits && company.info.edits.employees){
+                        employees = parseInt(company.info.edits.employees.value+"");
                     }
-                    if (!employees) employees = company.info.employees;
+
+                    if (company.info.linkedInProfile){
+                        linkedIn = parseInt(company.info.linkedInProfile.staffCount+"");
+                    }
                 }
 
 
               //Get estimated revenue
-                get("/RevenueEstimate?annualRevenue=" + company.estimatedRevenue +
-                    (employees ? "&employees=" + employees : ""),{
+                get("/RevenueEstimate?primeRevenue=" + company.estimatedRevenue +
+                    (isNaN(employees) ? "" : "&employees=" + employees) +
+                    (isNaN(linkedIn) ? "" : "&linkedIn=" + linkedIn),{
                     success: function(str){
 
                       //Update data and lines used to render estimated revenue
-                        var estimates = JSON.parse(str);
-                        var estimate = estimates['alex estimate'];
-                        if (estimates['combined estimate']) estimate = estimates['combined estimate'];
+                        var estimate = JSON.parse(str);
                         updateEstimates(data, estimate, chartEstimates, company.estimatedRevenue);
 
 
@@ -1672,6 +1708,122 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
   //**************************************************************************
+  //** editEmployees
+  //**************************************************************************
+    var editEmployees = function(company){
+
+        if (!employeeEditor){
+
+          //Create popup window
+            var win = createWindow({
+                style: config.style.window,
+                title: "Edit Employees",
+                width: 400,
+                modal: true,
+                buttons: [
+                    {
+                        name: "Submit",
+                        onclick: function(){
+
+                          //Get employees
+                            var employees = form.getValue("employees").replaceAll(",","").trim();
+                            if (employees.length>0){
+                                employees = parseInt(employees+"");
+                                if (isNaN(employees) || employees<0){
+                                    form.showError("Invalid number of employees", form.findField("employees"));
+                                    return false;
+                                }
+                            }
+                            else{
+                                employees = null;
+                            }
+
+
+                          //Update company info
+                            if (!company.info) company.info = {};
+                            if (!company.info.edits) company.info.edits = {};
+                            company.info.edits.employees = {
+                                value: employees,
+                                userID: document.user.id,
+                                date: new Date().getTime()
+                            };
+                            updateCompanyInfo(company);
+
+
+                          //Update company profile
+                            var numEmployees = parseInt(form.getValue("linkedIn"));
+                            if (employees) numEmployees = employees;
+                            companyOverview.set("# Employees", addCommas(numEmployees));
+
+                            revenueChart.update(company);
+
+                            win.close();
+                        }
+                    },
+                    {
+                        name: "Cancel",
+                        onclick: function(){
+                            win.close();
+                        }
+                    }
+                ]
+
+            });
+
+
+          //Create form
+            var form = new javaxt.dhtml.Form(win.getBody(), {
+                style: config.style.form,
+                items: [
+                    {
+                        name: "employees",
+                        label: "Employee Estimate",
+                        type: "text"
+                    },
+                    {
+                        name: "linkedIn",
+                        label: "LinkedIn Estimate",
+                        type: "text"
+                    }
+                ]
+            });
+            form.disableField("linkedIn");
+            form.onChange = function(formInput, value){
+                var employees = value.replaceAll(",","").trim();
+                employees = parseInt(employees+"");
+                if (!isNaN(employees)) form.hideError(formInput);
+            };
+
+
+          //Create employeeEditor object
+            employeeEditor = {
+                show: win.show,
+                update: function(company){
+                    form.hideError("employees");
+
+                  //Get employees from user edits
+                    var employees;
+                    if (company.info && company.info.edits){
+                        if (company.info.edits.employees){
+                            employees = parseInt(company.info.edits.employees.value+"");
+                        }
+                    }
+                    form.setValue("employees", isNaN(employees) ? "" : employees);
+
+
+                  //Get employees from linkedIn
+                    var staffCount = parseInt(company.info.linkedInProfile.staffCount+"");
+                    form.setValue("linkedIn", staffCount);
+                }
+            };
+        }
+
+        employeeEditor.update(company);
+        employeeEditor.show();
+    };
+
+
+  //**************************************************************************
   //** editRevenue
   //**************************************************************************
     var editRevenue = function(company){
@@ -1682,6 +1834,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             var win = createWindow({
                 style: config.style.window,
                 title: "Edit Revenue",
+                width: 615,
+                height: 540,
                 modal: true,
                 buttons: [
                     {
