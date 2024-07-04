@@ -700,7 +700,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         var chartArea = table.addRow().addColumn("chart-area");
         var footerArea = table.addRow().addColumn("chart-disclaimer");
         footerArea.innerText =
-        "*Revenue is based on prime contracts the last 12 months of data, ending on " + dbDate + ". " +
+        "Revenue is based on prime contracts using the last 12 months of data, ending on " + dbDate + ". " +
         "Monthly revenue estimates are based on contract value divided over the period of performance. " +
         "In the case of IDIQ awards, total funding is used instead of contract value. ";
 
@@ -712,7 +712,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
         var lineChart = new bluewave.charts.LineChart(div, {
             xGrid: false,
-            yGrid: true
+            yGrid: true,
+            yAxisAlign: "right"
         });
 
       //Add revenue line to the chart
@@ -759,7 +760,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
             var l = new bluewave.chart.Line({
                 smoothing: "movingAverage",
-                smoothingValue: 90, //in months
+                smoothingValue: 30, //in months
                 width: l,
                 style: "dashed",
                 color: "#EE9549",
@@ -822,16 +823,32 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                         updateEstimates(data, estimate, chartEstimates, company.estimatedRevenue);
 
 
-                      //Update the annual revenue property
-                        revenue.annualRevenue = estimate["midpoint"];
-
-
                       //Update disclaimer below the chart
                         if (percentPrime<100){
-                            footerArea.innerText += " Monthly revenue estimates are further weighted using % prime estimate.";
+                            footerArea.innerText += " Monthly revenue estimates " +
+                            "are further weighted using % prime estimate.";
                         }
                         else{
-                            footerArea.innerText += " Monthly revenue estimates are further weighted using midpoint estimation.";
+
+
+                          //Update the annual revenue property
+                            var keys = ["midpoint", "upper average"];
+                            var selectedKey;
+                            for (var i=0; i<keys.length; i++){
+                                var val = estimate[keys[i]];
+                                if (val>company.estimatedRevenue){
+                                    revenue.annualRevenue = val;
+                                    selectedKey = keys[i];
+                                    break;
+                                }
+                            }
+
+
+                          //Update disclaimer
+                            if (selectedKey){
+                                footerArea.innerText += " Monthly revenue estimates " +
+                                "are further weighted using " + selectedKey + " estimation.";
+                            }
                         }
                     },
                     failure: function(request){
@@ -2066,20 +2083,22 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //**************************************************************************
   /** Used to update revenue estimates for the revenue chart
    *  @param data Monthly revenue from prime contracts
-   *  @param estimate JSON object with annual revenue estimates
+   *  @param revenueEstimates JSON object with annual revenue estimates
    *  @param chartElements JSON object with lines and data (array of
    *  monthly revenue estimates for each line).
-   *  @param estimatedRevenue Annual revenue from prime contracts
+   *  @param annualPrimeRevenue Total annual revenue from prime contracts
    */
-    var updateEstimates = function(data, estimate, chartElements, estimatedRevenue){
+    var updateEstimates = function(data, revenueEstimates, chartElements, annualPrimeRevenue){
 
+        var today = parseInt(lastUpdate.format("YYYYMMDD"));
+        var lastYear = parseInt(lastUpdate.clone().subtract(1, "year").format("YYYYMMDD"));
         for (var i=0; i<data.length; i++){
             var primeRev = data[i].amount;
 
 
-            Object.keys(estimate).forEach((key)=>{
-                var annualRevenue = estimate[key];
-                var p = annualRevenue/estimatedRevenue;
+            Object.keys(revenueEstimates).forEach((key)=>{
+                var estimatedRevenue = revenueEstimates[key];
+                var p = estimatedRevenue/annualPrimeRevenue;
                 var d = chartElements[key].data;
                 var line = chartElements[key].line;
 
@@ -2095,6 +2114,15 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                 if (p>1){
 
                     d[i].amount = primeRev*p;
+
+
+                  //Weigh the data for the current year to bias the moving average
+                    var day = parseInt(d[i].date.replaceAll("-",""));
+                    if (day>=lastYear && day<=today){
+                        //d[i].amount = estimatedRevenue/12;
+                    }
+
+
                     line.setOpacity(0.8);
                 }
                 else{
