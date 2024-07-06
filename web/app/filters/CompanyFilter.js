@@ -58,6 +58,7 @@ prospekt.filters.CompanyFilter = function(parent, config) {
         var orderByInputs = {
             "Company Name": "NAME",
             "Annual Revenue": "ESTIMATED_REVENUE",
+            "Random": "RANDOM()",
             "None": "null"
         };
 
@@ -156,7 +157,6 @@ prospekt.filters.CompanyFilter = function(parent, config) {
     this.getValues = function(){
 
         var values = {};
-
         for (var key in inputs) {
             if (inputs.hasOwnProperty(key)){
                 var input = inputs[key];
@@ -166,8 +166,6 @@ prospekt.filters.CompanyFilter = function(parent, config) {
                 }
             }
         }
-        console.log(values);
-
 
         return values;
     };
@@ -178,7 +176,6 @@ prospekt.filters.CompanyFilter = function(parent, config) {
   //** Utils
   //**************************************************************************
     var createElement = javaxt.dhtml.utils.createElement;
-    var createTable = javaxt.dhtml.utils.createTable;
     var addShowHide = javaxt.dhtml.utils.addShowHide;
     var merge = javaxt.dhtml.utils.merge;
 
