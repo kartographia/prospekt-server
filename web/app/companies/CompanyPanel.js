@@ -18,7 +18,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
     };
 
     var companyList, companyProfile, bookmarks; //panels
-    var bookmarkCreator; //popup
+    var bookmarkCreator, notes; //popup
+    var waitmask;
     var filter = {};
     var extraParams = {};
     var lastUpdate;
@@ -33,6 +34,11 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
         if (!config) config = {};
         config = merge(config, defaultConfig);
+
+        if (!config.waitmask || !config.waitmask.el.parentNode)
+        config.waitmask = new javaxt.express.WaitMask(document.body);
+        waitmask = config.waitmask;
+
 
         var div = createElement("div", parent, "company-panel center");
         createList(div);
@@ -67,6 +73,9 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         bookmarks.hide();
         companyList.clear();
         companyList.show();
+
+        if (bookmarkCreator) bookmarkCreator.hide();
+        if (notes) notes.hide();
     };
 
 
@@ -753,6 +762,11 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 }
 
 
+              //Hide popups
+                if (bookmarkCreator) bookmarkCreator.hide();
+                if (notes) notes.hide();
+
+
               //Show companyList
                 if (otherUpdates<lastUpdate){
                     history.back();
@@ -864,6 +878,29 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
 
+      //Create share button
+        var notesButton = createButton(tr.addColumn(), {
+            label: "Notes",
+            icon: "far fa-clipboard",
+            toggle: true
+        });
+        notesButton.onClick = function(){
+            if (!notes) createNotes(notesButton);
+            if (notesButton.isSelected()){
+                waitmask.show(500);
+                notes.update(companyProfile.companyID, ()=>{
+                    waitmask.hide();
+                    notes.show();
+                });
+
+            }
+            else{
+                notes.hide();
+            }
+        };
+
+
+
       //Override the update() method in the CompanyProfile panel
         var updateCompanyProfile = companyProfile.update;
         companyProfile.update = function(company){
@@ -872,6 +909,53 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 updateLikes(company.likes, true);
             }
         };
+    };
+
+
+  //**************************************************************************
+  //** createNotes
+  //**************************************************************************
+    var createNotes = function(notesButton){
+        if (notes) return;
+        var win = createWindow({
+            style: config.style.window,
+            title: "Notes",
+            width: 450,
+            height: 350,
+            modal: false,
+            buttons: [
+                {
+                    name: "Save",
+                    onclick: function(){
+                        notes.save(win.close);
+                    }
+                },
+                {
+                    name: "Cancel",
+                    onclick: function(){
+                        win.close();
+                    }
+                }
+            ]
+        });
+        win.onClose = function(){
+            notes.clear();
+            notes.x = parseFloat(win.el.style.left);
+            notes.y = parseFloat(win.el.style.top);
+            notesButton.deselect();
+        };
+        var body = win.getBody();
+        body.style.padding = 0;
+        notes = new prospekt.companies.CompanyNotes(body);
+        notes.show = function(){
+            if (isNaN(parseInt(notes.x+""))){
+                var rect = javaxt.dhtml.utils.getRect(notesButton.el);
+                notes.x = rect.right;
+                notes.y = rect.bottom;
+            }
+            win.showAt(notes.x, notes.y);
+        };
+        notes.hide = win.hide;
     };
 
 
@@ -909,6 +993,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
             bookmarkCreator = new prospekt.companies.BookmarkCreator(body, config);
             bookmarkCreator.show = win.show;
+            bookmarkCreator.hide = win.hide;
         }
 
         bookmarkCreator.update(companyID);
@@ -1004,6 +1089,12 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 companyList.showProfile(state.companyID);
             }
             else if (state.view==="list"){
+
+              //Hide popups
+                if (bookmarkCreator) bookmarkCreator.hide();
+                if (notes) notes.hide();
+
+              //Show list
                 companyList.show();
             }
         }
