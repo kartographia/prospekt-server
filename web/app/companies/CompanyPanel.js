@@ -22,7 +22,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
     var filter = {};
     var extraParams = {};
     var lastUpdate;
-
+    var title;
     var naiscCodes;
 
 
@@ -115,16 +115,24 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                     lastUpdate = moment(new Date(dbDate)).add(1, "month").subtract(1, "second");
 
 
+                    title = document.title;
+                    updateHistory({
+                        view: "list",
+                        title: title,
+                        url: window.location.href
+                    });
+
+
                   //Update list or jump directly into the profile depending on the url
                     var uei = getParameter("uei");
                     if (uei && uei.length>0){
 
-                        get("companies?&fields=id&format=json&uei="+uei,{
+                        get("companies?&fields=id,name&format=json&uei="+uei,{
                             success: function(str){
                                 var companies = JSON.parse(str);
                                 if (companies.length>0){
-                                    var companyID = companies[0].id;
-                                    companyList.showProfile(companyID);
+                                    var company = companies[0];
+                                    companyList.showProfile(company.id);
 
                                   //Update history
                                     var url = window.location.href;
@@ -132,11 +140,13 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                                     if (idx>-1) url = url.substring(0, idx);
                                     updateHistory({
                                         view: "list",
+                                        title: title,
                                         url: url
                                     });
                                     addHistory({
                                         view: "profile",
-                                        companyID: companyID,
+                                        title: company.name,
+                                        companyID: company.id,
                                         url: "?tab=companies&uei="+uei
                                     });
 
@@ -623,7 +633,8 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         companyList.onRowClick = function(row, e){
 
             updateHistory({
-                view: "list"
+                view: "list",
+                title: title
             });
 
             var company = row.record;
@@ -631,6 +642,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
             addHistory({
                 view: "profile",
+                title: company.name,
                 companyID: company.id,
                 url: "?tab=companies&uei="+company.uei
             });
@@ -755,6 +767,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                     if (idx>-1) url = url.substring(0, idx);
                     updateHistory({
                         view: "list",
+                        title: title,
                         url: url
                     });
                 }
@@ -924,7 +937,9 @@ prospekt.companies.CompanyPanel = function(parent, config) {
   //**************************************************************************
     var updateState = function(params, replace){
 
-        var title = document.title;
+        var title = params.title;
+        if (!title) title = document.title;
+
         var url = "";
         if (params.url){
             url = params.url;
@@ -940,8 +955,14 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             event: replace ? "replaceState" : "pushState"
         };
 
-        if (replace) history.replaceState(state, title, url);
-        else history.pushState(state, title, url);
+        if (replace){
+            document.title = title;
+            history.replaceState(state, title, url);
+        }
+        else{
+            history.pushState(state, title, url);
+            document.title = title;
+        }
     };
 
 
