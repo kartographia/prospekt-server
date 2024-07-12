@@ -597,9 +597,15 @@ body, textarea, input, select, td, th {
 }
 
 .company-panel h2 {
-    font-weight: normal;
     margin: 20px 0 0 0;
     font-size: 22px;
+    font-weight: 700;
+    color: #595959;
+}
+
+.company-panel h3 {
+    margin: 20px 0 0 0;
+    font-size: 16px;
     font-weight: 700;
     color: #595959;
 }
@@ -1361,6 +1367,22 @@ body, textarea, input, select, td, th {
     margin: 0 0 34px 34px;
     float: left;
 }
+
+
+.company-profile .profile-pic {
+    float: right;
+    padding: 7px;
+    margin: 24px 14px;
+    border: 1px solid #ccc;
+}
+
+.company-profile .profile-pic img {
+    width:200px;
+    min-height: 150px;
+    max-height: 350px;
+}
+
+
 
 
 /**************************************************************************/

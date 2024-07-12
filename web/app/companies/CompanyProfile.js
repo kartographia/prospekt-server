@@ -95,7 +95,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                     company.awards = parseResponse(text);
 
 
-                    get("CompanyOfficers?companyID=" + company.id, {
+                    get("CompanyOfficers?fields=id&companyID=" + company.id, {
                         success: function(text){
                             company.officers = parseResponse(text);
 
@@ -1355,8 +1355,13 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var createOfficerInfo = function(company, parent){
         if (company.officers.length===0) return;
 
+        var profileDiv = createElement("div", parent);
 
-        createElement("h2", parent).innerText = "Officers";
+
+        createElement("h2", parent).innerText = "Executive Salaries";
+        createElement("p", parent).innerText =
+        "Salary information extracted from government prime contract awards.";
+
 
         var table = createTable(parent);
         var tr = table.addRow();
@@ -1368,6 +1373,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
         updateOfficers(company.officers, function(){
+            renderProfiles(company, profileDiv);
 
 
           //Separate current and inactive officers
@@ -1523,9 +1529,9 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                 return;
             }
             var officer = queue.shift();
-            get("person?id=" + officer.personID, {
+            get("CompanyOfficer?id=" + officer.id, {
                 success: function(text){
-                    officer.person = JSON.parse(text);
+                    merge(officer, JSON.parse(text));
                     getNextPerson();
                 },
                 failure: function(){
@@ -1536,6 +1542,98 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         getNextPerson();
     };
 
+
+  //**************************************************************************
+  //** renderProfiles
+  //**************************************************************************
+    var renderProfiles = function(company, parent){
+        var officers = company.officers;
+        if (officers.length===0) return;
+        officers.forEach((officer)=>{
+            if (!officer.person.info) officer.person.info = {};
+        });
+
+        var linkedInProfiles = officers.map(a => a.person.info.linkedInProfile);
+        if (linkedInProfiles.length===0) return;
+
+
+        createElement("h2", parent).innerText = "Leadership Team";
+        linkedInProfiles.forEach((person)=>{
+            if (!person) return;
+
+            var section = createElement("div", parent, {
+                display: "inline-block",
+                width: "100%"
+            });
+
+
+            var div = createElement("div", section, "profile-pic");
+            var img = createElement("img", div);
+
+            img.setAttribute("border", "0");
+            if (person.displayPictureUrl && person.img_200_200){
+                img.src = person.displayPictureUrl + person.img_200_200;
+            }
+
+
+
+          //Add name
+            createElement("h3", section, "employee-name").innerText = person.firstName + " " + person.lastName;
+
+
+          //Add title
+            var title = person.title;
+            if (!title && person.experience){
+                for (var i=0; i<person.experience.length; i++){
+                    var experience = person.experience[i];
+
+                    var companyName = experience.companyName;
+                    if (matchCompany(companyName, company.name)){
+                        if (experience.title){
+                            createElement("div", section, "employee-title").innerText = experience.title;
+
+                        }
+                        if (experience.timePeriod){
+
+                            var startDate = experience.timePeriod.startDate.year;
+                            var endDate;
+                            if (experience.timePeriod.endDate) endDate = experience.timePeriod.endDate.year;
+                            createElement("p", section, "employment-dates").innerText = startDate + "-" + (endDate?endDate:"Present");
+                        }
+
+                        break;
+                    }
+
+                }
+            }
+
+            var summary = person.summary;
+            if (!summary) summary = person.headline;
+            if (summary){
+
+                var p = createElement("p", section);
+                p.innerText = '"' + summary + '" - ';
+
+                var a = createElement("a", p);
+                a.innerText = "LinkedIn";
+                a.href = "https://www.linkedin.com/in/" + person.public_id;
+            }
+        });
+        panel.update();
+        panel.scrollTo(0,0);
+    };
+
+    var matchCompany = function(source, target){
+        source = source.toLowerCase();
+        target = target.toLowerCase();
+        if (source==target) return true;
+        var a = target.split(" ");
+        var b = source.split(" ");
+        for (var i=0; i<a.length; i++){
+
+        }
+        return false;
+    };
 
 
   //**************************************************************************
