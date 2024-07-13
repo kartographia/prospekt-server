@@ -637,6 +637,16 @@ prospekt.utils = {
                 }
 
 
+              //Override the iscroll's translate method so we can prevent
+              //scrolling as needed
+                var translate = iscroll._translate;
+                iscroll._translate = function(x, y){
+                    if (!scrollEnabled) return;
+                    translate.apply(iscroll, arguments);
+                    ret.lastScrollEvent = new Date().getTime();
+                };
+
+
               //Create custom update function to return to the client so they
               //can update iscroll as needed (e.g. after adding/removing elements)
                 ret.update = function(){
@@ -667,17 +677,6 @@ prospekt.utils = {
                 };
 
 
-                iscroll.on('scrollStart', function(){
-
-                    if (!scrollEnabled){
-                      //Stop iscroll! Not sure how to do this but throwing an
-                      //error seems to work...
-                        throw new Error('IScroll disabled');
-                        return;
-                    }
-
-                });
-
                 ret.iscroll = iscroll;
                 if (config.onRender) config.onRender.apply(this, [ret]);
             });
@@ -693,6 +692,7 @@ prospekt.utils = {
                     return;
                 }
 
+                ret.lastScrollEvent = new Date().getTime();
             };
         }
 
