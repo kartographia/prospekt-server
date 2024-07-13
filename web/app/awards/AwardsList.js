@@ -100,6 +100,20 @@ prospekt.awards.AwardsList = function(parent, config) {
 
 
   //**************************************************************************
+  //** getRect
+  //**************************************************************************
+    this.getRect = function(){
+        var header = grid.el.getElementsByClassName("table-header")[0];
+        var body = grid.el.getElementsByClassName("table-row")[0].parentNode;
+        var rect = javaxt.dhtml.utils.getRect(header);
+        var r2 = javaxt.dhtml.utils.getRect(body);
+        rect.height += r2.height;
+        rect.bottom = r2.bottom;
+        return rect;
+    };
+
+
+  //**************************************************************************
   //** createList
   //**************************************************************************
     var createList = function(parent){

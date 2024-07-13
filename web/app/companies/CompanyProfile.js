@@ -18,7 +18,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
   //Components
     var panel;
-    var companyOverview, companyDescription;
+    var companyOverview, companyDescription, companyOfficers;
     var revenueChart;
     var awardDetails, linkEditor, employeeEditor, revenueEditor; //custom popups
     var waitmask;
@@ -142,12 +142,70 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //**************************************************************************
     this.notify = function(op, model, id, userID){
         if (model==="Company" && id===currID){
+
             get("Company?id="+id,{
                 success: function(str){
                     var company = JSON.parse(str);
                     updateCompanyOverview(company);
                 }
             });
+
+        }
+        else{
+            if (model==="CompanyOfficer"){
+                if (op==="create" || op==="update"){
+
+
+
+                  //Test whether the officer is a member of this company
+                    get("CompanyOfficers?fields=id&companyID=" + currID, {
+                        success: function(text){
+                            var officers = parseResponse(text);
+                            for (var i=0; i<officers.length; i++){
+                                if (officers[i].id===id){
+
+                                    get("Company?id="+currID,{
+                                        success: function(str){
+                                            var company = JSON.parse(str);
+                                            company.officers = officers;
+                                            companyOfficers.update(company);
+                                        }
+                                    });
+
+                                    break;
+                                }
+                            }
+                        },
+                        failure: function(){}
+                    });
+                }
+            }
+            else if (model==="Person"){
+                if (op==="create" || op==="update"){
+
+                  //Test whether the person is a member of this company
+                    get("CompanyOfficers?fields=id,personID&companyID=" + currID, {
+                        success: function(text){
+                            var officers = parseResponse(text);
+                            for (var i=0; i<officers.length; i++){
+                                if (officers[i].personID===id){
+
+                                    get("Company?id="+currID,{
+                                        success: function(str){
+                                            var company = JSON.parse(str);
+                                            company.officers = officers;
+                                            companyOfficers.update(company);
+                                        }
+                                    });
+
+                                    break;
+                                }
+                            }
+                        },
+                        failure: function(){}
+                    });
+                }
+            }
         }
     };
 
@@ -1125,8 +1183,10 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         };
         createElement("span", p).innerText = " to see a full list of current and past awards.";
 
+
+        var maxHeight = 600;
         var div = createElement("div", parent, "small");
-        div.style.height = "600px";
+        div.style.height = maxHeight + "px";
 
 
         var records = [];
@@ -1160,29 +1220,17 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         awardsList.update(records, lastUpdate);
 
 
+      //Resize container as needed
+        var rect = awardsList.getRect();
+        if (rect.height<maxHeight){
+            div.style.height = (rect.height+20) + "px";
+            panel.update();
+        }
+
+
       //Add logic to enable/disable scrolling (prevent double scrolling)
-        awardsList.disableScroll();
-        awardsList.onScroll = function(){
-            panel.disableScroll();
-        };
-        var listener = function(e) {
-            if (panel.isScrollEnabled()) return;
+        updateScroll(awardsList, div);
 
-            var rect = javaxt.dhtml.utils.getRect(div);
-            if (e.clientX>=rect.left && e.clientX<=rect.right){
-                if (e.clientY>=rect.top && e.clientY<=rect.bottom){
-                    return;
-                }
-            }
-
-            awardsList.disableScroll();
-            panel.enableScroll();
-        };
-        document.body.addEventListener('click', listener);
-        listeners.push(listener);
-
-
-        //document.body.addEventListener('wheel', listener);
     };
 
 
@@ -1353,18 +1401,21 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //** createOfficerInfo
   //**************************************************************************
     var createOfficerInfo = function(company, parent){
-        if (company.officers.length===0) return;
-
-        var profileDiv = createElement("div", parent);
 
 
-        createElement("h2", parent).innerText = "Executive Salaries";
-        createElement("p", parent).innerText =
+        var mainDiv = createElement("div", parent);
+        addShowHide(mainDiv);
+        mainDiv.hide();
+
+        var profileDiv = createElement("div", mainDiv);
+
+
+        createElement("h2", mainDiv).innerText = "Executive Salaries";
+        createElement("p", mainDiv).innerText =
         "Salary information extracted from government prime contract awards.";
 
 
-        var table = createTable(parent);
-        var tr = table.addRow();
+        var tr = createTable(mainDiv).addRow();
         var leftCol = tr.addColumn({
             width: "100%",
             verticalAlign: "top"
@@ -1372,144 +1423,188 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         var rightCol = tr.addColumn("chart-area");
 
 
-        updateOfficers(company.officers, function(){
-            renderProfiles(company, profileDiv);
+        var table, lineChart;
 
 
-          //Separate current and inactive officers
-            var currOfficers = [];
-            var olderOfficers = [];
-            var lastYear = lastUpdate.clone().subtract(1, "year");
-            company.officers.forEach((officer)=>{
-                var lastUpdate = moment(new Date(officer.lastUpdate));
-                if (lastUpdate.isBefore(lastYear)){
-                    olderOfficers.push(officer);
+        companyOfficers = {
+            update: function(company){
+
+                profileDiv.innerHTML = "";
+                if (table) table.clear();
+                if (lineChart) lineChart.clear();
+
+                if (company.officers.length===0){
+                    mainDiv.hide();
+                    panel.update();
+                    return;
                 }
-                else{
-                    currOfficers.push(officer);
-                }
-            });
-
-
-          //Sort officer groups by salary
-            currOfficers.sort((a, b)=>{
-                return b.salary-a.salary;
-            });
-            olderOfficers.sort((a, b)=>{
-                return b.salary-a.salary;
-            });
-
-
-          //Render officers in a grid view
-            var div = createElement("div", leftCol, "small");
-            div.style.maxWidth = "750px";
-            div.style.height = "300px";
-            var table = new javaxt.dhtml.Table(div, {
-                style: config.style.table,
-                columns: [
-                    {header: 'Name', width:'100%'},
-                    {header: 'Years of Service', width:'100', align: 'center'},
-                    {header: 'Salary', width:'75', align: 'right'},
-                    {header: 'Active', width:'75', align: 'center'}
-                ]
-            });
-            var addRow = function(officer, active){
-                var yearsOfService = "";
-                if (officer.info && officer.info.salaryHistory){
-                    var salaryHistory = officer.info.salaryHistory;
-                    if (salaryHistory.length>0){
-                        salaryHistory.sort((a,b)=>{
-                            return a.date.localeCompare(b.date);
-                        });
-                        var endDate = active ? lastUpdate : moment(salaryHistory[salaryHistory.length-1].date);
-                        var yearsAgo = endDate.diff(salaryHistory[0].date, 'years', true);
-                        yearsOfService = Math.floor(yearsAgo);
-                        if (yearsOfService<1) yearsOfService = "<1";
-                        else yearsOfService = yearsOfService + "+";
-                    }
-                }
-                //console.log(officer.info.salaryHistory[0], officer.info.salaryHistory[]);
-                table.addRow(
-                    officer.person.fullName,
-                    yearsOfService,
-                    "$" + addCommas(Math.round(officer.salary)),
-                    active===true ? true : "-"
-                );
-            };
-            currOfficers.forEach((officer)=>{
-                addRow(officer, true);
-            });
-            olderOfficers.forEach((officer)=>{
-                addRow(officer);
-            });
 
 
 
+                updateOfficers(company.officers, function(){
+                    mainDiv.show();
+                    renderProfiles(company, profileDiv);
 
-          //Render salary history
-            var div = createElement("div", rightCol, {
-                width: "600px",
-                height: "300px"
-            });
-            var lineChart = new bluewave.charts.LineChart(div, {
-                xGrid: false,
-                yGrid: true
-            });
 
-            var addLine = function(officer, current){
-                if (!officer.info) return;
-                if (!officer.info.salaryHistory) return;
-                var fullName = officer.person.fullName;
-                var data = [];
-                officer.info.salaryHistory.forEach((d)=>{
-                    data.push({
-                        date: moment(new Date(d.date)).format("YYYY-MM-DD"),
-                        salary: d.salary
-                    });
-                });
-                data.sort((a, b)=>{
-                    return b.date-a.date;
-                });
-                var arr = [];
-                var prevSal = 0;
-                for (var i=0; i<data.length; i++){
-                    var currSal = data[i].salary;
-
-                    if (currSal>prevSal){
-                        arr.push(data[i]);
-                        prevSal = currSal;
-                    }
-                    else{
-                        if (i===data.length-1){
-                            arr.push({date: data[i].date, salary: prevSal});
+                  //Separate current and inactive officers
+                    var currOfficers = [];
+                    var olderOfficers = [];
+                    var lastYear = lastUpdate.clone().subtract(1, "year");
+                    company.officers.forEach((officer)=>{
+                        var lastUpdate = moment(new Date(officer.lastUpdate));
+                        if (lastUpdate.isBefore(lastYear)){
+                            olderOfficers.push(officer);
                         }
+                        else{
+                            currOfficers.push(officer);
+                        }
+                    });
+
+
+                  //Sort officer groups by salary
+                    currOfficers.sort((a, b)=>{
+                        return b.salary-a.salary;
+                    });
+                    olderOfficers.sort((a, b)=>{
+                        return b.salary-a.salary;
+                    });
+
+
+                  //Render officers in a grid view
+                    if (!table){
+
+                        var div = createElement("div", leftCol, "small");
+                        div.style.maxWidth = "750px";
+                        div.style.height = "300px";
+
+                      //Create table
+                        table = new javaxt.dhtml.Table(div, {
+                            style: config.style.table,
+                            columns: [
+                                {header: 'Name', width:'100%'},
+                                {header: 'Years of Service', width:'100', align: 'center'},
+                                {header: 'Salary', width:'75', align: 'right'},
+                                {header: 'Active', width:'75', align: 'center'}
+                            ]
+                        });
+
+
+                      //Add logic to enable/disable scrolling (prevent double scrolling)
+                        updateScroll(table, div);
                     }
 
-                }
 
-                var line = new bluewave.chart.Line();
-                lineChart.addLine(line, arr, "date", "salary");
-            };
+                    var addRow = function(officer, active){
+                        var yearsOfService = "";
+                        if (officer.info && officer.info.salaryHistory){
+                            var salaryHistory = officer.info.salaryHistory;
+                            if (salaryHistory.length>0){
+                                salaryHistory.sort((a,b)=>{
+                                    return a.date.localeCompare(b.date);
+                                });
+                                var endDate = active ? lastUpdate : moment(salaryHistory[salaryHistory.length-1].date);
+                                var yearsAgo = endDate.diff(salaryHistory[0].date, 'years', true);
+                                yearsOfService = Math.floor(yearsAgo);
+                                if (yearsOfService<1) yearsOfService = "<1";
+                                else yearsOfService = yearsOfService + "+";
+                            }
+                        }
+                        //console.log(officer.info.salaryHistory[0], officer.info.salaryHistory[]);
+                        table.addRow(
+                            officer.person.fullName,
+                            yearsOfService,
+                            "$" + addCommas(Math.round(officer.salary)),
+                            active===true ? true : "-"
+                        );
+                    };
 
-            olderOfficers.sort((a, b)=>{
-                return a.salary-b.salary;
-            });
-            olderOfficers.forEach((officer)=>{
-                addLine(officer);
-            });
 
-            currOfficers.sort((a, b)=>{
-                return a.salary-b.salary;
-            });
-            currOfficers.forEach((officer)=>{
-                addLine(officer);
-            });
+                  //Add officers
+                    currOfficers.forEach((officer)=>{
+                        addRow(officer, true);
+                    });
+                    olderOfficers.forEach((officer)=>{
+                        addRow(officer);
+                    });
 
-            lineChart.update();
+                    table.update();
+                    table.disableScroll();
 
-            panel.update();
-            panel.scrollTo(0,0);
-        });
+
+                  //Render salary history
+                    if (!lineChart){
+                        var div = createElement("div", rightCol, {
+                            width: "600px",
+                            height: "300px"
+                        });
+                        lineChart = new bluewave.charts.LineChart(div, {
+                            xGrid: false,
+                            yGrid: true
+                        });
+                    }
+
+
+                    var addLine = function(officer, current){
+                        if (!officer.info) return;
+                        if (!officer.info.salaryHistory) return;
+                        var fullName = officer.person.fullName;
+                        var data = [];
+                        officer.info.salaryHistory.forEach((d)=>{
+                            data.push({
+                                date: moment(new Date(d.date)).format("YYYY-MM-DD"),
+                                salary: d.salary
+                            });
+                        });
+                        data.sort((a, b)=>{
+                            return b.date-a.date;
+                        });
+                        var arr = [];
+                        var prevSal = 0;
+                        for (var i=0; i<data.length; i++){
+                            var currSal = data[i].salary;
+
+                            if (currSal>prevSal){
+                                arr.push(data[i]);
+                                prevSal = currSal;
+                            }
+                            else{
+                                if (i===data.length-1){
+                                    arr.push({date: data[i].date, salary: prevSal});
+                                }
+                            }
+
+                        }
+
+                        var line = new bluewave.chart.Line();
+                        lineChart.addLine(line, arr, "date", "salary");
+                    };
+
+
+
+                    olderOfficers.sort((a, b)=>{
+                        return a.salary-b.salary;
+                    });
+                    olderOfficers.forEach((officer)=>{
+                        addLine(officer);
+                    });
+
+                    currOfficers.sort((a, b)=>{
+                        return a.salary-b.salary;
+                    });
+                    currOfficers.forEach((officer)=>{
+                        addLine(officer);
+                    });
+
+                    lineChart.update();
+
+                    panel.update();
+                });
+
+
+            }
+        };
+
+        companyOfficers.update(company);
     };
 
 
@@ -1549,32 +1644,43 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var renderProfiles = function(company, parent){
         var officers = company.officers;
         if (officers.length===0) return;
-        officers.forEach((officer)=>{
-            if (!officer.person.info) officer.person.info = {};
-        });
 
-        var linkedInProfiles = officers.map(a => a.person.info.linkedInProfile);
+
+      //Get LinkedIn profiles
+        var linkedInProfiles = [];
+        officers.forEach((officer)=>{
+            if (officer.person.info){
+                var linkedInProfile = officer.person.info.linkedInProfile;
+                if (linkedInProfile && !isEmpty(linkedInProfile)){
+                    linkedInProfiles.push(linkedInProfile);
+                }
+            }
+        });
         if (linkedInProfiles.length===0) return;
+
 
 
         createElement("h2", parent).innerText = "Leadership Team";
         linkedInProfiles.forEach((person)=>{
-            if (!person) return;
+            if (!person || isEmpty(person)) return;
 
+          //Create new section
             var section = createElement("div", parent, {
                 display: "inline-block",
                 width: "100%"
             });
 
 
+          //Add profile pic
             var div = createElement("div", section, "profile-pic");
             var img = createElement("img", div);
-
             img.setAttribute("border", "0");
             if (person.displayPictureUrl && person.img_200_200){
+                img.onload = function(){
+                    panel.update();
+                };
                 img.src = person.displayPictureUrl + person.img_200_200;
             }
-
 
 
           //Add name
@@ -1607,6 +1713,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                 }
             }
 
+
+          //Add summary
             var summary = person.summary;
             if (!summary) summary = person.headline;
             if (summary){
@@ -1620,15 +1728,43 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             }
         });
         panel.update();
-        panel.scrollTo(0,0);
     };
 
+
+  //**************************************************************************
+  //** matchCompany
+  //**************************************************************************
+  /** Performs a simple comparison of company names to see if they are similar
+   */
     var matchCompany = function(source, target){
         source = source.toLowerCase();
         target = target.toLowerCase();
         if (source==target) return true;
+
         var a = target.split(" ");
         var b = source.split(" ");
+        [a, b].forEach((arr)=>{
+            arr.forEach((word, i)=>{
+                var len = word.length;
+                if (word.lastIndexOf(",")===len-1) word = word.substring(0, len-1).trim();
+                if (word.lastIndexOf(".")===len-1) word = word.substring(0, len-1).trim();
+                if (word.length<len) arr[i] = word;
+            });
+        });
+
+        if (a.length==b.length){
+            var containsMismatch = false;
+            for (var i=0; i<a.length; i++){
+                if (a[i]!=b[i]){
+                    containsMismatch = true;
+                    break;
+                }
+            }
+            if (!containsMismatch) return true;
+        }
+
+        if (a[0]===b[0]) return true;
+        var numMatches = 0;
         for (var i=0; i<a.length; i++){
 
         }
@@ -2290,6 +2426,54 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
   //**************************************************************************
+  //** updateScroll
+  //**************************************************************************
+    var updateScroll = function(table, div){
+
+
+      //Disable scrolling initially
+        table.disableScroll();
+
+
+      //Watch for scroll events in the table. If the user started scrolling
+      //outside the table, nothing happens. But if a user starts scrolling
+      //inside the table, then we will enable scrolling in the table, and
+      //disable scrolling in the panel
+        table.onScroll = function(){
+            var currTime = new Date().getTime();
+            if (currTime-panel.lastScrollEvent>500){
+                panel.disableScroll();
+                table.enableScroll();
+            }
+        };
+
+
+      //Watch for wheel and click events. If the event originates outside the
+      //table, disable the
+        var listener = function(e) {
+            if (panel.isScrollEnabled()) return;
+
+            var rect = javaxt.dhtml.utils.getRect(div);
+            if (e.clientX>=rect.left && e.clientX<=rect.right){
+                if (e.clientY>=rect.top && e.clientY<=rect.bottom){
+                    return;
+                }
+            }
+
+            if (table.isScrollEnabled()){
+                table.disableScroll();
+                panel.enableScroll();
+            }
+        };
+        ["click", "wheel"].forEach((event)=>{
+            document.body.addEventListener(event, listener);
+            listeners.push(listener);
+        });
+
+    };
+
+
+  //**************************************************************************
   //** Utils
   //**************************************************************************
     var createClipboard = javaxt.dhtml.utils.createClipboard;
@@ -2298,6 +2482,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var addShowHide = javaxt.dhtml.utils.addShowHide;
     var isElement = javaxt.dhtml.utils.isElement;
     var isString = javaxt.dhtml.utils.isString;
+    var isEmpty = javaxt.dhtml.utils.isEmpty;
     var merge = javaxt.dhtml.utils.merge;
     var round = javaxt.dhtml.utils.round;
     var post = javaxt.dhtml.utils.post;
