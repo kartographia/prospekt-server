@@ -922,21 +922,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             title: "Notes",
             width: 450,
             height: 350,
-            modal: false,
-            buttons: [
-                {
-                    name: "Save",
-                    onclick: function(){
-                        notes.save(win.close);
-                    }
-                },
-                {
-                    name: "Cancel",
-                    onclick: function(){
-                        win.close();
-                    }
-                }
-            ]
+            modal: false
         });
         win.onClose = function(){
             notes.clear();
