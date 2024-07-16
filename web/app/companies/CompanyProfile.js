@@ -168,7 +168,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                                         success: function(str){
                                             var company = JSON.parse(str);
                                             company.officers = officers;
-                                            companyOfficers.update(company);
+                                            //companyOfficers.update(company);
                                         }
                                     });
 
@@ -194,7 +194,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                                         success: function(str){
                                             var company = JSON.parse(str);
                                             company.officers = officers;
-                                            companyOfficers.update(company);
+                                            //companyOfficers.update(company);
                                         }
                                     });
 
@@ -668,6 +668,10 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
           //Update employees
             companyOverview.set("# Employees", isNaN(employees) ? null : addCommas(employees));
+
+
+          //Update revenue chart
+            if (!isNaN(employees) && revenueChart) revenueChart.update(company);
         }
     };
 
@@ -1409,13 +1413,14 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
         var profileDiv = createElement("div", mainDiv);
 
-
-        createElement("h2", mainDiv).innerText = "Executive Salaries";
-        createElement("p", mainDiv).innerText =
+        var salaryDiv = createElement("div", mainDiv);
+        createElement("h2", salaryDiv).innerText = "Executive Salaries";
+        createElement("p", salaryDiv).innerText =
         "Salary information extracted from government prime contract awards.";
+        addShowHide(salaryDiv);
 
 
-        var tr = createTable(mainDiv).addRow();
+        var tr = createTable(salaryDiv).addRow();
         var leftCol = tr.addColumn({
             width: "100%",
             verticalAlign: "top"
@@ -1449,6 +1454,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                   //Separate current and inactive officers
                     var currOfficers = [];
                     var olderOfficers = [];
+                    var missingSalaries = 0;
                     var lastYear = lastUpdate.clone().subtract(1, "year");
                     company.officers.forEach((officer)=>{
                         var lastUpdate = moment(new Date(officer.lastUpdate));
@@ -1458,7 +1464,26 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                         else{
                             currOfficers.push(officer);
                         }
+
+                        var salary = parseFloat(officer.salary+"");
+                        if (isNaN(salary) || salary<=0){
+                            officer.salary = 0;
+                            missingSalaries++;
+                        }
                     });
+
+
+
+                  //Show/hide salary panel as needed
+                    if (missingSalaries == company.officers.length){
+                        salaryDiv.hide();
+                        panel.update();
+                        return;
+
+                    }
+                    else{
+                        salaryDiv.show();
+                    }
 
 
                   //Sort officer groups by salary
@@ -1495,6 +1520,9 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
                     var addRow = function(officer, active){
+
+
+                      //Get years of service
                         var yearsOfService = "";
                         if (officer.info && officer.info.salaryHistory){
                             var salaryHistory = officer.info.salaryHistory;
@@ -1510,10 +1538,18 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                             }
                         }
                         //console.log(officer.info.salaryHistory[0], officer.info.salaryHistory[]);
+
+
+                      //Get salary
+                        var salary = parseFloat(officer.salary+"");
+                        if (isNaN(salary) || salary<=0) salary = "";
+                        else salary = "$" + addCommas(Math.round(salary));
+
+
                         table.addRow(
                             officer.person.fullName,
                             yearsOfService,
-                            "$" + addCommas(Math.round(officer.salary)),
+                            salary,
                             active===true ? true : "-"
                         );
                     };
@@ -1646,23 +1682,73 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         if (officers.length===0) return;
 
 
-      //Get LinkedIn profiles
-        var linkedInProfiles = [];
+      //Create profiles
+        var profiles = [];
+        var others = [];
         officers.forEach((officer)=>{
-            if (officer.person.info){
-                var linkedInProfile = officer.person.info.linkedInProfile;
-                if (linkedInProfile && !isEmpty(linkedInProfile)){
-                    linkedInProfiles.push(linkedInProfile);
+            if (!officer.person.info) return;
+
+            var profile = {};
+
+            var title = officer.title;
+            if (title) profile.title = title;
+
+            var bio = officer.info.bio;
+            if (bio) profile.bio = bio;
+
+            var linkedIn = officer.person.info.linkedInProfile;
+            if (linkedIn && !isEmpty(linkedIn)){
+                profile.linkedIn = linkedIn;
+                if (linkedIn.experience){
+                    for (var i=0; i<linkedIn.experience.length; i++){
+                        var experience = linkedIn.experience[i];
+
+                        var companyName = experience.companyName;
+                        if (matchCompany(companyName, company.name)){
+
+                            if (!profile.title) profile.title = experience.title;
+
+                            if (experience.timePeriod){
+
+                                var startDate = experience.timePeriod.startDate.year;
+                                var endDate;
+                                if (experience.timePeriod.endDate) endDate = experience.timePeriod.endDate.year;
+
+                                profile.startDate = startDate;
+                                profile.endDate = endDate;
+                            }
+
+                            break;
+                        }
+
+                    }
                 }
             }
-        });
-        if (linkedInProfiles.length===0) return;
 
+            if (!isEmpty(profile)){
+                var person = officer.person;
+                profile.name = person.firstName + " " + person.lastName;
+                profiles.push(profile);
+            }
+            else{
+                others.push(officer);
+            }
+
+        });
+        if (profiles.length===0) return;
+
+
+        profiles.sort((a, b)=>{
+            return rankTitle(b.title)-rankTitle(a.title);
+        });
 
 
         createElement("h2", parent).innerText = "Leadership Team";
-        linkedInProfiles.forEach((person)=>{
-            if (!person || isEmpty(person)) return;
+        profiles.forEach((profile)=>{
+            if (!profile || isEmpty(profile)) return;
+            var linkedIn = profile.linkedIn;
+            if (!linkedIn) linkedIn = {};
+
 
           //Create new section
             var section = createElement("div", parent, {
@@ -1673,50 +1759,50 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
           //Add profile pic
             var div = createElement("div", section, "profile-pic");
-            var img = createElement("img", div);
-            img.setAttribute("border", "0");
-            if (person.displayPictureUrl && person.img_200_200){
-                img.onload = function(){
-                    panel.update();
-                };
-                img.src = person.displayPictureUrl + person.img_200_200;
+            if (linkedIn.displayPictureUrl && linkedIn.img_200_200){
+                div.style.backgroundImage = "url('" + linkedIn.displayPictureUrl + linkedIn.img_200_200 + "')";
             }
 
 
           //Add name
-            createElement("h3", section, "employee-name").innerText = person.firstName + " " + person.lastName;
+            createElement("h3", section, "employee-name").innerText = profile.name;
 
 
           //Add title
-            var title = person.title;
-            if (!title && person.experience){
-                for (var i=0; i<person.experience.length; i++){
-                    var experience = person.experience[i];
-
-                    var companyName = experience.companyName;
-                    if (matchCompany(companyName, company.name)){
-                        if (experience.title){
-                            createElement("div", section, "employee-title").innerText = experience.title;
-
-                        }
-                        if (experience.timePeriod){
-
-                            var startDate = experience.timePeriod.startDate.year;
-                            var endDate;
-                            if (experience.timePeriod.endDate) endDate = experience.timePeriod.endDate.year;
-                            createElement("p", section, "employment-dates").innerText = startDate + "-" + (endDate?endDate:"Present");
-                        }
-
-                        break;
-                    }
-
-                }
+            if (profile.title){
+                createElement("div", section, "employee-title").innerText = profile.title;
             }
 
 
-          //Add summary
-            var summary = person.summary;
-            if (!summary) summary = person.headline;
+          //Add dates
+            if (profile.startDate){
+                createElement("p", section, "employment-dates").innerText =
+                profile.startDate + "-" + (profile.endDate?profile.endDate:"Present");
+            }
+
+
+            /*
+            if (linkedIn.experience){
+                for (var i=0; i<linkedIn.experience.length; i++){
+                    var experience = linkedIn.experience[i];
+
+                    var companyName = experience.companyName;
+                    if (matchCompany(companyName, company.name)){
+
+                    }
+                }
+            }
+            */
+
+            if (profile.bio){
+                var p = createElement("p", section);
+                p.innerText = profile.bio;
+            }
+
+
+          //Add linkedin summary
+            var summary = linkedIn.summary;
+            if (!summary) summary = linkedIn.headline;
             if (summary){
 
                 var p = createElement("p", section);
@@ -1724,10 +1810,110 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
                 var a = createElement("a", p);
                 a.innerText = "LinkedIn";
-                a.href = "https://www.linkedin.com/in/" + person.public_id;
+                a.href = "https://www.linkedin.com/in/" + linkedIn.public_id;
             }
         });
         panel.update();
+    };
+
+
+  //**************************************************************************
+  //** rankTitle
+  //**************************************************************************
+  /** Returns a rank (number) for a given title
+   */
+    var rankTitle = function(title){
+        if (!title) return 0;
+
+
+      //Prep title
+        var arr = title.split(" ");
+        for (var i=0; i<arr.length; i++){
+            var word = arr[i].toLowerCase();
+            if (word=="chief"){
+                var letters = ["c"];
+                for (var j=i+1; j<arr.length; j++){
+                    var w = arr[j].toLowerCase();
+                    var l = w.substring(0, 1);
+                    letters.push(l);
+                    if (w=="officer"){
+                        title = letters.join("") + " " + title;
+                        break;
+                    }
+                }
+                break;
+            }
+            else{
+
+                var l = word.substring(0, 1);
+                if (l=="c" && word.length==3){
+                    title = word + " " + title;
+                }
+
+            }
+        }
+
+
+      //Return rank
+        arr = title.split(" ");
+        var prevWord = "";
+        for (var i=0; i<arr.length; i++){
+            var word = arr[i].toLowerCase();
+            var l = word.substring(0, 1);
+
+          //C-suite
+            if (l=="c" && word.length==3){
+                if (word=="ceo") return 5.5;
+                if (word=="coo") return 5.4;
+                if (word=="cto") return 5.3;
+                return 5;
+            }
+
+          //Founders and owners
+            if (word=="founder" || word=="owner"){
+                return 4;
+            }
+
+          //President and vice-president
+            if (word=="president"){
+                if (prevWord=="vice"){
+                    return 3;
+                }
+                return 3.8;
+            }
+
+          //Executive vice president
+            if (word=="evp"){
+                return 3.4;
+            }
+            if (word=="executive" || word=="evp"){
+                var nextWords = [];
+                for (var j=i+1; j<arr.length; j++){
+                    var w = arr[j].toLowerCase();
+                    nextWords.push(w);
+                }
+                nextWords = nextWords.join(" ");
+                if (nextWords.indexOf("vp")==0 || nextWords.indexOf("vice president")==0){
+                    return 3.4;
+                }
+            }
+
+          //Vice president
+            if (word=="vp"){
+                return 3;
+            }
+
+          //Directors
+            if (word=="director"){
+                if (prevWord=="executive" || prevWord=="senior" || prevWord=="sr."){
+                    return 2.5;
+                }
+                return 2;
+            }
+            prevWord = word;
+        }
+
+        return 1;
     };
 
 
