@@ -503,7 +503,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             {"Annual Revenue": false},
             //{"EBITDA": true},
             {"Prime Revenue": false},
-            {"Backlog": false},
+            {"Prime Backlog": false},
             {"% Prime Contracts": true},
             {"% Full and Open": false},
             {"# Employees": true},
@@ -565,7 +565,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         }
 
         companyOverview.set("Prime Revenue", "$" + addCommas(Math.round(company.estimatedRevenue)));
-        companyOverview.set("Backlog", "$" + addCommas(Math.round(company.estimatedBacklog)));
+        companyOverview.set("Prime Backlog", "$" + addCommas(Math.round(company.estimatedBacklog)));
 
 
         if (company.recentAwards) companyOverview.set("Status", "Active");

@@ -139,10 +139,17 @@ prospekt.awards.AwardsList = function(parent, config) {
                 row.set("Name", award.name);
                 row.set("Contract", award.type);
 
-                if (award.competed==true){}
-                else{
-                    row.set("Competed", "<i class=\"fas fa-times\" style=\"color:#e7a2a2;\"></i>");
+
+                var competedIcon = createElement("i");
+                if (award.competed==true){
+                    competedIcon.className = "fas fa-check";
+                    competedIcon.style.color = "#00c300";
                 }
+                else{
+                    competedIcon.className = "fas fa-times";
+                    competedIcon.style.color = "#e7a2a2";
+                }
+                row.set("Competed", competedIcon);
 
 
                 row.set("Start Date", moment(award.date).format("YYYY-MM-DD"));

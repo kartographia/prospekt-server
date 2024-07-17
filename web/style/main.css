@@ -629,6 +629,7 @@ body, textarea, input, select, td, th {
     margin: 5px 5px 0 !important;
 }
 
+.company-panel .toolbar .button,
 .company-panel .toolbar .pulldown,
 .company-panel .toolbar .toolbar-button {
     float: left;
@@ -653,9 +654,12 @@ body, textarea, input, select, td, th {
     box-shadow: 1px 1px 2px 0 rgba(0, 0, 0, 0.09);
     color: #595959;
 
+    width: unset;
+
     cursor: pointer;
 }
 
+.company-panel .toolbar .button:hover,
 .company-panel .toolbar .pulldown:hover,
 .company-panel .toolbar .toolbar-button:hover,
 .company-panel .toolbar .toolbar-button-hover {
@@ -690,6 +694,7 @@ body, textarea, input, select, td, th {
 
 /****************************************************************/
 
+.toolbar.disabled .button,
 .toolbar.disabled .pulldown,
 .toolbar.disabled .toolbar-button.reset,
 .toolbar.disabled .toolbar-button.reset:hover,
@@ -699,6 +704,7 @@ body, textarea, input, select, td, th {
     cursor: default;
 }
 
+.toolbar.disabled .button,
 .toolbar.disabled .pulldown,
 .toolbar.disabled .pulldown.filter,
 .toolbar.disabled .pulldown:hover {
@@ -841,7 +847,8 @@ body, textarea, input, select, td, th {
     font-size: 16px;
     font-weight: 700;
     border-radius: 5px;
-    margin-top: 28px;
+    margin: 28px 0 0 0;
+    padding: 0;
     width: 100%;
     border: 0 none;
 }
@@ -1370,19 +1377,28 @@ body, textarea, input, select, td, th {
 
 
 .company-profile .profile-pic {
-    float: right;
-    padding: 7px;
+    position: relative;
+    float: left;
     margin: 24px 14px;
     border: 1px solid #ccc;
+    width: 200px;
+    height: 200px;
+    background-repeat: no-repeat;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.2);
 }
 
-.company-profile .profile-pic img {
-    width:200px;
-    min-height: 150px;
-    max-height: 350px;
+.profile-pic:before {
+    content: "\f007";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    font-size: 140px;
+    color: #f3f3f3;
+    position: absolute;
+    z-index: -1;
+    left: 38px;
+    top: 14px;
 }
-
-
 
 
 /**************************************************************************/
