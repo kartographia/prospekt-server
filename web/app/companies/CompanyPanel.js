@@ -19,6 +19,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
     var companyList, companyProfile, bookmarks; //panels
     var bookmarkCreator, notes; //popup
+    var refreshButton;
     var waitmask;
     var filter = {};
     var extraParams = {};
@@ -260,6 +261,16 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             }
         };
 
+
+        refreshButton = createElement("div", toolbar.el, "button noselect");
+        createElement("i", refreshButton, "fas fa-sync-alt noselect"); //fas fa-random
+        refreshButton.onclick = function(){
+            companyList.update();
+        };
+        addShowHide(refreshButton);
+        refreshButton.hide();
+
+
         var toggleView = createElement("div", toolbar.el, "button-group");
         toggleView.style.float = "right";
         toggleView.style.margin = "0 5px";
@@ -368,9 +379,16 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 var orderby = values["orderby"];
                 if (orderby){
                     if (orderby==="estimated_revenue") orderby += " desc";
+                    if (orderby==="random()"){
+                        refreshButton.show();
+                    }
+                    else{
+                        refreshButton.hide();
+                    }
                     extraParams.orderby = orderby + ",id";
                 }
                 else{
+                    refreshButton.hide();
                     delete extraParams.orderby;
                 }
             }
@@ -472,6 +490,12 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                         if (idx>-1) orderby = orderby.substring(0, idx).trim();
                         if (!toolbarFilter.More) toolbarFilter.More = {};
                         toolbarFilter.More.orderby = orderby;
+                        if (orderby==="random()"){
+                            refreshButton.show();
+                        }
+                        else{
+                            refreshButton.hide();
+                        }
                     }
                 }
             }
