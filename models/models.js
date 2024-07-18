@@ -47,7 +47,8 @@ var models = {
             {name: 'estimated_revenue', type: 'decimal'},
             {name: 'estimated_backlog', type: 'decimal'},
             {name: 'lastUpdate',        type: 'date'},
-            {name: 'likes',             type: 'long'}, //user-driven
+            {name: 'likes',             type: 'long'},
+            {name: 'tags',              type: 'string[]'},
             {name: 'info',              type: 'json'}
         ],
         constraints: [

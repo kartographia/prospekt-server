@@ -26,6 +26,7 @@ public class Company extends javaxt.sql.Model {
     private BigDecimal estimatedBacklog;
     private Date lastUpdate;
     private Long likes;
+    private String[] tags;
     private JSONObject info;
 
 
@@ -47,6 +48,7 @@ public class Company extends javaxt.sql.Model {
             java.util.Map.entry("estimatedBacklog", "estimated_backlog"),
             java.util.Map.entry("lastUpdate", "last_update"),
             java.util.Map.entry("likes", "likes"),
+            java.util.Map.entry("tags", "tags"),
             java.util.Map.entry("info", "info")
 
         ));
@@ -100,6 +102,8 @@ public class Company extends javaxt.sql.Model {
             this.estimatedBacklog = getValue(rs, "estimated_backlog").toBigDecimal();
             this.lastUpdate = getValue(rs, "last_update").toDate();
             this.likes = getValue(rs, "likes").toLong();
+            {Object[] v = (Object[]) getValue(rs, "tags").toArray();
+            this.tags = v==null ? null : java.util.Arrays.copyOf(v, v.length, String[].class);}
             this.info = new JSONObject(getValue(rs, "info").toString());
 
 
@@ -134,6 +138,8 @@ public class Company extends javaxt.sql.Model {
         this.estimatedBacklog = json.get("estimatedBacklog").toBigDecimal();
         this.lastUpdate = json.get("lastUpdate").toDate();
         this.likes = json.get("likes").toLong();
+        {Object[] v = json.has("tags") ? json.get("tags").toJSONArray().toArray() : null;
+        this.tags = v==null ? null : java.util.Arrays.copyOf(v, v.length, String[].class);}
         this.info = json.get("info").toJSONObject();
     }
 
@@ -232,6 +238,14 @@ public class Company extends javaxt.sql.Model {
 
     public void setLikes(Long likes){
         this.likes = likes;
+    }
+
+    public String[] getTags(){
+        return tags;
+    }
+
+    public void setTags(String[] tags){
+        this.tags = tags;
     }
 
     public JSONObject getInfo(){
