@@ -246,6 +246,32 @@ public class WebServices extends WebService {
                     company.setLikes((long) likes.length());
                     info.set("likes", likes);
                 }
+                else if (key.equals("tags")){
+
+                    String tags = request.getParameter("tags").toString();
+                    if (tags==null) company.setTags(null);
+                    else {
+                        LinkedHashSet<String> uniqueTags = new LinkedHashSet<>();
+                        for (String tag : tags.split(",")){
+                            tag = tag.trim();
+                            if (tag.length()>0){
+                                boolean addTag = true;
+                                for (String t : uniqueTags){
+                                    if (t.equalsIgnoreCase(tag)){
+                                        addTag = false;
+                                        break;
+                                    }
+                                }
+                                if (addTag) uniqueTags.add(tag);
+                            }
+                        }
+                        if (uniqueTags.isEmpty()) company.setTags(null);
+                        else{
+                            company.setTags(uniqueTags.toArray(new String[uniqueTags.size()]));
+                        }
+                    }
+
+                }
                 else{
                     info.set(key, json.get(key));
                 }
@@ -885,7 +911,7 @@ public class WebServices extends WebService {
   //**************************************************************************
   //** notify
   //**************************************************************************
-    private void notify(String action, Model model, javaxt.express.User user){
+    protected void notify(String action, Model model, javaxt.express.User user){
         Long userID = user==null ? null : user.getID();
         notify(action+","+model.getClass().getSimpleName()+","+model.getID()+","+userID);
     }
@@ -894,7 +920,7 @@ public class WebServices extends WebService {
   //**************************************************************************
   //** notify
   //**************************************************************************
-    private void notify(String msg){
+    protected void notify(String msg){
         synchronized(listeners){
             Iterator<Long> it = listeners.keySet().iterator();
             while(it.hasNext()){
