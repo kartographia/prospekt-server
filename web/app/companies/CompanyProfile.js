@@ -20,7 +20,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var panel;
     var companyOverview, companyDescription, companyOfficers;
     var revenueChart;
-    var awardDetails, linkEditor, employeeEditor, revenueEditor; //custom popups
+    var awardDetails, linkEditor, employeeEditor, revenueEditor, tagEditor; //custom popups
     var waitmask;
     var clipboard;
 
@@ -331,6 +331,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                     span.innerText = value;
 
                     d.onclick = function(e){
+                        company = companyOverview.company;
 
                       //Special case for "Prime Contracts" field: Open revenue editor
                         if (key==="% Prime Contracts"){
@@ -425,6 +426,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             };
 
 
+          //Special case for links
             if (key==="Links"){
 
                 value = {
@@ -439,7 +441,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                 var d = createElement("div", col, "company-links editable");
                 d.onclick = function(e){
                     if (e.offsetX>(this.offsetWidth-16)){
-                        editLinks(company);
+                        editLinks(companyOverview.company);
                     }
                 };
 
@@ -466,6 +468,29 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                         }
                     }
 
+                };
+            }
+
+
+
+          //Special case for tags
+            if (key==="Tags"){
+                var d = createElement("div", col, "company-tags editable");
+                d.onclick = function(e){
+                    if (e.offsetX>(this.offsetWidth-16)){
+                        editTags(companyOverview.company);
+                    }
+                };
+                col.setValue = function(value){
+                    if (isArray(value)){
+                        d.innerHTML = "";
+                        value.forEach((tag)=>{
+                            createElement("div", d).innerText=tag;
+                        });
+                    }
+                    else{
+                        d.innerHTML = value;
+                    }
                 };
             }
 
@@ -512,7 +537,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             {"Services Concentration": false},
             {"Total Contract Revenue": false},
             {"Last Update": false},
-            {"Status": false}
+            {"Status": false},
+            {"Tags": true}
 
         ].forEach((o)=>{
             var key = Object.keys(o)[0];
@@ -580,11 +606,16 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //** updateCompanyOverview
   //**************************************************************************
     var updateCompanyOverview = function(company){
+        companyOverview.company = company;
+
 
       //Update description
         if (company.description){
             companyDescription.innerText = company.description;
         }
+
+
+        companyOverview.set("Tags", company.tags);
 
 
         if (company.info){
@@ -2145,6 +2176,115 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
   //**************************************************************************
+  //** editTags
+  //**************************************************************************
+    var editTags = function(company){
+        if (!tagEditor){
+
+          //Create popup window
+            var win = createWindow({
+                style: config.style.window,
+                title: "Edit Tags",
+                width: 400,
+                height: 300,
+                modal: true,
+                buttons: [
+                    {
+                        name: "Save",
+                        onclick: function(){
+
+                            var tags = [];
+                            for (var i=0; i<innerDiv.childNodes.length; i++){
+                                var div = innerDiv.childNodes[i];
+                                tags.push(div.innerText);
+                            }
+
+
+                            var payload = {
+                                id: company.id,
+                                tags: tags.join(",")
+                            };
+
+                            post("UpdateCompanyInfo", JSON.stringify(payload), {
+                                success:function(str){
+                                    company = JSON.parse(str);
+                                    var tags = company.tags;
+                                    companyOverview.set("Tags", tags);
+                                },
+                                failure:function(){}
+                            });
+
+                            win.close();
+                        }
+                    },
+                    {
+                        name: "Cancel",
+                        onclick: function(){
+                            win.close();
+                        }
+                    }
+                ]
+
+            });
+
+
+            var table = createTable(win.getBody());
+            var input = new javaxt.dhtml.ComboBox(
+                table.addRow().addColumn(),
+                {
+                    style: config.style.combobox
+                }
+            );
+            var button = input.getButton();
+            button.className =
+            button.className.replace("pulldown-button-icon", "fas fa-plus");
+            button.onclick = function(){
+
+                var tag = input.getInput().value;
+                if (!tag) return;
+                tag = tag.trim();
+                if (tag.length==0) return;
+
+                for (var i=0; i<innerDiv.childNodes.length; i++){
+                    var div = innerDiv.childNodes[i];
+                    if (div.innerText.toLowerCase()===tag.toLowerCase()) return;
+                }
+
+                input.getInput().value = "";
+                createChiclet(innerDiv, tag);
+            };
+
+
+            var tagView = createOverflowPanel(table.addRow().addColumn({
+                height: "100%"
+            }));
+            var innerDiv = tagView.innerDiv;
+
+
+          //Create tagEditor object
+            tagEditor = {
+                show: win.show,
+                clear: function(){
+                    input.clear();
+                    tagView.clear();
+                },
+                update: function(company){
+                    tagEditor.clear();
+                    if (!company.tags) return;
+                    company.tags.forEach((tag)=>{
+                        createChiclet(innerDiv, tag);
+                    });
+                }
+            };
+
+        }
+
+        tagEditor.update(company);
+        tagEditor.show();
+    };
+
+
+  //**************************************************************************
   //** editEmployees
   //**************************************************************************
     var editEmployees = function(company){
@@ -2159,7 +2299,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                 modal: true,
                 buttons: [
                     {
-                        name: "Submit",
+                        name: "Save",
                         onclick: function(){
 
                           //Get employees
@@ -2276,7 +2416,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                 modal: true,
                 buttons: [
                     {
-                        name: "Submit",
+                        name: "Save",
                         onclick: function(){
                             var edits = revenueEditor.getValue();
                             var percentPrime = edits.percentPrime;
@@ -2668,6 +2808,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var addShowHide = javaxt.dhtml.utils.addShowHide;
     var isElement = javaxt.dhtml.utils.isElement;
     var isString = javaxt.dhtml.utils.isString;
+    var isArray = javaxt.dhtml.utils.isArray;
     var isEmpty = javaxt.dhtml.utils.isEmpty;
     var merge = javaxt.dhtml.utils.merge;
     var round = javaxt.dhtml.utils.round;
@@ -2679,6 +2820,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var getMonthRevenue = prospekt.utils.getMonthRevenue;
     var parseResponse = prospekt.utils.parseResponse;
     var getNaicsCodes = prospekt.utils.getNaicsCodes;
+    var createChiclet = prospekt.utils.createChiclet;
     var isAwardActive = prospekt.utils.isAwardActive;
     var createWindow = prospekt.utils.createWindow;
     var addCommas = prospekt.utils.addCommas;
