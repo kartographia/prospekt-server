@@ -751,6 +751,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
       //Create main table
         var table = createTable(parent);
+        table.className = "revenue-chart";
         table.style.height = "";
 
 
@@ -791,6 +792,56 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
         var chartArea = table.addRow().addColumn("chart-area");
+
+
+        var chartLegend = table.addRow().addColumn("chart-legend");
+        chartLegend.addItem = function(label, value, line){
+            var div = createElement("div", chartLegend);
+            addShowHide(div);
+
+            var d = createElement("div", div, "label");
+            d.innerText = label;
+            label = d;
+
+            var c = createElement("div", div, { display: "flex" });
+
+            var color = line.getColor();
+            var style = line.getStyle();
+            var width = line.getWidth();
+            line = createElement("div", c, "line");
+            line.style.borderBottom = width + "px " + style + " " + color;
+
+            d = createElement("div", c, "value");
+
+            var item = {
+                label: label,
+                line: line,
+                value: d,
+                update: function(value){
+                    d.innerText = "$" + addCommas(Math.round(value));
+                },
+                show: function(){div.show();},
+                hide: function(){div.hide();}
+            };
+
+            if (!chartLegend.items) chartLegend.items = {};
+            chartLegend.items[label.innerText] = item;
+
+            item.update(value);
+            return item;
+        };
+        chartLegend.getItem = function(label){
+            if (chartLegend.items) return chartLegend.items[label];
+            return null;
+        };
+        chartLegend.clear = function(){
+            Object.values(chartLegend.items).forEach((item)=>{
+                item.update(0);
+            });
+        };
+
+
+
         var footerArea = table.addRow().addColumn("chart-disclaimer");
         footerArea.innerText =
         "Revenue is based on prime contracts using the last 12 months of data, ending on " + dbDate + ". " +
@@ -842,41 +893,40 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         lineChart.addLine(otherLine, otherRevenue, "date", "amount");
 
 
-      //Generate data and lines to render estimated revenue
-        var chartEstimates = {};
-        ["lower range","lower average","midpoint","upper average","upper range"].forEach((key)=>{
+      //Add legend
+        chartLegend.addItem("Estimated Revenue", 0, otherLine);
+        chartLegend.addItem("Prime Revenue", 0, lineAvg);
 
-            var d = JSON.parse(JSON.stringify(data));
-            d.forEach((record)=>{
-                record.amount = 0;
-            });
 
-            var l = new bluewave.chart.Line({
-                smoothing: "movingAverage",
-                smoothingValue: 30, //in months
-                width: l,
-                style: "dashed",
-                color: "#EE9549",
-                opacity: 0
-            });
-            lineChart.addLine(l, d, "date", "amount");
-
-            chartEstimates[key] = {
-                data: d,
-                line: l
-            };
-        });
+        var chartElements;
 
 
       //Create chart object with a single update() method
         revenueChart = {
             update: function(company){
+                chartLegend.clear();
 
 
               //Update otherLine with user-defined revenue estimate
                 var percentPrime = getPercentPrime(company);
                 var revenue = updateRevenue(data, otherRevenue, percentPrime);
                 otherLine.setOpacity(percentPrime<100 ? 1 : 0);
+
+
+              //Show/hide the "Estimated Revenue" legend
+                var item = chartLegend.getItem("Estimated Revenue");
+                if (percentPrime<100){
+                    item.update(revenue.annualRevenue);
+                    item.show();
+                }
+                else item.hide();
+
+
+              //Show/hide the "Prime Revenue" legend
+                var item = chartLegend.getItem("Prime Revenue");
+                item.update(company.estimatedRevenue);
+                if (percentPrime<100) item.show();
+                else item.hide();
 
 
               //Update percent change label
@@ -911,9 +961,53 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                     (isNaN(linkedIn) ? "" : "&linkedIn=" + linkedIn),{
                     success: function(str){
 
-                      //Update data and lines used to render estimated revenue
+
+
+                      //Create chartElements used to render estimated revenue
+                        if (!chartElements){
+                            chartElements = {};
+                            ["lower range","lower average","midpoint","upper average","upper range"].forEach((key)=>{
+
+                                var d = JSON.parse(JSON.stringify(data));
+                                d.forEach((record)=>{
+                                    record.amount = 0;
+                                });
+
+                                var l = new bluewave.chart.Line({
+                                    smoothing: "movingAverage",
+                                    smoothingValue: 30, //in months
+                                    width: l,
+                                    style: "dashed",
+                                    color: "#EE9549",
+                                    opacity: 0
+                                });
+                                lineChart.addLine(l, d, "date", "amount");
+                                var legend = chartLegend.addItem(key, 0, l);
+
+                                chartElements[key] = {
+                                    data: d,
+                                    line: l,
+                                    legend: legend
+                                };
+                            });
+                        }
+
+
+
+                      //Render estimated revenue
                         var estimate = JSON.parse(str);
-                        updateEstimates(data, estimate, chartEstimates, company.estimatedRevenue);
+                        updateEstimates(data, estimate, chartElements, company.estimatedRevenue);
+
+
+                      //Render "Prime Revenue" legend if there's at least one
+                      //revenue estimate rendered
+                        var visibleLines = 0;
+                        Object.values(chartElements).forEach((o)=>{
+                            var line = o.line;
+                            if (line.getConfig().opacity>0) visibleLines++;
+                        });
+                        if (visibleLines>0) chartLegend.getItem("Prime Revenue").show();
+
 
 
                       //Update disclaimer below the chart
@@ -1422,8 +1516,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                 });
 
 
-
-                var legend = createLegend(div);
+                var svg = treemap.getSVG().node();
+                var legend = createLegend(svg.parentNode);
                 rows.forEach((row)=>{
                     legend.addItem(row.key, row.color);
                 });
@@ -2659,8 +2753,11 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             Object.keys(revenueEstimates).forEach((key)=>{
                 var estimatedRevenue = revenueEstimates[key];
                 var p = estimatedRevenue/annualPrimeRevenue;
-                var d = chartElements[key].data;
-                var line = chartElements[key].line;
+                var o = chartElements[key];
+                var d = o.data;
+                var line = o.line;
+                var legend = o.legend;
+
 
                 if (key=="lower average" || key=="upper average" || key=="midpoint"){
                     line.setOpacity(0.8);
@@ -2684,10 +2781,14 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
                     line.setOpacity(0.8);
+
+                    legend.update(estimatedRevenue);
+                    legend.show();
                 }
                 else{
                     d[i].amount = 0;
                     line.setOpacity(0);
+                    legend.hide();
                 }
 
             });

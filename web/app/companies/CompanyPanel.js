@@ -923,6 +923,9 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             }
         };
 
+        var counter = createElement("div",
+        notesButton.el.getElementsByClassName("toolbar-button")[0], "count");
+        addShowHide(counter);
 
 
       //Override the update() method in the CompanyProfile panel
@@ -932,6 +935,16 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             if (!isNaN(parseInt(company.likes+""))){
                 updateLikes(company.likes, true);
             }
+
+            var numNotes = 0;
+            if (company.info && company.info.notes){
+                numNotes = company.info.notes.length;
+            }
+            if (numNotes>0){
+                counter.innerText = addCommas(numNotes);
+                counter.show();
+            }
+            else counter.hide();
         };
     };
 

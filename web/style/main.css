@@ -728,6 +728,25 @@ body, textarea, input, select, td, th {
     display:none;
 }
 
+
+/****************************************************************/
+
+.company-panel .toolbar .toolbar-button .count {
+    position:absolute;
+    top: -6px;
+    right: -6px;
+    border-radius: 6px;
+    background-color: #df4444;
+    text-align: center;
+    font-size: 9px;
+    padding: 0 4px;
+    color: #fff;
+    height: 12px;
+    line-height: 12px;
+    font-weight: normal;
+}
+
+
 /****************************************************************/
 
 .company-panel .toolbar .toolbar-button .fas.fa-star {
@@ -1614,7 +1633,8 @@ body, textarea, input, select, td, th {
 }
 
 .chart-area .label {
-    font-family: 'Segoe UI Variable Small'; /* for windows */
+    font-family: 'Segoe UI Variable Small', /* for windows */
+    'Open Sans',helvetica,arial,verdana,sans-serif;
     font-size: 10px;
     color: #555;
     -webkit-user-select: none;
@@ -1650,7 +1670,7 @@ body, textarea, input, select, td, th {
     color: #777;
     font-size: 11px;
     font-style: italic;
-    padding: 15px 50px 0 0;
+    padding: 0 50px 0 0;
 }
 
 .chart-disclaimer:before {
@@ -1670,6 +1690,45 @@ body, textarea, input, select, td, th {
     font-weight:normal;
     color:#000;
 }
+
+/**************************************************************************/
+/** Revenue Chart
+/**************************************************************************/
+
+.revenue-chart td.chart-legend {
+    padding: 10px 0 0;
+}
+
+.revenue-chart .chart-legend > div {
+    display: inline-block;
+    float: left;
+    margin: 0 10px 10px 0;
+    border: 1px solid #dcdcdc;
+    padding: 2px 5px;
+    border-radius: 5px;
+}
+
+.revenue-chart .chart-legend .label,
+.revenue-chart .chart-legend .value {
+    font-family: 'Segoe UI Variable Small', /* for windows */
+    'Open Sans',helvetica,arial,verdana,sans-serif;
+    font-size: 10px;
+    color: #555;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -o-user-select: none;
+    -ms-user-select: none;
+    -khtml-user-select: none;
+    user-select: none;
+}
+
+.revenue-chart .chart-legend .line {
+    width:  16px;
+    display: inline-block;
+    float: left;
+    margin: 0 6px 6px 0;
+}
+
 
 /**************************************************************************/
 /** Revenue Sliders
@@ -2001,8 +2060,9 @@ body, textarea, input, select, td, th {
 /**************************************************************************/
 /** Chart Legend
 /**************************************************************************/
+/** Legands for bluewave-charts */
 
-.chart-legend {
+.svg-container .chart-legend {
     position: absolute;
     right: 10px;
     top: 15px;
@@ -2018,12 +2078,12 @@ body, textarea, input, select, td, th {
     box-shadow: 0px 2px 7px 0px rgb(0 0 0 / 17%);
 }
 
-.chart-legend > div {
+.svg-container .chart-legend > div {
    position: relative;
    overflow: hidden;
 }
 
-.chart-legend .dot {
+.svg-container .chart-legend .dot {
     content: "";
     width: 16px;
     height: 16px;
@@ -2036,7 +2096,7 @@ body, textarea, input, select, td, th {
     border: 1px solid #dcdcdc;
 }
 
-.chart-legend span {
+.svg-container .chart-legend span {
    font-size: 12px;
 }
 
