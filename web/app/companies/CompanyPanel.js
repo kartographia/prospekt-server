@@ -202,6 +202,52 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
   //**************************************************************************
+  //** setActive
+  //**************************************************************************
+  /** Called whenever this panel is "raised" by the main app
+   */
+    this.setActive = function(){
+
+
+      //The url is updated whenever the user switches tabs in the main app.
+      //Update the url if the profile panel is visible.
+        if (companyProfile.isVisible() && companyProfile.companyID){
+            var uei = getParameter("uei");
+            if (!uei || uei.length===0){
+
+
+                updateHistory({
+                    view: "list",
+                    title: title
+                });
+
+
+                get("companies?&fields=id,name,uei&format=json&id="+companyProfile.companyID,{
+                    success: function(str){
+                        var companies = JSON.parse(str);
+                        if (companies.length>0){
+                            var company = companies[0];
+                            if (company.id===companyProfile.companyID && companyProfile.isVisible()){
+
+                                addHistory({
+                                    view: "profile",
+                                    title: company.name,
+                                    companyID: company.id,
+                                    url: "?tab=companies&uei="+company.uei
+                                });
+
+                            }
+                        }
+                    },
+                    failure: function(){}
+                });
+
+            }
+        }
+    };
+
+
+  //**************************************************************************
   //** createList
   //**************************************************************************
   /** Used to create a list view of companies
@@ -748,6 +794,9 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         companyProfile.hide = function(){
             div.style.left = "";
             div.style.opacity = 0;
+        };
+        companyProfile.isVisible = function(){
+            return parseFloat(div.style.opacity+"")>0;
         };
 
 

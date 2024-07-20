@@ -107,6 +107,30 @@ prospekt.Application = function(parent, config) {
         }
 
         app.update(user, tabs);
+
+
+
+      //Watch for tab change events
+        app.beforeTabChange = function(currTab, nextTab){
+
+            var label = currTab.name;
+            var url = window.location.href;
+            var idx = url.indexOf("?");
+            if (idx>-1) url = url.substring(0, idx);
+
+            app.updateHistory({
+                title: config.name + " - " + label,
+                tab: label,
+                url: url
+            });
+
+        };
+
+        app.onTabChange = function(currTab){
+            if (currTab.panel.setActive){
+                currTab.panel.setActive();
+            }
+        };
     };
 
 
