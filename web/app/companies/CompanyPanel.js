@@ -272,6 +272,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         toolbar.addButton("Customer", prospekt.filters.CustomerFilter);
         toolbar.addButton("NAICS", prospekt.filters.NaicsFilter);
         toolbar.addButton("Revenue", prospekt.filters.RevenueFilter);
+        toolbar.addButton("Tags", prospekt.filters.TagFilter);
         toolbar.addButton("More", prospekt.filters.CompanyFilter);
         var resetButton = createElement("div", toolbar.el, "toolbar-button reset noselect");
         resetButton.innerText = "Reset Filters";
@@ -411,6 +412,15 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                     delete filter["recent_customers"];
                 }
             }
+            else if (field==="Tags"){
+                var tags = values["tags"];
+                if (tags && tags.length>0){
+                    filter.tags = tags.join(",");
+                }
+                else{
+                    delete filter["tags"];
+                }
+            }
             else if (field==="More"){
                 var likes = values["likes"];
                 if (likes){
@@ -488,6 +498,11 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                     else if (key==="recent_customers"){
                         toolbarFilter.Customer = {
                             customers: val
+                        };
+                    }
+                    else if (key==="tags"){
+                        toolbarFilter.Tags = {
+                            tags: val
                         };
                     }
                     else if (

@@ -591,6 +591,8 @@ prospekt.utils = {
             height: "100%"
         });
 
+        innerDiv.tabIndex = -1; //allows the div to have focus
+
         var scrollEnabled = true;
 
 
@@ -602,6 +604,9 @@ prospekt.utils = {
             clear: function(){
                 innerDiv.innerHTML = "";
                 ret.update();
+            },
+            focus: function(){
+                innerDiv.focus();
             },
             scrollTo: function(x, y){
                 outerDiv.scrollTo(x, y); //not tested...

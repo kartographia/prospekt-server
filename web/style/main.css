@@ -1357,7 +1357,7 @@ body, textarea, input, select, td, th {
 }
 
 .company-overview .company-links i.inactive {
-    color: #acafb6;
+    color: #acafb6 !important;
     opacity: 0.4;
     cursor: default;
 }
@@ -1367,6 +1367,9 @@ body, textarea, input, select, td, th {
 }
 
 
+.company-overview .company-links i.fas.fa-globe {
+    color:#6699cc;
+}
 
 /*
 .company-overview .company-links i:hover:after {
@@ -1927,6 +1930,32 @@ body, textarea, input, select, td, th {
 }
 
 
+/**************************************************************************/
+/** Tag Filter
+/**************************************************************************/
+
+.menu .tag-filter {
+    width: 100%;
+    height: 160px;
+    position: relative;
+    text-align: left;
+    margin-top: 24px;
+}
+
+.company-panel .toolbar .menu .tag-filter .form-input-button{
+    background-color: var(--green-background-hover);
+    border-color: var(--green-background-hover);
+    background-image: none;
+    color:#fff;
+    width:44px;
+}
+
+.toolbar .menu .tag-filter .form-input-button:before{
+    font-family: "Font Awesome 5 Free";
+    content: "\f067";
+    font-weight: 700;
+    text-shadow: none;
+}
 
 
 /**************************************************************************/

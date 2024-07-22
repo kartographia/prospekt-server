@@ -489,7 +489,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                         });
                     }
                     else{
-                        d.innerHTML = value;
+                        d.innerHTML = value ? value : "-";
                     }
                 };
             }
@@ -2287,16 +2287,9 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                         name: "Save",
                         onclick: function(){
 
-                            var tags = [];
-                            for (var i=0; i<innerDiv.childNodes.length; i++){
-                                var div = innerDiv.childNodes[i];
-                                tags.push(div.innerText);
-                            }
-
-
                             var payload = {
                                 id: company.id,
-                                tags: tags.join(",")
+                                tags: tagEditor.getValues().join(",")
                             };
 
                             post("UpdateCompanyInfo", JSON.stringify(payload), {
@@ -2322,57 +2315,11 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             });
 
 
-            var table = createTable(win.getBody());
-            var input = new javaxt.dhtml.ComboBox(
-                table.addRow().addColumn(),
-                {
-                    style: config.style.combobox
-                }
-            );
-            var button = input.getButton();
-            button.className =
-            button.className.replace("pulldown-button-icon", "fas fa-plus");
-            button.onclick = function(){
-
-                var tag = input.getInput().value;
-                if (!tag) return;
-                tag = tag.trim();
-                if (tag.length==0) return;
-
-                for (var i=0; i<innerDiv.childNodes.length; i++){
-                    var div = innerDiv.childNodes[i];
-                    if (div.innerText.toLowerCase()===tag.toLowerCase()) return;
-                }
-
-                input.getInput().value = "";
-                createChiclet(innerDiv, tag);
-            };
-
-
-            var tagView = createOverflowPanel(table.addRow().addColumn({
-                height: "100%"
-            }));
-            var innerDiv = tagView.innerDiv;
-
-
-          //Create tagEditor object
-            tagEditor = {
-                show: win.show,
-                clear: function(){
-                    input.clear();
-                    tagView.clear();
-                },
-                update: function(company){
-                    tagEditor.clear();
-                    if (!company.tags) return;
-                    company.tags.forEach((tag)=>{
-                        createChiclet(innerDiv, tag);
-                    });
-                }
-            };
-
+          //Create tag editor from the tag filter
+            tagEditor = new prospekt.filters.TagFilter(win.getBody(), config);
+            tagEditor.el.style.height = "100%";
+            tagEditor.show = win.show;
         }
-
         tagEditor.update(company);
         tagEditor.show();
     };

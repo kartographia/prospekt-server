@@ -204,6 +204,52 @@ public class WebServices extends WebService {
         return new ServiceResponse(400);
     }
 
+  //**************************************************************************
+  //** getTags
+  //**************************************************************************
+  /** Returns a distinct list of tags for a given table
+   */
+    public ServiceResponse getTags(ServiceRequest request, Database database) throws Exception {
+        String source = request.getParameter("source").toString();
+        if (source==null) source = "";
+        if (source.equalsIgnoreCase("companies")){
+            try (Connection conn = database.getConnection()){
+                JSONArray arr = new JSONArray();
+
+                if (database.getDriver().equals("PostgreSQL")){
+
+                    for (Record r : conn.getRecords(
+                        "SELECT DISTINCT(unnest(tags)) as tags FROM company")){
+                        String tag = r.get(0).toString();
+                        if (tag==null || tag.isBlank()) continue;
+                        arr.add(tag);
+                    }
+                    return new ServiceResponse(arr);
+
+                }
+                else if (database.getDriver().equals("H2")){
+
+                    TreeSet<String> tags = new TreeSet<>();
+                    for (Record r : conn.getRecords(
+                        "SELECT DISTINCT(tags) as tags FROM company where tags is not null")){
+                        for (Object obj : (Object[]) r.get(0).toArray()){
+                            tags.add(obj.toString());
+                        }
+                    }
+                    for (String tag : tags){
+                        arr.add(tag);
+                    }
+
+                    return new ServiceResponse(arr);
+                }
+                else{
+                    return new ServiceResponse(501);
+                }
+            }
+        }
+        return new ServiceResponse(400);
+    }
+
 
   //**************************************************************************
   //** updateCompanyInfo
