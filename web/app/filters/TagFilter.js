@@ -41,8 +41,6 @@ prospekt.filters.TagFilter = function(parent, config) {
             }
         );
         var button = input.getButton();
-        button.className =
-        button.className.replace("pulldown-button-icon", "fas fa-plus");
         button.onclick = function(e){
             e.preventDefault();
             e.stopPropagation();
@@ -66,6 +64,11 @@ prospekt.filters.TagFilter = function(parent, config) {
             tagView.update();
             tagView.focus();
         };
+        input.getInput().addEventListener("keyup", (e) => {
+            if (e.keyCode===13){
+                button.click();
+            }
+        });
 
 
         tagView = createOverflowPanel(table.addRow().addColumn({

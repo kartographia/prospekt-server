@@ -1942,15 +1942,21 @@ body, textarea, input, select, td, th {
     margin-top: 24px;
 }
 
+.tag-filter .form-input-button,
 .company-panel .toolbar .menu .tag-filter .form-input-button{
     background-color: var(--green-background-hover);
     border-color: var(--green-background-hover);
     background-image: none;
+    box-shadow: none;
+    text-shadow: none;
     color:#fff;
+}
+
+.company-panel .toolbar .menu .tag-filter .form-input-button{
     width:44px;
 }
 
-.toolbar .menu .tag-filter .form-input-button:before{
+.tag-filter .form-input-button:before{
     font-family: "Font Awesome 5 Free";
     content: "\f067";
     font-weight: 700;

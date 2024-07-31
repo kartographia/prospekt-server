@@ -2289,7 +2289,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
                             var payload = {
                                 id: company.id,
-                                tags: tagEditor.getValues().join(",")
+                                tags: tagEditor.getValues().tags.join(",")
                             };
 
                             post("UpdateCompanyInfo", JSON.stringify(payload), {
