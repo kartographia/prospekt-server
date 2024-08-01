@@ -75,8 +75,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         companyList.clear();
         companyList.show();
 
-        if (bookmarkCreator) bookmarkCreator.hide();
-        if (notes) notes.hide();
+        hidePopups();
     };
 
 
@@ -851,8 +850,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
               //Hide popups
-                if (bookmarkCreator) bookmarkCreator.hide();
-                if (notes) notes.hide();
+                hidePopups();
 
 
               //Show companyList
@@ -1178,8 +1176,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             else if (state.view==="list"){
 
               //Hide popups
-                if (bookmarkCreator) bookmarkCreator.hide();
-                if (notes) notes.hide();
+                hidePopups();
 
               //Show list
                 companyList.show();
@@ -1187,6 +1184,15 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         }
     };
 
+
+  //**************************************************************************
+  //** hidePopups
+  //**************************************************************************
+    var hidePopups = function(){
+        if (prospekt.windows) prospekt.windows.forEach((win)=>{
+            win.hide();
+        });
+    };
 
 
   //**************************************************************************

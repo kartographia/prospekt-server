@@ -54,7 +54,10 @@ prospekt.filters.TagFilter = function(parent, config) {
             var d = tagView.innerDiv;
             for (var i=0; i<d.childNodes.length; i++){
                 var div = d.childNodes[i];
-                if (div.innerText.toLowerCase()===tag.toLowerCase()) return;
+                if (div.innerText.toLowerCase()===tag.toLowerCase()){
+                    input.reset();
+                    return;
+                }
             }
 
             input.reset();
@@ -64,6 +67,11 @@ prospekt.filters.TagFilter = function(parent, config) {
             tagView.update();
             tagView.focus();
         };
+
+        input.onChange = function(value, data){
+            if (data) button.click();
+        };
+
         input.getInput().addEventListener("keyup", (e) => {
             if (e.keyCode===13){
                 button.click();

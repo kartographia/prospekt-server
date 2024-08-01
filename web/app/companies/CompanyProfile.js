@@ -2274,6 +2274,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //**************************************************************************
     var editTags = function(company){
         if (!tagEditor){
+            var currCompany;
 
           //Create popup window
             var win = createWindow({
@@ -2288,14 +2289,15 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                         onclick: function(){
 
                             var payload = {
-                                id: company.id,
+                                id: currCompany.id,
                                 tags: tagEditor.getValues().tags.join(",")
                             };
 
                             post("UpdateCompanyInfo", JSON.stringify(payload), {
                                 success:function(str){
-                                    company = JSON.parse(str);
+                                    var company = JSON.parse(str);
                                     var tags = company.tags;
+                                    currCompany.tags = company.tags;
                                     companyOverview.set("Tags", tags);
                                 },
                                 failure:function(){}
@@ -2319,6 +2321,13 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             tagEditor = new prospekt.filters.TagFilter(win.getBody(), config);
             tagEditor.el.style.height = "100%";
             tagEditor.show = win.show;
+
+            var update = tagEditor.update;
+            tagEditor.update = function(company){
+                currCompany = company;
+                update(company);
+            };
+
         }
         tagEditor.update(company);
         tagEditor.show();
