@@ -295,11 +295,12 @@ public class WebServices extends WebService {
                 else if (key.equals("tags")){
 
                     String tags = request.getParameter("tags").toString();
-                    if (tags==null) company.setTags(null);
+                    if (tags.equals("-")) company.setTags(null);
                     else {
                         LinkedHashSet<String> uniqueTags = new LinkedHashSet<>();
                         for (String tag : tags.split(",")){
                             tag = tag.trim();
+                            if (tag.equals("-")) continue;
                             if (tag.length()>0){
                                 boolean addTag = true;
                                 for (String t : uniqueTags){
