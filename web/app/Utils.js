@@ -706,6 +706,101 @@ prospekt.utils = {
 
 
   //**************************************************************************
+  //** createTextEditor
+  //**************************************************************************
+    createTextEditor: function(parent, config){
+        var createElement = javaxt.dhtml.utils.createElement;
+        var createTable = javaxt.dhtml.utils.createTable;
+        var isArray = javaxt.dhtml.utils.isArray;
+        var isString = javaxt.dhtml.utils.isString;
+
+        var table = createTable(parent);
+        var toolbar = table.addRow().addColumn();
+
+
+        var buttons = {};
+
+        [
+            'bold','italic','underline',
+            { list: 'ordered' }, { list: 'bullet' }
+
+        ].forEach((option)=>{
+
+            if (isArray(option)){
+
+            }
+            else{
+                var key, val;
+
+                if (isString(option)){
+                    key = option;
+                }
+                else{
+                    key = Object.keys(option)[0];
+                    val = option[key];
+                }
+
+                var btn = createElement("button", toolbar, "ql-"+key);
+                if (val) btn.value = val;
+
+                buttons[key] = btn;
+            }
+
+        });
+
+
+
+        var td = table.addRow().addColumn({
+            width: "100%",
+            height: "100%",
+            paddingBottom: "7px"
+        });
+
+
+        var outerDiv = createElement("div", td, {
+            position: "relative",
+            width: "100%",
+            height: "100%"
+        });
+
+
+        var body = createElement("div", outerDiv, {
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+            border: "0 none"
+        });
+
+
+        var quill = new Quill(body, {
+            theme: 'snow',
+            modules: {
+                toolbar: toolbar
+            }
+        });
+
+
+        return {
+            el: table,
+            toolbar: toolbar,
+            clear: function(){
+                quill.setText("");
+            },
+            update: function(html){
+                quill.clipboard.dangerouslyPasteHTML(0, html);
+            },
+            getValue: function(){
+                var html = quill.getSemanticHTML();
+                if (!html) html = "";
+                else html = html.trim();
+                return html;
+            }
+        };
+    },
+
+
+  //**************************************************************************
   //** getCallout
   //**************************************************************************
     getCallout: function(config){
