@@ -294,7 +294,7 @@ public class WebServices extends WebService {
                 }
                 else if (key.equals("tags")){
 
-                    String tags = request.getParameter("tags").toString();
+                    String tags = request.getParameter("tags").toString().trim();
                     if (tags.equals("-")) company.setTags(null);
                     else {
                         LinkedHashSet<String> uniqueTags = new LinkedHashSet<>();
@@ -318,6 +318,11 @@ public class WebServices extends WebService {
                         }
                     }
 
+                }
+                else if (key.equals("description")){
+                    String description = request.getParameter("description").toString().trim();
+                    if (description.equals("-")) description = null;
+                    company.setDescription(description);
                 }
                 else{
                     info.set(key, json.get(key));
