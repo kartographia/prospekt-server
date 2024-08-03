@@ -20,7 +20,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var panel;
     var companyOverview, companyDescription, companyOfficers;
     var revenueChart;
-    var awardDetails, linkEditor, employeeEditor, revenueEditor, tagEditor; //custom popups
+    var awardDetails, descriptionEditor, linkEditor, employeeEditor,
+        revenueEditor, tagEditor; //custom popups
     var waitmask;
     var clipboard;
 
@@ -294,8 +295,18 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         };
 
 
+      //Create description
         companyDescription = createElement("div", parent, "company-description");
-        if (company.description) companyDescription.innerText = company.description;
+        companyDescription.update = function(description){
+            if (!description) description = "";
+            companyDescription.innerHTML = description;
+        };
+        companyDescription.onclick = function(){
+            if (document.user.accessLevel>3){
+                editDescription(companyOverview.company);
+            }
+        };
+        companyDescription.update(company.description);
 
 
       //Create stats
@@ -610,9 +621,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
       //Update description
-        if (company.description){
-            companyDescription.innerText = company.description;
-        }
+        companyDescription.update(company.description);
 
 
         companyOverview.set("Tags", company.tags);
@@ -2174,11 +2183,84 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
   //**************************************************************************
+  //** editDescription
+  //**************************************************************************
+    var editDescription = function(company){
+        if (!descriptionEditor){
+            var currCompany;
+
+          //Create popup window
+            var win = createWindow({
+                style: config.style.window,
+                title: "Edit Description",
+                width: 600,
+                height: 350,
+                modal: true,
+                buttons: [
+                    {
+                        name: "Save",
+                        onclick: function(){
+
+                            var html = descriptionEditor.getValue();
+                            var tmp = document.createElement("div");
+                            tmp.innerHTML = html;
+                            var text = tmp.innerText;
+                            if (!text) text = "";
+                            else text = text.trim();
+
+                            var description;
+                            if (text.length===0){
+                                description = "-";
+                            }
+                            else{
+                                description = html;
+                            }
+
+                            var payload = {
+                                id: currCompany.id,
+                                description: description
+                            };
+
+                            post("UpdateCompanyInfo", payload, {
+                                success:function(str){
+                                    win.close();
+                                }
+                            });
+                        }
+                    },
+                    {
+                        name: "Cancel",
+                        onclick: function(){
+                            win.close();
+                        }
+                    }
+                ]
+            });
+
+            var body = win.getBody();
+            body.style.padding = 0;
+
+            descriptionEditor = createTextEditor(body);
+            descriptionEditor.show = win.show;
+
+            var update = descriptionEditor.update;
+            descriptionEditor.update = function(company){
+                currCompany = company;
+                update(company.description);
+            };
+        }
+
+        descriptionEditor.update(company);
+        descriptionEditor.show();
+    };
+
+
+  //**************************************************************************
   //** editLinks
   //**************************************************************************
     var editLinks = function(company){
-
         if (!linkEditor){
+            var currCompany;
 
             var items = [];
             ["Website","LinkedIn","Facebook","Twitter"].forEach((item)=>{
@@ -2207,6 +2289,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                         onclick: function(){
 
                           //Update company info
+                            var company = currCompany;
                             if (!company.info) company.info = {};
                             company.info.links = {};
                             var links = form.getData();
@@ -2249,6 +2332,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             linkEditor = {
                 show: win.show,
                 update: function(company){
+                    currCompany = company;
                     form.clear();
                     if (company.info && company.info.links){
                         var links = company.info.links;
@@ -2273,6 +2357,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //** editTags
   //**************************************************************************
     var editTags = function(company){
+
         if (!tagEditor){
             var currCompany;
 
@@ -2288,12 +2373,15 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                         name: "Save",
                         onclick: function(){
 
+                            var tags = tagEditor.getValues().tags.join(",");
+                            if (tags.length===0) tags = "-";
+
                             var payload = {
                                 id: currCompany.id,
-                                tags: tagEditor.getValues().tags.join(",")
+                                tags: tags
                             };
 
-                            post("UpdateCompanyInfo", JSON.stringify(payload), {
+                            post("UpdateCompanyInfo", payload, {
                                 success:function(str){
                                     var company = JSON.parse(str);
                                     var tags = company.tags;
@@ -2340,6 +2428,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var editEmployees = function(company){
 
         if (!employeeEditor){
+            var currCompany;
 
           //Create popup window
             var win = createWindow({
@@ -2367,6 +2456,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
                           //Update company info
+                            var company = currCompany;
                             if (!company.info) company.info = {};
                             if (!company.info.edits) company.info.edits = {};
                             company.info.edits.employees = {
@@ -2426,6 +2516,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             employeeEditor = {
                 show: win.show,
                 update: function(company){
+                    currCompany = company;
                     form.hideError("employees");
 
                   //Get employees from user edits
@@ -2456,6 +2547,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var editRevenue = function(company){
 
         if (!revenueEditor){
+            var currCompany;
 
           //Create popup window
             var win = createWindow({
@@ -2473,6 +2565,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
                           //Update company info
+                            var company = currCompany;
                             if (!company.info) company.info = {};
                             if (!company.info.edits) company.info.edits = {};
                             company.info.edits.percentPrime = {
@@ -2547,6 +2640,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             revenueEditor = {
                 show: win.show,
                 update: function(company){
+                    currCompany = company;
                     lineChart.clear();
 
                     var data = getMonthRevenue(company, lastUpdate);
@@ -2874,6 +2968,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
     var createOverflowPanel = prospekt.utils.createOverflowPanel;
+    var createTextEditor = prospekt.utils.createTextEditor;
     var getMonthRevenue = prospekt.utils.getMonthRevenue;
     var parseResponse = prospekt.utils.parseResponse;
     var getNaicsCodes = prospekt.utils.getNaicsCodes;
