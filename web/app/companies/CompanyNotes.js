@@ -147,100 +147,17 @@ prospekt.companies.CompanyNotes = function(parent, config) {
   //**************************************************************************
     var createEditor = function(){
 
-        var table = createTable();
-        var toolbar = table.addRow().addColumn();
+      //Create text editor
+        editor = createTextEditor();
 
-
-        var buttons = {};
-
-        [
-            'bold','italic','underline',
-            { list: 'ordered' }, { list: 'bullet' }
-
-        ].forEach((option)=>{
-
-            if (isArray(option)){
-
-            }
-            else{
-                var key, val;
-
-                if (isString(option)){
-                    key = option;
-                }
-                else{
-                    key = Object.keys(option)[0];
-                    val = option[key];
-                }
-
-                var btn = createElement("button", toolbar, "ql-"+key);
-                if (val) btn.value = val;
-
-                buttons[key] = btn;
-            }
-
-        });
-
-
-        var saveButton = createElement("button", toolbar, "ql-save");
+      //Add custom save button to the toolbar
+        var saveButton = createElement("button", editor.toolbar, "ql-save");
         saveButton.onclick = function(){
             me.save();
         };
 
-
-
-        var td = table.addRow().addColumn({
-            width: "100%",
-            height: "100%",
-            paddingBottom: "7px"
-        });
-
-
-        var outerDiv = createElement("div", td, {
-            position: "relative",
-            width: "100%",
-            height: "100%"
-        });
-
-
-
-        var body = createElement("div", outerDiv, {
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-            overflow: "hidden",
-            border: "0 none"
-        });
-
-
-
-        var quill = new Quill(body, {
-            theme: 'snow',
-            modules: {
-                toolbar: toolbar
-            }
-        });
-
-
-
-        editor = {
-            clear: function(){
-                quill.setText("");
-            },
-            update: function(html){
-                quill.clipboard.dangerouslyPasteHTML(0, html);
-            },
-            getValue: function(){
-                var html = quill.getSemanticHTML();
-                if (!html) html = "";
-                else html = html.trim();
-                return html;
-            }
-        };
-
-
-
-        return table;
+      //Return editor DOM element
+        return editor.el;
     };
 
 
@@ -473,6 +390,7 @@ var waitmask;
 
 
     var createOverflowPanel = prospekt.utils.createOverflowPanel;
+    var createTextEditor = prospekt.utils.createTextEditor;
     var parseResponse = prospekt.utils.parseResponse;
     var createButton = prospekt.utils.createButton;
     var getName = prospekt.utils.getName;
