@@ -6,33 +6,38 @@ prospekt.utils = {
   //**************************************************************************
   //** parseResponse
   //**************************************************************************
-    parseResponse: function(response){
-        var s = response.substring(0,1);
-        if (s=="{" || s=="["){
-            var json = JSON.parse(response);
-            if (json.cols && json.rows){ //conflate response
+    parseResponse: function(obj){
 
-                var rows = json.rows;
-                var cols = {};
-                for (var i=0; i<json.cols.length; i++){
-                    cols[json.cols[i]] = i;
-                }
-                for (var i=0; i<rows.length; i++){
-                    var row = rows[i];
-                    var obj = {};
-                    for (var col in cols) {
-                        if (cols.hasOwnProperty(col)){
-                            obj[col] = row[cols[col]];
-                        }
-                    }
-                    rows[i] = obj;
-                }
-
-                json = rows;
+        if (javaxt.dhtml.utils.isString(obj)){
+            var s = obj.substring(0,1);
+            if (s=="{" || s=="["){
+                obj = JSON.parse(obj);
             }
-            response = json;
         }
-        return response;
+
+        if (obj.cols && obj.rows){ //conflate response
+            var json = obj;
+
+            var rows = json.rows;
+            var cols = {};
+            for (var i=0; i<json.cols.length; i++){
+                cols[json.cols[i]] = i;
+            }
+            for (var i=0; i<rows.length; i++){
+                var row = rows[i];
+                var obj = {};
+                for (var col in cols) {
+                    if (cols.hasOwnProperty(col)){
+                        obj[col] = row[cols[col]];
+                    }
+                }
+                rows[i] = obj;
+            }
+
+            return rows;
+        }
+
+        return obj;
     },
 
 
