@@ -242,6 +242,31 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 });
 
             }
+            else{
+
+              //Check if requested uei matches current company id
+                get("companies?&fields=id,name&format=json&uei="+uei,{
+                    success: function(str){
+                        var companies = JSON.parse(str);
+                        if (companies.length>0){
+                            var company = companies[0];
+                            if (company.id!==companyProfile.companyID && companyProfile.isVisible()){
+
+                                companyList.showProfile(company.id);
+                                updateHistory({
+                                    view: "profile",
+                                    title: company.name,
+                                    companyID: company.id,
+                                    url: "?tab=companies&uei="+uei
+                                });
+
+                            }
+                        }
+                    },
+                    failure: function(){}
+                });
+            }
+
         }
     };
 
@@ -265,6 +290,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         var table = createTable(div);
         var toolbar = createToolBar(table.addRow().addColumn(), config);
         var body = table.addRow().addColumn({height:"100%"});
+        var footer = createFooter(table.addRow().addColumn(), config);
 
 
       //Populate toolbar with buttons
@@ -608,8 +634,11 @@ prospekt.companies.CompanyPanel = function(parent, config) {
             post: true,
             payload: filter,
             params: extraParams,
+            count: true,
             parseResponse: function(request){
-                return parseResponse(request.responseText);
+                var json = JSON.parse(request.responseText);
+                if (json.count) footer.update(json.count);
+                return parseResponse(json);
             },
             columns: [
                 {header: 'Name', width:'100%'}
@@ -773,6 +802,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         companyList.update = function(){
             toolbar.update();
             bookmarks.update();
+            footer.clear();
             companyList.load();
         };
 
@@ -781,6 +811,22 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         companyList.notify = function(op, model, id, userID){
 
         };
+    };
+
+
+  //**************************************************************************
+  //** createFooter
+  //**************************************************************************
+    var createFooter = function(parent){
+        var div = createElement("div", parent, "company-list footer");
+        div.clear = function(){
+            this.innerHTML = "";
+        };
+        div.update = function(count){
+            if (isNaN(parseFloat(count+""))) return;
+            this.innerHTML = "Total Records " + addCommas(count);
+        };
+        return div;
     };
 
 
