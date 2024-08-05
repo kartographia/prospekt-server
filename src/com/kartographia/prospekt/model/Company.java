@@ -24,6 +24,9 @@ public class Company extends javaxt.sql.Model {
     private String[] recentNaics;
     private BigDecimal estimatedRevenue;
     private BigDecimal estimatedBacklog;
+    private BigDecimal estimatedRevenue2;
+    private BigDecimal estimatedRevenue3;
+    private BigDecimal estimatedRevenue4;
     private Date lastUpdate;
     private Long likes;
     private String[] tags;
@@ -46,6 +49,9 @@ public class Company extends javaxt.sql.Model {
             java.util.Map.entry("recentNaics", "recent_naics"),
             java.util.Map.entry("estimatedRevenue", "estimated_revenue"),
             java.util.Map.entry("estimatedBacklog", "estimated_backlog"),
+            java.util.Map.entry("estimatedRevenue2", "estimated_revenue2"),
+            java.util.Map.entry("estimatedRevenue3", "estimated_revenue3"),
+            java.util.Map.entry("estimatedRevenue4", "estimated_revenue4"),
             java.util.Map.entry("lastUpdate", "last_update"),
             java.util.Map.entry("likes", "likes"),
             java.util.Map.entry("tags", "tags"),
@@ -100,6 +106,9 @@ public class Company extends javaxt.sql.Model {
             this.recentNaics = v==null ? null : java.util.Arrays.copyOf(v, v.length, String[].class);}
             this.estimatedRevenue = getValue(rs, "estimated_revenue").toBigDecimal();
             this.estimatedBacklog = getValue(rs, "estimated_backlog").toBigDecimal();
+            this.estimatedRevenue2 = getValue(rs, "estimated_revenue2").toBigDecimal();
+            this.estimatedRevenue3 = getValue(rs, "estimated_revenue3").toBigDecimal();
+            this.estimatedRevenue4 = getValue(rs, "estimated_revenue4").toBigDecimal();
             this.lastUpdate = getValue(rs, "last_update").toDate();
             this.likes = getValue(rs, "likes").toLong();
             {Object[] v = (Object[]) getValue(rs, "tags").toArray();
@@ -136,6 +145,9 @@ public class Company extends javaxt.sql.Model {
         this.recentNaics = v==null ? null : java.util.Arrays.copyOf(v, v.length, String[].class);}
         this.estimatedRevenue = json.get("estimatedRevenue").toBigDecimal();
         this.estimatedBacklog = json.get("estimatedBacklog").toBigDecimal();
+        this.estimatedRevenue2 = json.get("estimatedRevenue2").toBigDecimal();
+        this.estimatedRevenue3 = json.get("estimatedRevenue3").toBigDecimal();
+        this.estimatedRevenue4 = json.get("estimatedRevenue4").toBigDecimal();
         this.lastUpdate = json.get("lastUpdate").toDate();
         this.likes = json.get("likes").toLong();
         {Object[] v = json.has("tags") ? json.get("tags").toJSONArray().toArray() : null;
@@ -222,6 +234,30 @@ public class Company extends javaxt.sql.Model {
 
     public void setEstimatedBacklog(BigDecimal estimatedBacklog){
         this.estimatedBacklog = estimatedBacklog;
+    }
+
+    public BigDecimal getEstimatedRevenue2(){
+        return estimatedRevenue2;
+    }
+
+    public void setEstimatedRevenue2(BigDecimal estimatedRevenue2){
+        this.estimatedRevenue2 = estimatedRevenue2;
+    }
+
+    public BigDecimal getEstimatedRevenue3(){
+        return estimatedRevenue3;
+    }
+
+    public void setEstimatedRevenue3(BigDecimal estimatedRevenue3){
+        this.estimatedRevenue3 = estimatedRevenue3;
+    }
+
+    public BigDecimal getEstimatedRevenue4(){
+        return estimatedRevenue4;
+    }
+
+    public void setEstimatedRevenue4(BigDecimal estimatedRevenue4){
+        this.estimatedRevenue4 = estimatedRevenue4;
     }
 
     public Date getLastUpdate(){

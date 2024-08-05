@@ -44,8 +44,11 @@ var models = {
             {name: 'recent_award_mix',  type: 'decimal'},  //percent competative awards in the last 12 months
             {name: 'recent_customers',  type: 'string[]'}, //awarding agencies in the last 12 months
             {name: 'recent_naics',      type: 'string[]'}, //naics codes associated with recent awards
-            {name: 'estimated_revenue', type: 'decimal'},
-            {name: 'estimated_backlog', type: 'decimal'},
+            {name: 'estimated_revenue', type: 'decimal'},  //estimated revenue from prime contracts
+            {name: 'estimated_backlog', type: 'decimal'},  //estimated backlog from prime contracts
+            {name: 'estimated_revenue2',type: 'decimal'},  //reserved
+            {name: 'estimated_revenue3',type: 'decimal'},  //reserved
+            {name: 'estimated_revenue4',type: 'decimal'},  //reserved
             {name: 'lastUpdate',        type: 'date'},
             {name: 'likes',             type: 'long'},
             {name: 'tags',              type: 'string[]'},
