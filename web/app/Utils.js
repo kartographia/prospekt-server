@@ -859,6 +859,48 @@ prospekt.utils = {
 
 
   //**************************************************************************
+  //** getCompanyLogo
+  //**************************************************************************
+    getCompanyLogo: function(company){
+        if (!company || !company.info) return null;
+
+      //Check info
+        if (company.info.logo){
+            return company.info.logo;
+        }
+
+
+      //Check LinkedIn data
+        if (company.info.linkedInProfile){
+            try{
+
+                var image = company.info.linkedInProfile.logo.image["com.linkedin.common.VectorImage"];
+                var url = image.rootUrl;
+
+                var smallestImage;
+                var images = {};
+                image.artifacts.forEach((img)=>{
+                    var sz = img.height;
+                    if (smallestImage){
+                        smallestImage = Math.min(sz, smallestImage);
+                    }
+                    else{
+                        smallestImage = sz;
+                    }
+                    images[sz+""] = url+img.fileIdentifyingUrlPathSegment;
+                });
+                return images[smallestImage+""];
+            }
+            catch(e){
+                //console.log(e);
+            }
+        }
+
+        return null;
+    },
+
+
+  //**************************************************************************
   //** getNaicsCodes
   //**************************************************************************
     getNaicsCodes: function(callback){
