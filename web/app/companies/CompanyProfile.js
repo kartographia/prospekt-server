@@ -622,31 +622,25 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
       //Update description
         companyDescription.update(company.description);
-
-
+        companyOverview.set("logo", getCompanyLogo(company));
         companyOverview.set("Tags", company.tags);
 
 
         if (company.info){
-            var employees = parseInt("");
 
+          //Update links
             for (var key in company.info) {
                 if (company.info.hasOwnProperty(key)){
                     var val = company.info[key];
                     if (key==="links"){
                         companyOverview.set("Links", val);
                     }
-                    /*
-                    else if (key==="employees"){
-                        val = parseFloat(val+"");
-                        if (isNaN(val)) val = null;
-                        companyOverview.set("# Employees", val);
-                    }
-                    */
                 }
             }
 
 
+          //Update employees
+            var employees = parseInt("");
             if (company.info.edits){
                 var edits = company.info.edits;
                 for (var key in edits) {
@@ -663,50 +657,11 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                     }
                 }
             }
-
-            if (company.info.logo){
-
-            }
-
-
-          //Special case for LinkedIn data
             if (company.info.linkedInProfile){
-
-
-              //Get logos
-                try{
-
-                    var image = company.info.linkedInProfile.logo.image["com.linkedin.common.VectorImage"];
-                    var url = image.rootUrl;
-
-                    var smallestImage;
-                    var images = {};
-                    image.artifacts.forEach((img)=>{
-                        var sz = img.height;
-                        if (smallestImage){
-                            smallestImage = Math.min(sz, smallestImage);
-                        }
-                        else{
-                            smallestImage = sz;
-                        }
-                        images[sz+""] = url+img.fileIdentifyingUrlPathSegment;
-                    });
-                    companyOverview.set("logo", images[smallestImage+""]);
-                }
-                catch(e){
-                    //console.log(e);
-                }
-
-
-              //Get employees
                 if (isNaN(employees)){
                     employees = parseInt(company.info.linkedInProfile.staffCount+"");
                 }
-
             }
-
-
-          //Update employees
             companyOverview.set("# Employees", isNaN(employees) ? null : addCommas(employees));
 
 
@@ -949,28 +904,9 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                 }
 
 
-              //Get employee count
-                var employees = parseInt("");
-                var linkedIn = parseInt("");
-                if (company.info){
-
-                    if (company.info.edits && company.info.edits.employees){
-                        employees = parseInt(company.info.edits.employees.value+"");
-                    }
-
-                    if (company.info.linkedInProfile){
-                        linkedIn = parseInt(company.info.linkedInProfile.staffCount+"");
-                    }
-                }
-
-
-              //Get estimated revenue
-                get("/RevenueEstimate?primeRevenue=" + company.estimatedRevenue +
-                    (isNaN(employees) ? "" : "&employees=" + employees) +
-                    (isNaN(linkedIn) ? "" : "&linkedIn=" + linkedIn),{
-                    success: function(str){
-
-
+              //Get revenue estimates and update the chart
+                getRevenueEstimates(company, function(estimate){
+                    if (estimate){
 
                       //Create chartElements used to render estimated revenue
                         if (!chartElements){
@@ -1001,10 +937,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                             });
                         }
 
-
-
                       //Render estimated revenue
-                        var estimate = JSON.parse(str);
                         updateEstimates(data, estimate, chartElements, company.estimatedRevenue);
 
 
@@ -1046,21 +979,18 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                                 "are further weighted using " + selectedKey + " estimation.";
                             }
                         }
-                    },
-                    failure: function(request){
-                        if (request.status!=501) alert(request);
-                    },
-                    finally: function(){
 
-                      //Update the chart
-                        lineChart.update();
-
-                      //Update labels for the annual and monthly revenu estimates
-                        annualRevenue.innerText = "$" + addCommas(Math.round(revenue.annualRevenue));
-                        monthlyRevenue.innerText =
-                        "$" + addCommas(Math.round(revenue.annualRevenue/12)) + " monthly revenue";
-                        companyOverview.set("Annual Revenue", annualRevenue.innerText + "*");
                     }
+
+                  //Update the chart
+                    lineChart.update();
+
+                  //Update labels for the annual and monthly revenu estimates
+                    annualRevenue.innerText = "$" + addCommas(Math.round(revenue.annualRevenue));
+                    monthlyRevenue.innerText =
+                    "$" + addCommas(Math.round(revenue.annualRevenue/12)) + " monthly revenue";
+                    companyOverview.set("Annual Revenue", annualRevenue.innerText + "*");
+
                 });
             }
         };
@@ -2783,6 +2713,64 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
   //**************************************************************************
+  //** getRevenueEstimates
+  //**************************************************************************
+  /** Used to generate revenue estimates for a given company. This method was
+   *  developed for a specific user with a custom script.
+   */
+    var getRevenueEstimates = function(company, callback){
+
+        var revenueEstimates;
+
+        var lowerAverage = parseFloat(company.estimatedRevenue2+"");
+        var midpoint = parseFloat(company.estimatedRevenue3+"");
+        var upperAverage = parseFloat(company.estimatedRevenue4+"");
+
+        if (!isNaN(lowerAverage) && !isNaN(midpoint) && !isNaN(upperAverage)){
+            revenueEstimates = {
+                "lower average": company.estimatedRevenue2,
+                "midpoint": company.estimatedRevenue3,
+                "upper average": company.estimatedRevenue4,
+                "lower range": null,
+                "upper range": null
+            };
+            callback.apply(me, [revenueEstimates]);
+        }
+        else{
+
+          //Get employee count
+            var employees = parseInt("");
+            var linkedIn = parseInt("");
+            if (company.info){
+
+                if (company.info.edits && company.info.edits.employees){
+                    employees = parseInt(company.info.edits.employees.value+"");
+                }
+
+                if (company.info.linkedInProfile){
+                    linkedIn = parseInt(company.info.linkedInProfile.staffCount+"");
+                }
+            }
+
+          //Get estimated revenue
+            get("/RevenueEstimate?primeRevenue=" + company.estimatedRevenue +
+                (isNaN(employees) ? "" : "&employees=" + employees) +
+                (isNaN(linkedIn) ? "" : "&linkedIn=" + linkedIn),{
+                success: function(str){
+                    revenueEstimates = JSON.parse(str);
+                },
+                failure: function(request){
+                    if (request.status!=501) alert(request);
+                },
+                finally: function(){
+                    callback.apply(me, [revenueEstimates]);
+                }
+            });
+        }
+    };
+
+
+  //**************************************************************************
   //** updateEstimates
   //**************************************************************************
   /** Used to update revenue estimates for the revenue chart
@@ -2970,9 +2958,9 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var createOverflowPanel = prospekt.utils.createOverflowPanel;
     var createTextEditor = prospekt.utils.createTextEditor;
     var getMonthRevenue = prospekt.utils.getMonthRevenue;
-    var parseResponse = prospekt.utils.parseResponse;
+    var getCompanyLogo = prospekt.utils.getCompanyLogo;
     var getNaicsCodes = prospekt.utils.getNaicsCodes;
-    var createChiclet = prospekt.utils.createChiclet;
+    var parseResponse = prospekt.utils.parseResponse;
     var isAwardActive = prospekt.utils.isAwardActive;
     var createWindow = prospekt.utils.createWindow;
     var addCommas = prospekt.utils.addCommas;
