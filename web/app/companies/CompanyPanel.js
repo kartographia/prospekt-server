@@ -541,7 +541,10 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                         }
 
 
-                        if (!isArray(val)) val = [val];
+                        if (!isArray(val)){
+                            if (val.length===0) continue;
+                            else val = [val];
+                        }
 
                         val.forEach((v)=>{
                             if (v.indexOf(">")==0) f.min = parseFloat(v.substring(1));
@@ -679,11 +682,52 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 var data = getMonthRevenue(company, lastUpdate);
 
 
+              //Add company name and logo
                 var companyName = createElement("div", companyInfo, "company-name");
-                companyName.innerText = company.name;
+                var companyLogo = getCompanyLogo(company);
+                if (companyLogo){
+                    var d = createElement("div", "company-logo");
+                    d.style.backgroundImage = "url('" + companyLogo + "')";
+                    var t = createElement("span");
+                    t.innerText = company.name;
+                    companyName.appendChild(d);
+                    companyName.appendChild(t);
+                }
+                else{
+                    companyName.innerText = company.name;
+                }
 
-                var annualRevenue = createElement("div", companyInfo, "company-info");
-                annualRevenue.innerText = "Annual Revenue: $" + addCommas(company.estimatedRevenue);
+
+              //Annual revenue
+                var annualRevenue;
+                var percentPrime = 100;
+                if (company.info && company.info.edits){
+                    if (company.info.edits.percentPrime){
+                        var obj = company.info.edits.percentPrime;
+                        var val = parseFloat(obj.value+"");
+                        if (!isNaN(val)) percentPrime = val;
+                    }
+                }
+                if (percentPrime<100){
+                    var primeRev = company.estimatedRevenue;
+                    annualRevenue = primeRev/(percentPrime/100.0);
+                }
+                else{
+                    if (company.estimatedRevenue3){
+                        if (company.estimatedRevenue3>company.estimatedRevenue){
+                            annualRevenue = company.estimatedRevenue3;
+                        }
+                    }
+                }
+
+                if (annualRevenue){
+                    var d = createElement("div", companyInfo, "company-info");
+                    d.innerText = "Annual Revenue: $" + addCommas(annualRevenue);
+                }
+
+
+                var primeRevenue = createElement("div", companyInfo, "company-info");
+                primeRevenue.innerText = "Prime Revenue: $" + addCommas(company.estimatedRevenue);
 
                 var recentAwards = createElement("div", companyInfo, "company-info");
                 recentAwards.innerText = "Recent Awards: $" + addCommas(company.recentAwardVal);
@@ -1257,6 +1301,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
     var getMonthRevenue = prospekt.utils.getMonthRevenue;
+    var getCompanyLogo = prospekt.utils.getCompanyLogo;
     var getNaicsCodes = prospekt.utils.getNaicsCodes;
     var parseResponse = prospekt.utils.parseResponse;
     var createToolBar = prospekt.utils.createToolBar;
