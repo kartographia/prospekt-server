@@ -1363,27 +1363,44 @@ prospekt.companies.CompanyProfile = function(parent, config) {
   //**************************************************************************
     var createTreeMap = function(company, parent){
 
+      //Create function to generate data for the treemap
+        var getData = function(type){
+            var data = [];
+            company.awards.forEach((award)=>{
+                if (isAwardActive(award, lastUpdate)){
 
-      //Create dataset for the treemap
-        var data = [];
-        company.awards.forEach((award)=>{
-            if (isAwardActive(award, lastUpdate)){
-                var val = award.extendedValue;
-                if (isNaN(parseFloat(val+""))) val = award.value;
-                if (isNaN(parseFloat(val+""))) val = award.funded;
-                if (isNaN(parseFloat(val+""))) val = 0;
+                    var val = null;
+                    if (type==="extendedValue"){
+                        var val = award.extendedValue;
+                        if (isNaN(parseFloat(val+""))) val = award.value;
+                        if (isNaN(parseFloat(val+""))) val = award.funded;
+                    }
+                    else if (type==="awardValue"){
+                        val = award.value;
+                    }
+                    else if (type==="fundedValue"){
+                        val = award.funded;
+                    }
+
+                    val = parseFloat(val+"");
+
+                    if (isNaN(val) || val<=0) return;
 
 
-                data.push({
-                    name: award.name,
-                    value: val,
-                    customer: award.customer
-                });
-            }
-        });
+                    data.push({
+                        name: award.name,
+                        value: val,
+                        customer: award.customer
+                    });
+                }
+            });
+
+            return data;
+        };
 
 
-      //Return early if there's not enough data
+      //Create default dataset for the treemap
+        var data = getData("extendedValue");
         if (data.length<2) return;
 
 
@@ -1393,19 +1410,50 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         "Prime contracts grouped by customer.";
 
 
-      //Create container for the treemap
-        var div = createElement("div", parent, {
-            position: "relative",
-            width: "800px",
-            height: "600px"
-        });
+        var table = createTable(parent);
+        table.style.height = "";
+        var tr = table.addRow();
+        var col = [];
+        for (var i=0; i<4; i++) col.push(tr.addColumn({ verticalAlign: "top" }));
+
+
+      //Create facet panel
+        var facetPanel = createElement("div", col[0], "chart-legend");
+        facetPanel.addOption = function(label, key, checked){
+            var option = createElement("div", facetPanel);
+            var input = createElement("input", option, config.style.form.radio);
+            input.type = "radio";
+            input.name = "type";
+            input.value = key;
+            input.id = key;
+            input.onchange = function(){
+                var data = getData(this.value);
+                treemap.update(data, callback);
+            };
+            if (checked===true) input.checked = true;
+            var span = createElement("label", option, config.style.form.label);
+            span.setAttribute("for", key);
+            span.innerText = label;
+        };
+        facetPanel.addOption("Extended Value", "extendedValue", true);
+        facetPanel.addOption("Awarded Value", "awardValue");
+        facetPanel.addOption("Funded Value", "fundedValue");
+
 
 
       //Create treemap
+        var div = createElement("div", col[1], {
+            position: "relative",
+            width: "600px",
+            height: "600px"
+        });
+
         var treemap = new bluewave.charts.TreeMapChart(div, {
             key: "name",
             value: "value",
             groupBy: "customer",
+            maxGroups: 10,
+            maxItems: 20,
             shape: "circle",
             showTooltip: true
         });
@@ -1430,8 +1478,17 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         };
 
 
+
+      //Create legend
+        var legend = createLegend(col[2]);
+
+
+      //Create bar charts
+        col[3].style.width = "100%";
+
+
       //Render treemap and legend
-        treemap.update(data, ()=>{
+        var callback = function(){
             var groups = treemap.getGroups();
             var groupNames = Object.keys(groups);
             if (groupNames.length>1){
@@ -1455,13 +1512,14 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                 });
 
 
-                var svg = treemap.getSVG().node();
-                var legend = createLegend(svg.parentNode);
+                legend.clear();
                 rows.forEach((row)=>{
                     legend.addItem(row.key, row.color);
                 });
             }
-        });
+        };
+
+        treemap.update(data, callback);
     };
 
 
@@ -2722,51 +2780,37 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
         var revenueEstimates;
 
-        var lowerAverage = parseFloat(company.estimatedRevenue2+"");
-        var midpoint = parseFloat(company.estimatedRevenue3+"");
-        var upperAverage = parseFloat(company.estimatedRevenue4+"");
 
-        if (!isNaN(lowerAverage) && !isNaN(midpoint) && !isNaN(upperAverage)){
-            revenueEstimates = {
-                "lower average": company.estimatedRevenue2,
-                "midpoint": company.estimatedRevenue3,
-                "upper average": company.estimatedRevenue4,
-                "lower range": null,
-                "upper range": null
-            };
-            callback.apply(me, [revenueEstimates]);
-        }
-        else{
+      //Get employee count
+        var employees = parseInt("");
+        var linkedIn = parseInt("");
+        if (company.info){
 
-          //Get employee count
-            var employees = parseInt("");
-            var linkedIn = parseInt("");
-            if (company.info){
-
-                if (company.info.edits && company.info.edits.employees){
-                    employees = parseInt(company.info.edits.employees.value+"");
-                }
-
-                if (company.info.linkedInProfile){
-                    linkedIn = parseInt(company.info.linkedInProfile.staffCount+"");
-                }
+            if (company.info.edits && company.info.edits.employees){
+                employees = parseInt(company.info.edits.employees.value+"");
             }
 
-          //Get estimated revenue
-            get("/RevenueEstimate?primeRevenue=" + company.estimatedRevenue +
-                (isNaN(employees) ? "" : "&employees=" + employees) +
-                (isNaN(linkedIn) ? "" : "&linkedIn=" + linkedIn),{
-                success: function(str){
-                    revenueEstimates = JSON.parse(str);
-                },
-                failure: function(request){
-                    if (request.status!=501) alert(request);
-                },
-                finally: function(){
-                    callback.apply(me, [revenueEstimates]);
-                }
-            });
+            if (company.info.linkedInProfile){
+                linkedIn = parseInt(company.info.linkedInProfile.staffCount+"");
+            }
         }
+
+      //Get estimated revenue
+        get("/RevenueEstimate?primeRevenue=" + company.estimatedRevenue +
+            (isNaN(employees) ? "" : "&employees=" + employees) +
+            (isNaN(linkedIn) ? "" : "&linkedIn=" + linkedIn) +
+            "&companyID=" + company.id,{
+            success: function(str){
+                revenueEstimates = JSON.parse(str);
+            },
+            failure: function(request){
+                if (request.status!=501) alert(request);
+            },
+            finally: function(){
+                callback.apply(me, [revenueEstimates]);
+            }
+        });
+
     };
 
 

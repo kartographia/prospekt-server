@@ -1038,6 +1038,7 @@ body, textarea, input, select, td, th {
 .company-panel .company-list .table-col .company-name {
     font-size: 18px;
     font-weight: 700;
+    line-height: 38px;
     color: #1e1e1e;
     color: #595959;
 }
@@ -1045,6 +1046,25 @@ body, textarea, input, select, td, th {
 .company-panel .company-list .table-col .company-info {
     line-height: 20px;
     color: #777;
+}
+
+.company-panel .company-list .company-logo {
+    float: left;
+    width: 32px;
+    height: 32px;
+    background-size: auto 32px;
+    margin: 3px 10px 0 0;
+}
+
+.company-panel .company-list.footer {
+    height: 22px;
+    line-height: 22px;
+    background-color: #f5f5f5;
+    border-top: 1px solid #ccc;
+    font-size: 12px;
+    color: #777;
+    padding: 0 7px;
+    text-align: right;
 }
 
 
@@ -2095,11 +2115,10 @@ body, textarea, input, select, td, th {
 /**************************************************************************/
 /** Chart Legend
 /**************************************************************************/
-/** Legands for bluewave-charts */
+/** Legends for bluewave-charts */
 
-.svg-container .chart-legend {
-    position: absolute;
-    right: 10px;
+.company-profile .chart-legend {
+    position: relative;
     top: 15px;
     z-index: 2;
     background-color: #fff;
@@ -2113,12 +2132,13 @@ body, textarea, input, select, td, th {
     box-shadow: 0px 2px 7px 0px rgb(0 0 0 / 17%);
 }
 
-.svg-container .chart-legend > div {
+.company-profile .chart-legend > div {
    position: relative;
    overflow: hidden;
+   display: flex;
 }
 
-.svg-container .chart-legend .dot {
+.company-profile .chart-legend .dot {
     content: "";
     width: 16px;
     height: 16px;
@@ -2131,7 +2151,7 @@ body, textarea, input, select, td, th {
     border: 1px solid #dcdcdc;
 }
 
-.svg-container .chart-legend span {
+.company-profile .chart-legend span {
    font-size: 12px;
 }
 
