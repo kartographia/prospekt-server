@@ -901,6 +901,23 @@ prospekt.utils = {
 
 
   //**************************************************************************
+  //** addCustomerLogo
+  //**************************************************************************
+    addCustomerLogo: function(customer, div){
+        var url = "/images/logos/" + customer.toLowerCase() + ".svg";
+        javaxt.dhtml.utils.get(url, {
+            success: function(){
+                div.style.backgroundImage = "url(" + url + ")";
+            },
+            failure: function(){
+                div.className = "missing-logo";
+                div.innerText = customer;
+            }
+        });
+    },
+
+
+  //**************************************************************************
   //** getNaicsCodes
   //**************************************************************************
     getNaicsCodes: function(callback){
