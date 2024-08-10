@@ -758,7 +758,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         var chartArea = table.addRow().addColumn("chart-area");
 
 
-        var chartLegend = table.addRow().addColumn("chart-legend");
+        var chartLegend = table.addRow().addColumn("revenue-chart-legend");
         chartLegend.addItem = function(label, value, line){
             var div = createElement("div", chartLegend);
             addShowHide(div);
@@ -1015,9 +1015,8 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         var container = createElement("div", parent, "customer-logos");
         company.recentCustomers.forEach((customer)=>{
             var d = createElement("div", container);
-            d.style.backgroundImage = "url(/images/logos/" + customer.toLowerCase() + ".svg)";
+            addCustomerLogo(customer, d);
         });
-
     };
 
 
@@ -1037,7 +1036,17 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         var revenueBySector = {};
         var revenueBySubsector = {};
 
+        var groups = {};
+        var links = {};
+
         company.awards.forEach((award)=>{
+
+            var customer = award.customer;
+            if (!customer) customer = "N/A";
+
+            var awardType = award.type;
+            if (!awardType) awardType = "Other";
+
 
           //Get total value of the award
             var awardValue = award.value;
@@ -1048,7 +1057,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
           //Ignore total value if IDIQ. Only look at funded value
-            if (award.type==="IDIQ"){
+            if (awardType==="IDIQ"){
                 if (award.funded) awardValue = award.funded;
                 else return;
             }
@@ -1086,20 +1095,22 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
 
 
-                var prevValue = revenueByType[award.type];
+                var prevValue = revenueByType[awardType];
                 if (!prevValue) prevValue = 0;
-                revenueByType[award.type] = t+prevValue;
+                revenueByType[awardType] = t+prevValue;
 
 
-                var prevValue = revenueByCustomer[award.customer];
+                var prevValue = revenueByCustomer[customer];
                 if (!prevValue) prevValue = 0;
-                revenueByCustomer[award.customer] = t+prevValue;
+                revenueByCustomer[customer] = t+prevValue;
 
 
+                var sector = "00";
+                var subsector = "00";
                 var naics = award.naics;
                 if (naics){
-                    var sector = naics.substring(0, 2);
-                    var subsector = naics.substring(0, 3);
+                    sector = naics.substring(0, 2);
+                    subsector = naics.substring(0, 3);
 
 
                     var prevValue = revenueBySector[sector];
@@ -1111,11 +1122,37 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                     if (!prevValue) prevValue = 0;
                     revenueBySubsector[subsector] = t+prevValue;
                 }
+
+
+              //Update link data
+                var key = customer + "->" + sector;
+                if (!links[key]) links[key] = 0;
+                links[key] += t;
+
+                key = sector + "->" + awardType;
+                if (!links[key]) links[key] = 0;
+                links[key] += t;
+
+                if (!groups["Customer"]) groups["Customer"] = new Set();
+                groups["Customer"].add(customer);
+
+                if (!groups["Sector"]) groups["Sector"] = new Set();
+                groups["Sector"].add(sector);
+
+                if (!groups["Award"]) groups["Award"] = new Set();
+                groups["Award"].add(awardType);
             }
 
         });
 
 
+        var getLabel = function(nodeName){
+            if (isNumber(nodeName)){
+                var desc = naiscCodes[parseInt(nodeName)];
+                if (desc) nodeName += ": " + desc;
+            }
+            return nodeName;
+        };
 
 
       //Create main table
@@ -1183,7 +1220,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
                 showTooltip: true
             });
             pieChart.getTooltipLabel = function(d){
-                return d.key + "<br/>" + "$" + addCommas(Math.round(d.value));
+                return getLabel(d.key) + "<br/>" + "$" + addCommas(Math.round(d.value));
             };
 
 
@@ -1230,6 +1267,63 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         addTable(revenueBySector, true);
         addTable(revenueByType);
 
+
+
+      //Add sankey chart
+        var div = createElement("div", parent, {
+            height: "450px",
+            padding: "30px 10px 0 60px"
+        });
+        var sankey = new bluewave.charts.SankeyChart(div, {
+            showTooltip: true
+        });
+        sankey.getNodeLabel = function(d){
+            return getLabel(d.name);
+        };
+        sankey.getTooltipLabel = function(type, d){
+            var val = "$" + addCommas(d.value);
+            if (type==="link"){
+                return getLabel(d.source.name) + " -> " + getLabel(d.target.name) +  "<br/>" + val;
+            }
+            else if (type==="node"){
+                var name = d.name;
+                if (isNumber(name)){
+                    var desc = naiscCodes[parseInt(name)];
+                    if (desc) name += ": " + desc;
+                }
+                return name +  "<br/>" + val;
+            }
+        };
+
+
+        var l = [];
+        for (var key in links) {
+            if (links.hasOwnProperty(key)){
+                var value = links[key];
+                var arr = key.split("->");
+                l.push({
+                    source: arr[0],
+                    target: arr[1],
+                    value: value
+                });
+            }
+        }
+        links = l;
+        var nodes = [];
+        for (var key in groups) {
+            if (groups.hasOwnProperty(key)){
+                groups[key].forEach((name)=>{
+                    nodes.push({
+                        name: name,
+                        group: key
+                    });
+                });
+            }
+        }
+        sankey.update({
+            nodes: nodes,
+            links: links
+        });
     };
 
 
@@ -3002,12 +3096,15 @@ prospekt.companies.CompanyProfile = function(parent, config) {
     var createOverflowPanel = prospekt.utils.createOverflowPanel;
     var createTextEditor = prospekt.utils.createTextEditor;
     var getMonthRevenue = prospekt.utils.getMonthRevenue;
+    var addCustomerLogo = prospekt.utils.addCustomerLogo;
     var getCompanyLogo = prospekt.utils.getCompanyLogo;
     var getNaicsCodes = prospekt.utils.getNaicsCodes;
     var parseResponse = prospekt.utils.parseResponse;
     var isAwardActive = prospekt.utils.isAwardActive;
     var createWindow = prospekt.utils.createWindow;
     var addCommas = prospekt.utils.addCommas;
+
+    var isNumber = bluewave.chart.utils.isNumber;
 
     init();
 
