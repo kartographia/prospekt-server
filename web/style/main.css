@@ -446,7 +446,36 @@ body, textarea, input, select, td, th {
     background-color: #fff;
 }
 
+.award-details .customer-logo {
+    background-repeat: no-repeat;
+    background-size: 135px 135px;
+    width: 135px;
+    height: 135px;
+    margin: 7px 14px 14px 0;
+    float: right;
+}
 
+
+.award-progress .label{
+    font-size: 12px;
+    padding-right: 10px;
+}
+.award-progress .groove{
+    background-color:#f7f7f7;
+    height:12px;
+    border-top: 1px solid #959595;
+    border-left: 1px solid #959595;
+}
+.award-progress .slider{
+    background-color: #70bde9;
+}
+
+.award-progress .slider,
+.award-progress .groove{
+    border-radius: 3px;
+    box-shadow: 1px 1px 2px 0px rgba(0, 0, 0, 0.16) inset, 1px 1px 6px 0px rgba(0, 0, 0, 0.08) inset;
+
+}
 
 /**************************************************************************/
 /** Admin Panel
@@ -1457,6 +1486,46 @@ body, textarea, input, select, td, th {
 }
 
 
+.company-profile .customer-logos > div.missing-logo {
+    border-radius: 50%;
+    /*background-color: #f1f1f1;*/
+    text-align: center;
+    border: 3px solid #84a9bf;
+    height: 104px;
+    width: 104px;
+    position: relative;
+    line-height: 168px;
+    font-size: 12px;
+}
+
+.company-profile .customer-logos > div.missing-logo:before {
+    content: '';
+    border-radius: 50%;
+    border: 1px solid #84a9bf;
+    height: 94px;
+    width: 94px;
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    box-shadow: 0 0px 5px 0 #84a9bf;
+}
+
+
+.company-profile .customer-logos > div.missing-logo:after {
+    font-family: "Font Awesome 5 Free";
+    content: "\f19c"; /* fas fa-university */
+    display: inline-block;
+    font-weight: 700;
+    font-size: 60px;
+    color: #84a9bf;
+    line-height: 0px;
+    position: absolute;
+    top: 43px;
+    left: 23px;
+}
+
+
+
 .company-profile .profile-pic {
     position: relative;
     float: left;
@@ -1486,14 +1555,7 @@ body, textarea, input, select, td, th {
 /** Award Details
 /**************************************************************************/
 
-.award-details .customer-logo {
-    background-repeat: no-repeat;
-    background-size: 135px 135px;
-    width: 135px;
-    height: 135px;
-    margin: 7px 14px 0 0;
-    float: right;
-}
+
 
 
 /**************************************************************************/
@@ -1718,11 +1780,11 @@ body, textarea, input, select, td, th {
 /** Revenue Chart
 /**************************************************************************/
 
-.revenue-chart td.chart-legend {
+.revenue-chart-legend {
     padding: 10px 0 0;
 }
 
-.revenue-chart .chart-legend > div {
+.revenue-chart-legend > div {
     display: inline-block;
     float: left;
     margin: 0 10px 10px 0;
@@ -1731,8 +1793,8 @@ body, textarea, input, select, td, th {
     border-radius: 5px;
 }
 
-.revenue-chart .chart-legend .label,
-.revenue-chart .chart-legend .value {
+.revenue-chart-legend .label,
+.revenue-chart-legend .value {
     font-family: 'Segoe UI Variable Small', /* for windows */
     'Open Sans',helvetica,arial,verdana,sans-serif;
     font-size: 10px;
@@ -1745,7 +1807,7 @@ body, textarea, input, select, td, th {
     user-select: none;
 }
 
-.revenue-chart .chart-legend .line {
+.revenue-chart-legend .line {
     width:  16px;
     display: inline-block;
     float: left;
@@ -2157,6 +2219,12 @@ body, textarea, input, select, td, th {
 
 
 
+.sankey-node text {
+    font-family: 'Open Sans', helvetica, arial, verdana, sans-serif;
+    font-size: 12px;
+}
+
+
 
 /**************************************************************************/
 /** Tooltip
@@ -2171,6 +2239,7 @@ body, textarea, input, select, td, th {
     border-radius: 5px;
     color: #636363;
     box-shadow: 0 12px 14px 0 rgba(0, 0, 0, 0.2), 0 13px 20px 0 rgba(0, 0, 0, 0.2);
+    font-size: 12px;
 }
 
 
