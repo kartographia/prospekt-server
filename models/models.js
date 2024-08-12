@@ -39,6 +39,7 @@ var models = {
             {name: 'name',              type: 'string'},
             {name: 'description',       type: 'string'},
             {name: 'uei',               type: 'string'},
+            {name: 'businessType',      type: 'string[]'}, //business type codes
             {name: 'recent_awards',     type: 'int'},      //total awards in the last 12 months
             {name: 'recent_award_val',  type: 'decimal'},  //total value of awards in the last 12 months
             {name: 'recent_award_mix',  type: 'decimal'},  //percent competative awards in the last 12 months

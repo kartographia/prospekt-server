@@ -17,6 +17,7 @@ public class Company extends javaxt.sql.Model {
     private String name;
     private String description;
     private String uei;
+    private String[] businessType;
     private Integer recentAwards;
     private BigDecimal recentAwardVal;
     private BigDecimal recentAwardMix;
@@ -42,6 +43,7 @@ public class Company extends javaxt.sql.Model {
             java.util.Map.entry("name", "name"),
             java.util.Map.entry("description", "description"),
             java.util.Map.entry("uei", "uei"),
+            java.util.Map.entry("businessType", "business_type"),
             java.util.Map.entry("recentAwards", "recent_awards"),
             java.util.Map.entry("recentAwardVal", "recent_award_val"),
             java.util.Map.entry("recentAwardMix", "recent_award_mix"),
@@ -97,6 +99,8 @@ public class Company extends javaxt.sql.Model {
             this.name = getValue(rs, "name").toString();
             this.description = getValue(rs, "description").toString();
             this.uei = getValue(rs, "uei").toString();
+            {Object[] v = (Object[]) getValue(rs, "business_type").toArray();
+            this.businessType = v==null ? null : java.util.Arrays.copyOf(v, v.length, String[].class);}
             this.recentAwards = getValue(rs, "recent_awards").toInteger();
             this.recentAwardVal = getValue(rs, "recent_award_val").toBigDecimal();
             this.recentAwardMix = getValue(rs, "recent_award_mix").toBigDecimal();
@@ -136,6 +140,8 @@ public class Company extends javaxt.sql.Model {
         this.name = json.get("name").toString();
         this.description = json.get("description").toString();
         this.uei = json.get("uei").toString();
+        {Object[] v = json.has("businessType") ? json.get("businessType").toJSONArray().toArray() : null;
+        this.businessType = v==null ? null : java.util.Arrays.copyOf(v, v.length, String[].class);}
         this.recentAwards = json.get("recentAwards").toInteger();
         this.recentAwardVal = json.get("recentAwardVal").toBigDecimal();
         this.recentAwardMix = json.get("recentAwardMix").toBigDecimal();
@@ -178,6 +184,14 @@ public class Company extends javaxt.sql.Model {
 
     public void setUei(String uei){
         this.uei = uei;
+    }
+
+    public String[] getBusinessType(){
+        return businessType;
+    }
+
+    public void setBusinessType(String[] businessType){
+        this.businessType = businessType;
     }
 
     public Integer getRecentAwards(){
