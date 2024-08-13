@@ -960,6 +960,45 @@ prospekt.utils = {
 
 
   //**************************************************************************
+  //** getBusinessCodes
+  //**************************************************************************
+    getBusinessCodes: function(callback){
+        if (!callback) return;
+
+        if (prospekt.data){
+            if (prospekt.data.business){
+                callback.apply(this, [prospekt.data.business]);
+                return;
+            }
+        }
+        else {
+            prospekt.data = {};
+        }
+
+
+        javaxt.dhtml.utils.get("data/business.tsv", {
+            success: function(text){
+                var businessCodes = {};
+                text.split("\n").forEach((row)=>{
+                    row = row.trim();
+                    var arr = row.split("\t");
+                    if (arr.length===2){
+                        var code = arr[0];
+                        var desc = arr[1];
+                        businessCodes[code] = desc;
+                    }
+                });
+
+
+                prospekt.data.business = businessCodes;
+                callback.apply(this, [businessCodes]);
+            }
+        });
+
+    },
+
+
+  //**************************************************************************
   //** getActionCodes
   //**************************************************************************
     getActionCodes: function(callback){
@@ -996,7 +1035,6 @@ prospekt.utils = {
         });
 
     },
-
 
   //**************************************************************************
   //** getAgencies
