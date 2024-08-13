@@ -1,4 +1,5 @@
 package com.kartographia.prospekt.service;
+import com.kartographia.prospekt.server.Config;
 
 import java.util.*;
 
@@ -19,16 +20,17 @@ import javaxt.express.*;
 
 public class ReportService  extends WebService {
 
-
-    private ConcurrentHashMap<String, Object> cache = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<String, Object> cache = new ConcurrentHashMap<>();
 
 
   //**************************************************************************
   //** getSpendingByAgency
   //**************************************************************************
     public ServiceResponse getSpendingByAgency(ServiceRequest request) throws Exception {
-        Database database = com.kartographia.prospekt.server.Config.getDatabase();
+        return new ServiceResponse(getSpendingByAgency(Config.getDatabase()));
+    }
 
+    public static JSONArray getSpendingByAgency(Database database) throws Exception {
 
         String sql =
         "select customer as agency, sum(greatest(value, funded, extended_value)) as total " +
@@ -37,9 +39,8 @@ public class ReportService  extends WebService {
 
         synchronized(cache){
             Object obj = cache.get(sql);
-            if (obj!=null) return new ServiceResponse((JSONArray) obj);
+            if (obj!=null) return (JSONArray) obj;
         }
-
 
         try (Connection conn = database.getConnection()){
 
@@ -56,13 +57,7 @@ public class ReportService  extends WebService {
             }
 
           //Return response
-            return new ServiceResponse(arr);
+            return arr;
         }
-        catch (Exception e){
-            return new ServiceResponse(e);
-        }
-
     }
-
-
 }
