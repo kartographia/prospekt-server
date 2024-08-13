@@ -204,6 +204,51 @@ public class WebServices extends WebService {
         return new ServiceResponse(400);
     }
 
+
+  //**************************************************************************
+  //** getBusinessTypes
+  //**************************************************************************
+  /** Returns a distinct list of business type codes found in the company
+   *  table.
+   */
+    public ServiceResponse getBusinessTypes(ServiceRequest request, Database database) throws Exception {
+
+        try (Connection conn = database.getConnection()){
+            JSONArray arr = new JSONArray();
+
+            if (database.getDriver().equals("PostgreSQL")){
+
+                for (Record r : conn.getRecords(
+                    "SELECT DISTINCT(unnest(business_type)) as business_types FROM company")){
+                    String tag = r.get(0).toString();
+                    if (tag==null || tag.isBlank()) continue;
+                    arr.add(tag);
+                }
+                return new ServiceResponse(arr);
+
+            }
+            else if (database.getDriver().equals("H2")){
+
+                TreeSet<String> tags = new TreeSet<>();
+                for (Record r : conn.getRecords(
+                    "SELECT DISTINCT(business_type) as business_types FROM company where business_type is not null")){
+                    for (Object obj : (Object[]) r.get(0).toArray()){
+                        tags.add(obj.toString());
+                    }
+                }
+                for (String tag : tags){
+                    arr.add(tag);
+                }
+
+                return new ServiceResponse(arr);
+            }
+            else{
+                return new ServiceResponse(501);
+            }
+        }
+    }
+
+
   //**************************************************************************
   //** getTags
   //**************************************************************************
