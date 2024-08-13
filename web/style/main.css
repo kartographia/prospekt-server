@@ -2047,6 +2047,23 @@ body, textarea, input, select, td, th {
 
 
 /**************************************************************************/
+/** Entity Filter
+/**************************************************************************/
+.menu .entity-filter {
+    width: 500px;
+    height: 250px;
+    text-align: left;
+}
+
+.menu .entity-filter .checkbox {
+    line-height: 20px;
+    padding: 0px 10px;
+}
+.menu .entity-filter .checkbox:first-child {
+    padding-top:10px;
+}
+
+/**************************************************************************/
 /** More Filter
 /**************************************************************************/
 

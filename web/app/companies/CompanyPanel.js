@@ -298,6 +298,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
         toolbar.addButton("NAICS", prospekt.filters.NaicsFilter);
         toolbar.addButton("Revenue", prospekt.filters.RevenueFilter);
         toolbar.addButton("Tags", prospekt.filters.TagFilter);
+        toolbar.addButton("Certs", prospekt.filters.EntityFilter);
         toolbar.addButton("More", prospekt.filters.CompanyFilter);
         var resetButton = createElement("div", toolbar.el, "toolbar-button reset noselect");
         resetButton.innerText = "Reset Filters";
@@ -446,6 +447,15 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                     delete filter["tags"];
                 }
             }
+            else if (field==="Certs"){
+                var businessType = values["businessType"];
+                if (businessType && businessType.length>0){
+                    filter.business_type = businessType.join(",");
+                }
+                else{
+                    delete filter["business_type"];
+                }
+            }
             else if (field==="More"){
                 var likes = values["likes"];
                 if (likes){
@@ -528,6 +538,11 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                     else if (key==="tags"){
                         toolbarFilter.Tags = {
                             tags: val
+                        };
+                    }
+                    else if (key==="business_type"){
+                        toolbarFilter.Certs = {
+                            businessType: val
                         };
                     }
                     else if (
