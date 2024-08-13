@@ -546,6 +546,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
             {"Customers": false},
             {"Prime Contract Vehicles": false},
             {"Services Concentration": false},
+            {"SBA Certifications": false},
             {"Total Contract Revenue": false},
             {"Last Update": false},
             {"Status": false},
@@ -620,12 +621,40 @@ prospekt.companies.CompanyProfile = function(parent, config) {
         companyOverview.company = company;
 
 
-      //Update description
+      //Update description, logo, and tags
         companyDescription.update(company.description);
         companyOverview.set("logo", getCompanyLogo(company));
         companyOverview.set("Tags", company.tags);
 
 
+      //Update sba certs
+        if (company.businessType){
+            var codes = new Set();
+            company.businessType.forEach((code)=>{
+                switch(code){
+                    case 'F':
+                    case 'MF':
+                    case '2X':
+                    case 'XS':
+                    case 'LJ':
+                        break;
+                    default: codes.add(code);
+                }
+            });
+
+
+            getBusinessCodes(function(businessCodes){
+                var arr = [];
+                codes.forEach((code)=>{
+                    var desc = businessCodes[code];
+                    arr.push(desc);
+                });
+                companyOverview.set("SBA Certifications", arr.join(", "));
+            });
+        }
+
+
+      //Update additional info found in the company metadata
         if (company.info){
 
           //Update links
@@ -3095,6 +3124,7 @@ prospekt.companies.CompanyProfile = function(parent, config) {
 
     var createOverflowPanel = prospekt.utils.createOverflowPanel;
     var createTextEditor = prospekt.utils.createTextEditor;
+    var getBusinessCodes = prospekt.utils.getBusinessCodes;
     var getMonthRevenue = prospekt.utils.getMonthRevenue;
     var addCustomerLogo = prospekt.utils.addCustomerLogo;
     var getCompanyLogo = prospekt.utils.getCompanyLogo;
