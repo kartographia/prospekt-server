@@ -65,6 +65,7 @@ public class WebServices extends WebService {
         webservices = new ConcurrentHashMap<>();
         webservices.put("sql", new SQLService());
         webservices.put("report", new ReportService());
+        webservices.put("files", new FileService(jar));
 
 
       //Create list of active users
@@ -89,6 +90,9 @@ public class WebServices extends WebService {
                 QueryJob queryJob = (QueryJob) data.toObject();
                 userID = queryJob.getUserID();
                 me.notify(event+","+model+","+queryJob.getID()+","+userID);
+            }
+            else if (model.equals("File")){
+                me.notify(event+","+model+","+data+","+userID);
             }
             else if (model.equals("WebFile")){
                 me.notify(event+","+model+","+modelID+","+userID);
@@ -174,8 +178,15 @@ public class WebServices extends WebService {
         path = path.substring(service.length());
 
 
-      //Parse payload
-        request.parseJson();
+      //Parse payload as needed
+        boolean parseJson = true;
+        String contentType = request.getRequest().getContentType();
+        if (contentType!=null){
+            if (contentType.startsWith("multipart/form-data")){
+                parseJson = false;
+            }
+        }
+        if (parseJson) request.parseJson();
 
 
       //Generate response
