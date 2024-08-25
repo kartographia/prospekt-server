@@ -62,6 +62,12 @@ public class FileService extends WebService {
                     NotificationService.notify(record.get("op").toString(), "File", new javaxt.utils.Value(path));
                 });
             }
+            else if (op.equals("download")){
+                ServiceResponse response = fileService.getFile(request);
+                String fileName = response.get("name").toString();
+                response.setContentDisposition(fileName);
+                return response;
+            }
             else{
                 return fileService.getList(request);
             }
