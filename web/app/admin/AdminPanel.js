@@ -70,6 +70,7 @@ prospekt.admin.AdminPanel = function(parent, config) {
         createPanel("Users", "fas fa-users", prospekt.admin.UserAdmin, config);
         createPanel("Database", "fas fa-database", prospekt.admin.SQLView, config);
         createPanel("Config", "fas fa-sliders-h", prospekt.admin.ConfigAdmin, config);
+        createPanel("Files", "fas fa-folder", prospekt.admin.FileAdmin, config);
 
 
         me.el = table;
