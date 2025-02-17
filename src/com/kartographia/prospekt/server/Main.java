@@ -426,21 +426,43 @@ public class Main {
   //**************************************************************************
     private static void updateCompanies(HashMap<String, String> args) throws Exception {
 
-      //Get UEI
+      //Get
         Integer numThreads = console.getValue(args, "-t", "-threads").toInteger();
         if (numThreads==null) numThreads = 4;
 
-      //Get input database (i.e. usaspending.gov)
-        javaxt.sql.Database in = Config.getAwardsDatabase();
+
+        String source = args.get("-source").toLowerCase();
+        if (source.equals("sam.gov")){
+
+            javaxt.io.File input = new javaxt.io.File(args.get("-input"));
+
+          //Initialize prospekt database
+            Config.initDatabase();
+            Database database = Config.getDatabase();
+
+          //Update companies
+            SAM.updateCompanies(input, database, numThreads);
+
+        }
+        else if (source.equals("usaspending.gov")){
 
 
-      //Get output database
-        Config.initDatabase();
-        javaxt.sql.Database out = Config.getDatabase();
+          //Get input database (i.e. usaspending.gov)
+            javaxt.sql.Database in = Config.getAwardsDatabase();
 
 
-      //Update company
-        USASpending.updateCompanies(in, out, numThreads);
+          //Get output database
+            Config.initDatabase();
+            javaxt.sql.Database out = Config.getDatabase();
+
+
+          //Update company
+            USASpending.updateCompanies(in, out, numThreads);
+
+        }
+        else{
+            System.out.println("Invalid -source");
+        }
     }
 
 
@@ -504,8 +526,36 @@ public class Main {
         else if (test.equals("usaspending") || test.equals("awards")){
             testUSASpending(args);
         }
+        else if (test.equals("sam")){
+            testSAM(args);
+        }
         else{
             System.out.println("\"" + test + "\" test not found");
+        }
+    }
+
+
+  //**************************************************************************
+  //** testSAM
+  //**************************************************************************
+    private static void testSAM(HashMap<String, String> args) throws Exception {
+        Config.initDatabase();
+
+        String get = args.get("-get").toLowerCase();
+
+        if (get.equals("opportunity")){
+            //Opportunity opp = SAM.getOpportunity(null, null);
+            //console.log(opp.toJson().toString(4));
+        }
+        else if (get.equals("opportunities")){
+            for (Opportunity opp : SAM.getOpportunities()){
+                console.log(opp.getName(), opp.getNaics());
+            }
+        }
+        else if (get.equals("entity")){
+            JSONObject entity = SAM.getEntity(args.get("-uei"));
+            JSONArray arr = entity.get("coreData").get("businessTypes").get("businessTypeList").toJSONArray();
+            System.out.println(arr.toString(4));
         }
     }
 
