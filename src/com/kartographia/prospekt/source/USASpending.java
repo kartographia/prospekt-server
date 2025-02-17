@@ -4,6 +4,7 @@ import static com.kartographia.prospekt.source.Utils.*;
 import static com.kartographia.prospekt.query.Index.getQuery;
 
 import java.util.*;
+import java.util.zip.*;
 import java.math.BigDecimal;
 import static java.lang.Integer.parseInt;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,18 +55,51 @@ public class USASpending {
 
 
                 if (!localDir.exists()){
-                    if (true) return;
 
-                  //Download and unzip the file as needed
+
+                  //Download the zip file as needed
                     String localFileName = "usaspending-db_" + date + ".zip";
-                    javaxt.io.File file = new javaxt.io.File(new javaxt.io.Directory(dir), localFileName);
-                    if (!file.exists()){
+                    javaxt.io.File zipFile = new javaxt.io.File(localDir, localFileName);
+                    if (!zipFile.exists()){
                         try (java.io.InputStream is = new javaxt.http.Request(path).getResponse().getInputStream()){
-                            file.write(is);
+                            zipFile.write(is);
                         }
                     }
 
-                    //TODO: Unzip the file
+
+                  //Unzip the file
+                    byte[] buffer = new byte[1024];
+                    try (ZipInputStream is = new ZipInputStream(zipFile.getInputStream())){
+                        ZipEntry zipEntry = is.getNextEntry();
+                        while (zipEntry != null) {
+                            java.io.File file = new java.io.File(localDir.toFile(), zipEntry.getName());
+                            if (!file.exists()){
+                                if (zipEntry.isDirectory()) {
+                                    if (!file.isDirectory() && !file.mkdirs()) {
+                                        throw new Exception("Failed to create directory " + file);
+                                    }
+                                }
+                                else {
+                                    // fix for Windows-created archives
+                                    java.io.File parent = file.getParentFile();
+                                    if (!parent.isDirectory() && !parent.mkdirs()) {
+                                        throw new Exception("Failed to create directory " + parent);
+                                    }
+
+                                    // write file content
+                                    try (java.io.FileOutputStream out = new java.io.FileOutputStream(file)){
+                                        int len;
+                                        while ((len = is.read(buffer)) > 0) {
+                                            out.write(buffer, 0, len);
+                                        }
+                                    }
+                                }
+                            }
+                            zipEntry = is.getNextEntry();
+                        }
+
+                        is.closeEntry();
+                    }
                 }
 
 
@@ -197,6 +231,15 @@ public class USASpending {
         StatusLogger statusLogger = new StatusLogger(recordCounter);
         long startTime = System.currentTimeMillis();
 
+
+      //Get sourceID
+        long sourceID;
+        try (Connection conn = out.getConnection()){
+            sourceID = getOrCreateSource(conn);
+        }
+
+
+      //Start thread pool
         ThreadPool pool = new ThreadPool(numThreads){
             public void process(Object obj){
                 String uei = (String) obj;
@@ -210,7 +253,7 @@ public class USASpending {
                 });
 
                 try{
-                    updateCompany(uei, conn, c2);
+                    updateCompany(uei, sourceID, conn, c2);
                     recordCounter.incrementAndGet();
                 }
                 catch(Exception e){
@@ -229,6 +272,7 @@ public class USASpending {
         }.start();
 
 
+      //Add UEIs to the pool to process
         long t = 0;
         String sql = getQuery("usaspending", "distinct_uei");
         try (Connection conn = in.getConnection()){
@@ -254,10 +298,22 @@ public class USASpending {
   //** updateCompany
   //**************************************************************************
   /** Used to update company name, addresses, and officers
+   *  @param uei Company ID
    *  @param in Input database (usaspending.gov)
    *  @param out Output database (prospekt database)
    */
-    public static void updateCompany(String uei, Connection in, Connection out) throws Exception {
+    public static void updateCompany(String uei, Connection in, Connection out)
+        throws Exception {
+
+      //Get sourceID
+        long sourceID = getOrCreateSource(out);
+        updateCompany(uei, sourceID, in, out);
+    }
+
+
+    private static void updateCompany(String uei, long sourceID,
+        Connection in, Connection out) throws Exception {
+
         String sql = getQuery("usaspending", "company_info").replace("{uei}", uei);
 
 
@@ -265,16 +321,13 @@ public class USASpending {
         LinkedHashMap<String, LinkedHashMap<String, CompanyAddress>> companyAddresses = new LinkedHashMap<>();
         LinkedHashMap<String, LinkedHashMap<String, CompanyOfficer>> companyOfficers = new LinkedHashMap<>();
 
-      //Get sourceID
-        long sourceID = getOrCreateSource(out);
-
 
         for (javaxt.sql.Record record : in.getRecords(sql)){
             String id = record.get("uei").toString();
             javaxt.utils.Date lastUpdate = record.get("l").toDate();
 
 
-if (!id.equals(uei)) continue;
+            if (id==null || !id.equals(uei)) continue;
 
 
           //Update company names
@@ -612,9 +665,7 @@ if (!id.equals(uei)) continue;
 
                         if (info!=null){
                             rs.setValue("info", new javaxt.sql.Function(
-                                "?::jsonb", new Object[]{
-                                    info.toString()
-                                }
+                                "?::jsonb", info.toString()
                             ));
                         }
 
@@ -877,11 +928,6 @@ if (!id.equals(uei)) continue;
             }
             else{
 
-              //Save previous award
-                if (prevAward.has("source_key")){
-                    awards.add(prevAward);
-                }
-
 
                 award = new JSONObject();
                 //award.set("name", name);
@@ -906,6 +952,8 @@ if (!id.equals(uei)) continue;
 
                 JSONArray actions = new JSONArray();
                 info.set("actions", actions);
+
+                awards.add(award);
             }
 
 
@@ -1005,7 +1053,7 @@ if (!id.equals(uei)) continue;
   //**************************************************************************
   //** saveAwards
   //**************************************************************************
-  /** Used to save awards and update the profile for a given company
+  /** Used to save awards for a given company
    *  @param awards An ordered list of awards for a given company. See getAwards()
    *  @param companyID Database key associated with the company
    *  @param conn Connection to the prospekt database
@@ -1082,10 +1130,16 @@ if (!id.equals(uei)) continue;
             if (awardType==null) awardType = "";
 
 
-
-          //Determine the true value of the award. Use the funded value if
-          //the award "value" is null or if the award "type" is an IDIQ
+          //Update awardValue as needed
             if (awardValue==null || awardValue==0) awardValue = awardFunded;
+            if (awardValue==null || awardValue==0){
+                awardValue = award.get("extended_value").toDouble();
+            }
+
+
+
+          //Use the funded value if the award "value" is null or if the
+          //award "type" is an IDIQ
             if (awardType.equals("IDIQ")){
                 if (awardFunded!=null) awardValue = awardFunded;
             }
@@ -1287,6 +1341,9 @@ if (!id.equals(uei)) continue;
   //**************************************************************************
   //** getOrCreateSource
   //**************************************************************************
+  /** Returns the id associated with "usaspending.gov" in the source table
+   *  @param conn Connection to the prospekt database
+   */
     private static Long getOrCreateSource(Connection conn) throws Exception {
         String name = "usaspending.gov";
 
