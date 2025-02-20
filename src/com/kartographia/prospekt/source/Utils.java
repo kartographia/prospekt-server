@@ -1,15 +1,22 @@
 package com.kartographia.prospekt.source;
 import com.kartographia.prospekt.model.Address;
+import com.kartographia.prospekt.model.Person;
 
 import java.util.*;
 import java.math.BigDecimal;
 import java.util.concurrent.ConcurrentHashMap;
+import static javaxt.express.utils.StringUtils.camelCaseToUnderScore;
 
 import javaxt.json.JSONArray;
 import javaxt.json.JSONObject;
+import javaxt.sql.Connection;
+import javaxt.sql.Recordset;
 
 
 public class Utils {
+
+    private static ConcurrentHashMap<String, Long> addresses = new ConcurrentHashMap<>(1000000);
+    private static ConcurrentHashMap<String, Long> people = new ConcurrentHashMap<>(1000000);
 
     private static final HashMap<String, String> streetAbbreviations = getStreetAbbreviations();
     private static final HashMap<String, String> buildingAbbreviations = getBuildingAbbreviations();
@@ -215,6 +222,44 @@ public class Utils {
         }
 
         return new String[]{street, suite};
+    }
+
+
+  //**************************************************************************
+  //** getAddress
+  //**************************************************************************
+  /** Returns an Address model for the given parameters. Returns null if the
+   *  address is empty.
+   */
+    public static Address getAddress(String street, String street2,
+        String city, String state, String country, String zipCode){
+
+        if (street2!=null){
+            if (street==null) street = street2;
+            else street += ", " + street2;
+        }
+
+        Address address = new Address();
+        address.setStreet(street);
+        address.setCity(city);
+        address.setState(state);
+        address.setCountry(country); //fallback for missing state
+        String addressKey = null;
+        try{
+            addressKey = getAddress(address); //exclude zip!
+        }
+        catch(Exception e){}
+        address.setPostalCode(zipCode);
+
+
+        if (addressKey!=null && !addressKey.isBlank()){
+            addressKey = addressKey.toUpperCase();
+            address.setSearchTerm(addressKey);
+            return address;
+        }
+        else{
+            return null;
+        }
     }
 
 
@@ -533,6 +578,127 @@ public class Utils {
         directionAbbreviations.put("SE", "Southeast");
         directionAbbreviations.put("SW", "Southwest");
         return directionAbbreviations;
+    }
+
+
+
+  //**************************************************************************
+  //** getOrCreateAddress
+  //**************************************************************************
+    public static synchronized Long getOrCreateAddress(Address address, Connection conn) throws Exception {
+
+        Long addressID = address.getID();
+        String addressKey = address.getSearchTerm();
+
+        synchronized(addresses){
+            if (addressID==null){
+                addressID = addresses.get(addressKey);
+            }
+            else{
+                if (!addresses.containsKey(addressKey)) addresses.put(addressKey, addressID);
+            }
+        }
+        if (addressID!=null) return addressID;
+
+
+        try (Recordset rs = conn.getRecordset(
+            "select * from address where search_term='" + addressKey.replace("'", "''") + "'", false)){ //lazy key search
+
+            if (rs.EOF){
+                rs.addNew();
+                rs.setValue("search_term", addressKey);
+                JSONObject _address = address.toJson();
+                for (String key : _address.keySet()){
+                    if (key.equals("info")){
+                        if (!_address.isNull(key)){
+                            rs.setValue(key, new javaxt.sql.Function(
+                                "?::jsonb", new Object[]{
+                                    _address.get(key).toString()
+                                }
+                            ));
+                        }
+                    }
+                    else{
+                        rs.setValue(key, _address.get(key));
+                    }
+                }
+                rs.update();
+                addressID = rs.getGeneratedKey().toLong();
+            }
+            else{
+                addressID = rs.getValue("id").toLong();
+            }
+        }
+
+        if (addressID!=null){
+            synchronized(addresses){
+                addresses.put(addressKey, addressID);
+                addresses.notify();
+            }
+        }
+
+        return addressID;
+    }
+
+
+  //**************************************************************************
+  //** getOrCreatePerson
+  //**************************************************************************
+    public static synchronized Long getOrCreatePerson(Person person, Connection conn) throws Exception {
+
+        Long personID = person.getID();
+        String searchTerm = person.getSearchTerm();
+
+        synchronized(people){
+            if (personID==null){
+                personID = people.get(searchTerm);
+            }
+            else{
+                if (!people.containsKey(searchTerm)) people.put(searchTerm, personID);
+            }
+        }
+        if (personID!=null) return personID;
+
+
+        try (Recordset rs = conn.getRecordset(
+            "select * from person where search_term='" + searchTerm.replace("'", "''") + "'", false)){ //lazy key search
+
+            if (rs.EOF){
+                rs.addNew();
+                rs.setValue("search_term", searchTerm);
+
+                JSONObject json = person.toJson();
+                for (String key : json.keySet()){
+                    if (key.equals("info")){
+                        if (!json.isNull(key)){
+                            rs.setValue(key, new javaxt.sql.Function(
+                                "?::jsonb", new Object[]{
+                                    json.get(key).toString()
+                                }
+                            ));
+                        }
+                    }
+                    else{
+                        rs.setValue(camelCaseToUnderScore(key), json.get(key));
+                    }
+                }
+
+                rs.update();
+                personID = rs.getGeneratedKey().toLong();
+            }
+            else{
+                personID = rs.getValue("id").toLong();
+            }
+        }
+
+        if (personID!=null){
+            synchronized(people){
+                people.put(searchTerm, personID);
+                people.notify();
+            }
+        }
+
+        return personID;
     }
 
 }
