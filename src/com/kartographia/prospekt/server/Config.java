@@ -1,4 +1,6 @@
 package com.kartographia.prospekt.server;
+import com.kartographia.prospekt.utils.LuceneIndex;
+
 import java.util.*;
 
 import javaxt.json.*;
@@ -49,6 +51,13 @@ public class Config {
             updateDir("jobDir", webConfig, configFile, true);
             updateDir("scriptDir", webConfig, configFile, false);
             updateFile("keystore", webConfig, configFile);
+        }
+
+
+      //Update relative paths in the index config
+        JSONObject index = json.get("index").toJSONObject();
+        if (index!=null){
+            updateDir("path", index, configFile, true);
         }
 
 
@@ -177,6 +186,14 @@ public class Config {
 
 
   //**************************************************************************
+  //** getDatabase
+  //**************************************************************************
+    public static javaxt.sql.Database getDatabase(){
+        return config.getDatabase();
+    }
+
+
+  //**************************************************************************
   //** getAwardsDatabase
   //**************************************************************************
     public static Database getAwardsDatabase() {
@@ -293,10 +310,19 @@ public class Config {
 
 
   //**************************************************************************
-  //** getDatabase
+  //** getIndex
   //**************************************************************************
-    public static javaxt.sql.Database getDatabase(){
-        return config.getDatabase();
+    public synchronized static LuceneIndex getIndex(String name) throws Exception {
+        Object o = config.get("index").get(name).toObject();
+        if (o==null){
+            var dir = new javaxt.io.Directory(config.get("index").get("path") + name);
+            LuceneIndex index = new LuceneIndex(dir);
+            config.get("index").toJSONObject().set(name, index);
+            return index;
+        }
+        else{
+            return (LuceneIndex) o;
+        }
     }
 
 }
