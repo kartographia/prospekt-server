@@ -4,6 +4,7 @@ import com.kartographia.prospekt.model.Person;
 import com.kartographia.prospekt.model.Company;
 import com.kartographia.prospekt.service.*;
 import com.kartographia.prospekt.source.*;
+import com.kartographia.prospekt.utils.LuceneIndex;
 
 import java.util.*;
 import java.io.IOException;
@@ -395,6 +396,64 @@ public class WebServices extends WebService {
         catch(Exception e){
             return new ServiceResponse(e);
         }
+    }
+
+
+  //**************************************************************************
+  //** getCompanies
+  //**************************************************************************
+  /** Overrides the native getCompanies method by adding support for keyword
+   *  search using a LuceneIndex.
+   */
+    public ServiceResponse getCompanies(ServiceRequest request, Database database)
+        throws Exception {
+
+        String query = request.getParameter("q").toString();
+        if (query!=null){
+            try{
+                LuceneIndex index = Config.getIndex("companies");
+
+                int offset = 0;
+                if (request.getOffset()!=null){
+                    offset = request.getOffset().intValue();
+                }
+
+
+                int limit;
+                if (request.getLimit()==null) limit = 25;
+                else{
+                    limit = request.getLimit().intValue();
+                    if (offset>0) limit += offset;
+                }
+
+
+                List<String> searchTerms = new ArrayList<>();
+                for (String str : query.split(" ")){
+                    searchTerms.add(str.trim());
+                }
+
+
+                ArrayList<String> ids = new ArrayList<>();
+                ArrayList<String> orderby = new ArrayList<>();
+                ArrayList<javaxt.utils.Record> records = index.getRecords(searchTerms, limit);
+                for (int i=offset; i<records.size(); i++){
+                    //console.log(records.get(i));
+                    String id = records.get(i).get("id").toString();
+                    ids.add(id);
+                    orderby.add("id='"+id+"' DESC");
+                }
+
+                request.setParameter("id", String.join(",", ids));
+                request.setParameter("orderby", String.join(",", orderby));
+                request.removeParameter("offset");
+                request.removeParameter("limit");
+                request.removeParameter("page");
+            }
+            catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+        return super.getServiceResponse(request, database);
     }
 
 
@@ -1049,6 +1108,7 @@ public class WebServices extends WebService {
     protected Recordset getRecordset(ServiceRequest request, String op,
         Class c, String sql, Connection conn) throws Exception {
 
+System.out.println(sql);
 
       //Get user and access level
         User user = (User) request.getUser();
