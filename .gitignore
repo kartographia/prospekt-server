@@ -1,21 +1,35 @@
-/data/
-/logs/
-
+# Ignore build artifacts
 /dist/
 /build/
 /target/
+
+
+# Ignore IDE stuff
 /nbproject/
 build.xml
 manifest.mf
 
 
+# Ignore any log files or directories
+/logs/
+*.log
+
+
+# Ignore select files/folders in the data directory
+/data/*.db
+/data/index/
+
+
+# Ignore config file
+[Cc]onfig.json
+
+
+# Ignore any temp/cache directories
+/temp/
 __pycache__/
 
 
-[Cc]onfig.json
-nb-configuration.xml
-
-*.log
+#Misc
 *.DS_Store
 *.dll
 **/test.html*
