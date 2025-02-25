@@ -28,6 +28,8 @@ public class Award extends javaxt.sql.Model {
     private Date endDate;
     private Date extendedDate;
     private Boolean competed;
+    private Integer numBids;
+    private String setAside;
     private Opportunity opportunity;
     private Company recipient;
     private Source source;
@@ -40,7 +42,7 @@ public class Award extends javaxt.sql.Model {
   //**************************************************************************
     public Award(){
         super("award", java.util.Map.ofEntries(
-
+            
             java.util.Map.entry("name", "name"),
             java.util.Map.entry("description", "description"),
             java.util.Map.entry("date", "date"),
@@ -55,6 +57,8 @@ public class Award extends javaxt.sql.Model {
             java.util.Map.entry("endDate", "end_date"),
             java.util.Map.entry("extendedDate", "extended_date"),
             java.util.Map.entry("competed", "competed"),
+            java.util.Map.entry("numBids", "num_bids"),
+            java.util.Map.entry("setAside", "set_aside"),
             java.util.Map.entry("opportunity", "opportunity_id"),
             java.util.Map.entry("recipient", "recipient_id"),
             java.util.Map.entry("source", "source_id"),
@@ -62,7 +66,7 @@ public class Award extends javaxt.sql.Model {
             java.util.Map.entry("info", "info")
 
         ));
-
+        
     }
 
 
@@ -112,6 +116,8 @@ public class Award extends javaxt.sql.Model {
             this.endDate = getValue(rs, "end_date").toDate();
             this.extendedDate = getValue(rs, "extended_date").toDate();
             this.competed = getValue(rs, "competed").toBoolean();
+            this.numBids = getValue(rs, "num_bids").toInteger();
+            this.setAside = getValue(rs, "set_aside").toString();
             Long opportunityID = getValue(rs, "opportunity_id").toLong();
             Long recipientID = getValue(rs, "recipient_id").toLong();
             Long sourceID = getValue(rs, "source_id").toLong();
@@ -162,6 +168,8 @@ public class Award extends javaxt.sql.Model {
         this.endDate = json.get("endDate").toDate();
         this.extendedDate = json.get("extendedDate").toDate();
         this.competed = json.get("competed").toBoolean();
+        this.numBids = json.get("numBids").toInteger();
+        this.setAside = json.get("setAside").toString();
         if (json.has("opportunity")){
             opportunity = new Opportunity(json.get("opportunity").toJSONObject());
         }
@@ -306,6 +314,22 @@ public class Award extends javaxt.sql.Model {
         this.competed = competed;
     }
 
+    public Integer getNumBids(){
+        return numBids;
+    }
+
+    public void setNumBids(Integer numBids){
+        this.numBids = numBids;
+    }
+
+    public String getSetAside(){
+        return setAside;
+    }
+
+    public void setSetAside(String setAside){
+        this.setAside = setAside;
+    }
+
     public Opportunity getOpportunity(){
         return opportunity;
     }
@@ -345,8 +369,8 @@ public class Award extends javaxt.sql.Model {
     public void setInfo(JSONObject info){
         this.info = info;
     }
-
-
+    
+    
 
 
   //**************************************************************************

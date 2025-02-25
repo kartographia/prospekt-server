@@ -252,6 +252,8 @@ var models = {
             {name: 'endDate',           type: 'date'}, //current end date
             {name: 'extendedDate',      type: 'date'}, //potential end date
             {name: 'competed',          type: 'boolean'},
+            {name: 'numBids',           type: 'integer'},
+            {name: 'setAside',          type: 'string'}, //8A, SDVOBS, EDWOSB
             {name: 'opportunity',       type: 'Opportunity'}, //link to an opportunity
             {name: 'recipient',         type: 'Company'}, //link to a company
             {name: 'source',            type: 'Source'}, //usaspending.gov
