@@ -7,7 +7,6 @@ import java.util.*;
 import java.util.zip.*;
 import java.math.BigDecimal;
 import static java.lang.Integer.parseInt;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javaxt.sql.*;
@@ -192,9 +191,8 @@ public class USASpending {
 
 
           //Create or update codes in our database
-            Iterator<String> it = codes.keySet().iterator();
-            while (it.hasNext()){
-                JSONObject code = codes.get(it.next());
+            for (String key : codes.keySet()){
+                JSONObject code = codes.get(key);
                 Long id = code.get("id").toLong();
 
 
@@ -221,7 +219,8 @@ public class USASpending {
   //**************************************************************************
   /** Used to update all the companies in the database
    */
-    public static void updateCompanies(Database in, Database out, int numThreads) throws Exception {
+    public static void updateCompanies(Database usaspending, Database prospekt,
+        int numThreads) throws Exception {
 
 
         AtomicLong recordCounter = new AtomicLong(0);
@@ -231,7 +230,7 @@ public class USASpending {
 
       //Get sourceID
         long sourceID;
-        try (Connection conn = out.getConnection()){
+        try (Connection conn = prospekt.getConnection()){
             sourceID = getOrCreateSource(conn);
         }
 
@@ -242,11 +241,11 @@ public class USASpending {
                 String uei = (String) obj;
 
                 Connection conn = (Connection) get("conn", () -> {
-                    return in.getConnection();
+                    return usaspending.getConnection();
                 });
 
                 Connection c2 = (Connection) get("c2", () -> {
-                    return out.getConnection();
+                    return prospekt.getConnection();
                 });
 
                 try{
@@ -272,7 +271,7 @@ public class USASpending {
       //Add UEIs to the pool to process
         long t = 0;
         String sql = getQuery("usaspending", "distinct_uei");
-        try (Connection conn = in.getConnection()){
+        try (Connection conn = usaspending.getConnection()){
             for (javaxt.sql.Record record : conn.getRecords(sql)){
                 String uei = record.get(0).toString();
                 if (uei!=null){
@@ -296,15 +295,18 @@ public class USASpending {
   //**************************************************************************
   /** Used to update company name, addresses, and officers
    *  @param uei Company ID
-   *  @param in Input database (usaspending.gov)
-   *  @param out Output database (prospekt database)
+   *  @param usaspending Input database
+   *  @param prospekt Output database
    */
-    public static void updateCompany(String uei, Connection in, Connection out)
-        throws Exception {
+    public static void updateCompany(String uei, Database usaspending,
+        Database prospekt) throws Exception {
 
-      //Get sourceID
-        long sourceID = getOrCreateSource(out);
-        updateCompany(uei, sourceID, in, out);
+        try(Connection in = usaspending.getConnection()){
+            try(Connection out = prospekt.getConnection()){
+                long sourceID = getOrCreateSource(out);
+                updateCompany(uei, sourceID, in, out);
+            }
+        }
     }
 
 
@@ -373,6 +375,7 @@ public class USASpending {
                     CompanyAddress companyAddress = new CompanyAddress();
                     companyAddress.setAddress(address);
                     companyAddress.setDate(lastUpdate);
+                    companyAddress.setType("HQ");
                     address.setSearchTerm(addressKey);
                     addresses.put(addressKey, companyAddress);
                 }
@@ -464,14 +467,12 @@ public class USASpending {
         }
 
 
-        Iterator<String> it, i2;
 
 
 
       //Process company info
-        it = companyNames.keySet().iterator();
-        while (it.hasNext()){
-            uei = it.next();
+        for (String key : companyNames.keySet()){
+            uei = key;
 
 
           //Get or create company
@@ -500,9 +501,7 @@ public class USASpending {
                   //Update metadata
                     JSONArray arr = new JSONArray();
                     info.set("names", arr);
-                    i2 = names.keySet().iterator();
-                    while (i2.hasNext()){
-                        String companyName = i2.next();
+                    for (String companyName : names.keySet()){
                         javaxt.utils.Date lastUpdate = names.get(companyName);
 
                         JSONObject json = new JSONObject();
@@ -528,9 +527,8 @@ public class USASpending {
           //Get or create addresses
             //console.log("Addresses:");
             LinkedHashMap<String, CompanyAddress> addresses = companyAddresses.get(uei);
-            i2 = addresses.keySet().iterator();
-            while (i2.hasNext()){
-                String addressKey = i2.next();
+            for (String addressKey : addresses.keySet()){
+
                 CompanyAddress companyAddress = addresses.get(addressKey);
                 javaxt.utils.Date lastUpdate = companyAddress.getDate();
 
@@ -564,9 +562,7 @@ public class USASpending {
             //console.log("Officers:");
             LinkedHashMap<String, CompanyOfficer> officers = companyOfficers.get(uei);
             if (officers!=null){
-                i2 = officers.keySet().iterator();
-                while (i2.hasNext()){
-                    String searchTerm = i2.next();
+                for (String searchTerm : officers.keySet()){
                     CompanyOfficer officer = officers.get(searchTerm);
                     Person person = officer.getPerson();
 
@@ -598,9 +594,7 @@ public class USASpending {
                             salaryHistory = new JSONArray();
                             info.set("salaryHistory", salaryHistory);
                             Integer prevSal = null;
-                            Iterator<String> i3 = salaries.keySet().iterator();
-                            while (i3.hasNext()){
-                                String date = i3.next();
+                            for (String date : salaries.keySet()){
                                 TreeSet<Integer> s = salaries.get(date);
                                 Integer sal = s.last(); //biggest value
 
@@ -699,6 +693,10 @@ public class USASpending {
 
           //Get award ID (sourceKey)
             String awardID = getString(record.get("piid"));
+            if (awardID==null){
+                System.out.println("ERROR: null piid. Check awards for " + uei);
+                continue;
+            }
 
 
           //Get descriptive name of the award
@@ -724,7 +722,6 @@ public class USASpending {
             if (description.isEmpty()) description = null;
 
 
-
           //Get type of award
             String type = null;
             if (in(record.get("type_of_contract_pricing"), "A,B,J,K,L,M")){
@@ -741,17 +738,18 @@ public class USASpending {
             }
 
 
+          //Get contract vehicle (e.g. BPA, GWAC, etc)
+            String idv = record.get("idv_type_description").toString();
+
+
           //Get value of the award
             Double awardedValue = record.get("awarded_value").toDouble();
             Double fundedValue = record.get("funded_value").toDouble();
             Double extendedValue = record.get("extended_value").toDouble();
 
 
-
-
           //Get naics code of the award
             String naics = getString(record.get("naics"));
-
 
 
           //Get customer and office
@@ -775,14 +773,21 @@ public class USASpending {
             javaxt.utils.Date extendedDate = record.get("extended_date").toDate();
 
 
-          //Get competed
+          //Get competition info
             boolean competed = in(record.get("extent_competed"), "A,D,E,F,CDO");
-
+            Integer numBids = record.get("number_of_offers_received").toInteger();
+            if (numBids!=null) if (numBids<2) competed = false;
+            String setAside = record.get("type_set_aside").toString();
+            if (setAside!=null){
+                setAside = setAside.trim();
+                if (setAside.isEmpty() || setAside.equals("NONE")){
+                    setAside = null;
+                }
+            }
 
 
           //Create/update award
             JSONObject award;
-            if (awardID==null) awardID = ""; //very rare NPE
             if (awardID.equals(prevAward.get("source_key").toString())){
                 award = prevAward;
 
@@ -837,10 +842,13 @@ public class USASpending {
                 award.set("end_date", endDate);
                 award.set("extended_date", extendedDate);
                 award.set("competed", competed);
+                award.set("num_bids", numBids);
+                award.set("set_aside", setAside);
                 award.set("source_key", awardID);
 
 
                 JSONObject info = new JSONObject();
+                if (idv!=null) info.set("idv", idv);
                 award.set("info", info);
 
                 JSONArray actions = new JSONArray();
@@ -917,9 +925,7 @@ public class USASpending {
             }
 
             BigDecimal totalFunding = new BigDecimal(0);
-            Iterator<String> it = titles.keySet().iterator();
-            while (it.hasNext()){
-                String date = it.next();
+            for (String date : titles.keySet()){
                 String desc = titles.get(date);
 
                 if (desc!=null && award.isNull("name")){
@@ -951,7 +957,8 @@ public class USASpending {
    *  @param companyID Database key associated with the company
    *  @param conn Connection to the prospekt database
    */
-    private static void saveAwards(ArrayList<JSONObject> awards, Long companyID, long sourceID, Connection conn) throws Exception {
+    private static void saveAwards(ArrayList<JSONObject> awards,
+        Long companyID, long sourceID, Connection conn) throws Exception {
         if (companyID==null) throw new Exception();
 
 
@@ -1136,9 +1143,7 @@ public class USASpending {
       //Compute annual revenue and total backlog
         var today = parseInt(lastUpdate.toString("yyyyMMdd"));
         var lastYear = parseInt(prevYear.toString("yyyyMMdd"));
-        Iterator<String> it = revenue.keySet().iterator();
-        while (it.hasNext()){
-            String date = it.next();
+        for (String date : revenue.keySet()){
             var d = parseInt(date.replaceAll("-",""));
 
             if (d>today){
@@ -1186,9 +1191,7 @@ public class USASpending {
 
 
             JSONObject monthlyRevenue = new JSONObject();
-            it = revenue.keySet().iterator();
-            while (it.hasNext()){
-                String date = it.next();
+            for (String date : revenue.keySet()){
                 monthlyRevenue.set(date, revenue.get(date));
             }
 

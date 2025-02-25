@@ -21,11 +21,14 @@ commercial_item_acqui_desc,
 solicitation_identifier,
 solicitation_date,
 extent_competed, -- Code for things like competed vs not competed
+number_of_offers_received,
+type_set_aside,
 
 
 -- Type of Contract --
 contract_award_type, -- Code
 type_of_contract_pricing, -- Code for things like FFP, T&M, etc
+idv_type_description, --Code for thing like BPA, FSS
 
 
 -- Type of Service --
