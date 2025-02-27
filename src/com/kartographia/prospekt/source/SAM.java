@@ -265,6 +265,15 @@ public class SAM {
   /** Used to create/update an individual company using information from the
    *  sam.gov api.
    */
+    public static void updateCompany(String uei, Database database) throws Exception {
+        JSONObject entity = SAM.getEntity(uei);
+        if (entity!=null) updateCompany(entity, database);
+    }
+
+
+  //**************************************************************************
+  //** updateCompany
+  //**************************************************************************
     private static void updateCompany(JSONObject entity, Database database) throws Exception {
 
       //Parse entityRegistration
@@ -461,6 +470,7 @@ public class SAM {
                         if (address!=null){
                            var contact = new javaxt.utils.Record();
                            contact.set("address", address);
+                           contact.set("addressType", "HQ");
                            contacts.add(0, contact);
                         }
                     }
@@ -543,6 +553,7 @@ public class SAM {
 
           //Create or update company address
             Address address = (Address) contact.get("address").toObject();
+            String addressType = contact.get("addressType").toString();
             if (address!=null){
                 Long addressID = getOrCreateAddress(address, conn);
                 try (Recordset rs = conn.getRecordset(
@@ -553,6 +564,7 @@ public class SAM {
                         rs.addNew();
                         rs.setValue("company_id", companyID);
                         rs.setValue("address_id", addressID);
+                        rs.setValue("type", addressType);
                     }
 
                     if (lastUpdate!=null){
