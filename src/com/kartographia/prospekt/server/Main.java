@@ -1,6 +1,7 @@
 package com.kartographia.prospekt.server;
 import com.kartographia.prospekt.source.*;
 import com.kartographia.prospekt.model.*;
+import com.kartographia.prospekt.utils.*;
 
 import java.util.*;
 
@@ -198,6 +199,9 @@ public class Main {
         else if (str.equals("awards")){
             updateAwards(args);
         }
+        else if (str.equals("index")){
+            updateIndex(args);
+        }
     }
 
 
@@ -377,6 +381,17 @@ public class Main {
 
 
   //**************************************************************************
+  //** updateIndex
+  //**************************************************************************
+    private static void updateIndex(HashMap<String, String> args) throws Exception {
+        Config.initDatabase();
+        javaxt.sql.Database database = Config.getDatabase();
+        LuceneIndex index = Config.getIndex("companies");
+        Maintenance.updateCompanyIndex(index, database);
+    }
+
+
+  //**************************************************************************
   //** updateUSASpending
   //**************************************************************************
     private static void updateUSASpending(HashMap<String, String> args) throws Exception {
@@ -412,12 +427,11 @@ public class Main {
         javaxt.sql.Database out = Config.getDatabase();
 
 
-      //Update company
-        try(Connection c1 = in.getConnection()){
-            try(Connection c2 = out.getConnection()){
-                USASpending.updateCompany(uei, c1, c2);
-            }
-        }
+      //Update company using data from USASpending
+        USASpending.updateCompany(uei, in, out);
+
+      //Update company using data from SAM
+        SAM.updateCompany(uei, out);
     }
 
 
@@ -434,7 +448,15 @@ public class Main {
         String source = args.get("-source").toLowerCase();
         if (source.equals("sam.gov")){
 
-            javaxt.io.File input = new javaxt.io.File(args.get("-input"));
+            javaxt.io.File input;
+            try{
+                input = new javaxt.io.File(args.get("-input"));
+            }
+            catch(Exception e){
+                System.out.println("Invalid -input");
+                return;
+            }
+
 
           //Initialize prospekt database
             Config.initDatabase();
@@ -504,6 +526,9 @@ public class Main {
     private static void test(HashMap<String, String> args) throws Exception {
 
         String test = args.get("-test").toLowerCase();
+        if (test==null) test = "";
+        else test = test.toLowerCase();
+
         if (test.equals("database")){
 
             Config.initDatabase();
@@ -529,8 +554,11 @@ public class Main {
         else if (test.equals("sam")){
             testSAM(args);
         }
+        else if (test.equals("index")){
+            testIndex(args);
+        }
         else{
-            System.out.println("\"" + test + "\" test not found");
+            System.out.println("Test not found. Check -test argument.");
         }
     }
 
@@ -541,7 +569,9 @@ public class Main {
     private static void testSAM(HashMap<String, String> args) throws Exception {
         Config.initDatabase();
 
-        String get = args.get("-get").toLowerCase();
+        String get = args.get("-get");
+        if (get==null) get = "";
+        else get = get.toLowerCase();
 
         if (get.equals("opportunity")){
             //Opportunity opp = SAM.getOpportunity(null, null);
@@ -554,8 +584,14 @@ public class Main {
         }
         else if (get.equals("entity")){
             JSONObject entity = SAM.getEntity(args.get("-uei"));
+
+            System.out.println(entity.toString(4));
+
             JSONArray arr = entity.get("coreData").get("businessTypes").get("businessTypeList").toJSONArray();
             System.out.println(arr.toString(4));
+        }
+        else{
+            System.out.println("Test not found. Check -get argument.");
         }
     }
 
@@ -574,6 +610,26 @@ public class Main {
             for (Table table : Database.getTables(conn)){
                 System.out.println(table);
             }
+        }
+    }
+
+
+  //**************************************************************************
+  //** testIndex
+  //**************************************************************************
+    private static void testIndex(HashMap<String, String> args) throws Exception {
+
+        String company = args.get("-company");
+        if (company!=null){
+            LuceneIndex index = Config.getIndex("companies");
+            List<String> searchTerms = new ArrayList<>();
+            searchTerms.add(company);
+            for (javaxt.utils.Record record : index.getRecords(searchTerms, 10)){
+                console.log(new JSONObject(record));
+            }
+        }
+        else{
+            System.out.println("Test not found.");
         }
     }
 
