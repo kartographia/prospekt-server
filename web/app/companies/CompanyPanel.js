@@ -92,7 +92,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
         var companyFilter = document.user.preferences.get("CompanyFilter");
         if (!companyFilter){
-            filter.recent_award_val = ">1";
+            filter.recent_award_val = ""; //>1
             filter.estimated_revenue = "";
         }
         else{
@@ -315,7 +315,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                     filter[key] = "";
                 }
             }
-            filter.recent_award_val = ">1";
+            filter.recent_award_val = ""; //>1
             filter.estimated_revenue = "";
 
 
@@ -381,8 +381,13 @@ prospekt.companies.CompanyPanel = function(parent, config) {
 
 
             if (field==="Search"){
-                if (values && values.length>0){
+                if (values){
                     values = values.trim();
+                    if (values.length===0) values = null;
+                }
+                if (values){
+                    filter.q = values;
+                    /*
                     if (values.indexOf(" ")===-1){
                         filter.name = "'" + values.toUpperCase() + "%'" +
                         " OR company.name like " + "'% " + values.toUpperCase() + "%'";
@@ -390,9 +395,10 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                     else{
                         filter.name = "'" + values.toUpperCase() + "%'";
                     }
+                    */
                 }
                 else{
-                    delete filter.name;
+                    delete filter.q;
                 }
             }
             else if (field==="Revenue"){
@@ -401,7 +407,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                     where.push(">" + values.min);
                 }
                 else{
-                    where.push(">1");
+                    //where.push(">1");
                 }
                 if (values.max){
                     where.push("<" + values.max);
@@ -504,8 +510,9 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                 if (filter.hasOwnProperty(key)){
                     var val = filter[key];
 
-                    if (key==="name"){
+                    if (key==="name" || key==="q"){
 
+                        /*
                         if (val.indexOf("'")===0 && val.lastIndexOf("'")===val.length-1){
                             val = val.substring(1, val.length-1).trim();
                             val = val.replaceAll("%", " ").trim();
@@ -521,6 +528,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
                             });
                             val = Object.keys(v).join(" ").trim();
                         }
+                        */
 
                         toolbarFilter.Search = val;
 
@@ -878,6 +886,7 @@ prospekt.companies.CompanyPanel = function(parent, config) {
   //**************************************************************************
     var createFooter = function(parent){
         var div = createElement("div", parent, "company-list footer");
+        addShowHide(div);
         div.clear = function(){
             this.innerHTML = "";
         };
